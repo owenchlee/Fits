@@ -1,0 +1,265 @@
+import { db } from "@/lib/db/db";
+import { generateId } from "@/lib/id";
+import { estimateOneRepMax } from "@/lib/calc/one-rep-max";
+import type { AppSettings, BodyMetric, Program, ProgramExercise, SetEntry, Workout } from "@/lib/db/types";
+
+export async function createCustomProgram(data: {
+  name: string;
+  description: string;
+  days: Array<{ name: string; exercises: ProgramExercise[] }>;
+}): Promise<string> {
+  const id = generateId();
+  const program: Program = {
+    id,
+    name: data.name,
+    description: data.description,
+    author: "You",
+    isCustom: true,
+    daysPerWeek: data.days.length,
+    days: data.days.map((d) => ({ id: generateId(), name: d.name, exercises: d.exercises })),
+  };
+  await db.programs.add(program);
+  return id;
+}
+
+export async function updateProgram(id: string, patch: Partial<Program>) {
+  await db.programs.update(id, patch);
+}
+
+export async function deleteProgram(id: string) {
+  await db.programs.delete(id);
+  const settings = await getSettings();
+  if (settings.activeProgramId === id) await updateSettings({ activeProgramId: undefined, activeProgramDayIndex: 0 });
+}
+
+export async function getSettings(): Promise<AppSettings> {
+  const settings = await db.settings.get("singleton");
+  if (settings) return settings;
+  const defaults: AppSettings = {
+    id: "singleton",
+    unitSystem: "lb",
+    sex: "male",
+    bodyweightKg: 80,
+    defaultRestSeconds: 120,
+    barWeightKg: 20,
+    availablePlatesKg: [25, 20, 15, 10, 5, 2.5, 1.25],
+    streak: 0,
+  };
+  await db.settings.add(defaults);
+  return defaults;
+}
+
+export async function updateSettings(patch: Partial<AppSettings>) {
+  await db.settings.update("singleton", patch);
+}
+
+function todayKey(date = new Date()): string {
+  return date.toISOString().slice(0, 10);
+}
+
+export async function startWorkout(opts: {
+  programId?: string;
+  programDayName?: string;
+  title: string;
+  exerciseOrder?: string[];
+}): Promise<string> {
+  const id = generateId();
+  const workout: Workout = {
+    id,
+    programId: opts.programId,
+    programDayName: opts.programDayName,
+    title: opts.title,
+    startedAt: Date.now(),
+    exerciseOrder: opts.exerciseOrder ?? [],
+  };
+  await db.workouts.add(workout);
+  return id;
+}
+
+export async function addExerciseToWorkout(workoutId: string, exerciseId: string) {
+  const workout = await db.workouts.get(workoutId);
+  if (!workout) return;
+  if (workout.exerciseOrder.includes(exerciseId)) return;
+  await db.workouts.update(workoutId, { exerciseOrder: [...workout.exerciseOrder, exerciseId] });
+}
+
+export async function removeExerciseFromWorkout(workoutId: string, exerciseId: string) {
+  const workout = await db.workouts.get(workoutId);
+  if (!workout) return;
+  await db.transaction("rw", db.workouts, db.sets, async () => {
+    await db.sets
+      .where("workoutId")
+      .equals(workoutId)
+      .filter((s) => s.exerciseId === exerciseId)
+      .delete();
+    await db.workouts.update(workoutId, {
+      exerciseOrder: workout.exerciseOrder.filter((id) => id !== exerciseId),
+    });
+  });
+}
+
+export async function setActiveProgram(programId: string | undefined) {
+  await updateSettings({ activeProgramId: programId, activeProgramDayIndex: 0 });
+}
+
+export async function advanceProgramDay(totalDays: number) {
+  const settings = await getSettings();
+  const next = ((settings.activeProgramDayIndex ?? 0) + 1) % Math.max(totalDays, 1);
+  await updateSettings({ activeProgramDayIndex: next });
+}
+
+export async function getActiveWorkout(): Promise<Workout | undefined> {
+  return db.workouts.filter((w) => !w.completedAt).first();
+}
+
+export async function discardWorkout(workoutId: string) {
+  await db.transaction("rw", db.workouts, db.sets, async () => {
+    await db.sets.where("workoutId").equals(workoutId).delete();
+    await db.workouts.delete(workoutId);
+  });
+}
+
+export async function completeWorkout(workoutId: string) {
+  await db.workouts.update(workoutId, { completedAt: Date.now() });
+
+  const settings = await getSettings();
+  const today = todayKey();
+  const yesterday = todayKey(new Date(Date.now() - 86400000));
+
+  if (settings.lastWorkoutDate === today) {
+    // already counted today
+    return;
+  }
+  const nextStreak = settings.lastWorkoutDate === yesterday ? settings.streak + 1 : 1;
+  await updateSettings({ streak: nextStreak, lastWorkoutDate: today });
+}
+
+export async function addSet(entry: {
+  workoutId: string;
+  exerciseId: string;
+  weightKg: number;
+  reps: number;
+  rpe?: number;
+  isWarmup?: boolean;
+  isFailure?: boolean;
+  isDropSet?: boolean;
+}): Promise<string> {
+  const existingCount = await db.sets
+    .where("workoutId")
+    .equals(entry.workoutId)
+    .filter((s) => s.exerciseId === entry.exerciseId)
+    .count();
+
+  const id = generateId();
+  const set: SetEntry = {
+    id,
+    workoutId: entry.workoutId,
+    exerciseId: entry.exerciseId,
+    setIndex: existingCount,
+    weightKg: entry.weightKg,
+    reps: entry.reps,
+    rpe: entry.rpe,
+    isWarmup: entry.isWarmup ?? false,
+    isFailure: entry.isFailure ?? false,
+    isDropSet: entry.isDropSet ?? false,
+    completedAt: Date.now(),
+  };
+  await db.sets.add(set);
+  return id;
+}
+
+export async function updateSet(id: string, patch: Partial<SetEntry>) {
+  await db.sets.update(id, patch);
+}
+
+export async function deleteSet(id: string) {
+  await db.sets.delete(id);
+}
+
+export async function getLastPerformance(
+  exerciseId: string,
+  excludeWorkoutId?: string
+): Promise<SetEntry[]> {
+  const sets = await db.sets
+    .where("exerciseId")
+    .equals(exerciseId)
+    .filter((s) => s.workoutId !== excludeWorkoutId)
+    .toArray();
+  if (sets.length === 0) return [];
+  const lastWorkoutId = sets.sort((a, b) => b.completedAt - a.completedAt)[0].workoutId;
+  return sets
+    .filter((s) => s.workoutId === lastWorkoutId)
+    .sort((a, b) => a.setIndex - b.setIndex);
+}
+
+export async function getBestEstimatedOneRepMax(exerciseId: string): Promise<number> {
+  const sets = await db.sets.where("exerciseId").equals(exerciseId).toArray();
+  return sets.reduce((best, s) => Math.max(best, estimateOneRepMax(s.weightKg, s.reps)), 0);
+}
+
+export async function logBodyMetric(metric: Omit<BodyMetric, "id">): Promise<string> {
+  const id = generateId();
+  await db.bodyMetrics.add({ ...metric, id });
+  if (metric.weightKg) await updateSettings({ bodyweightKg: metric.weightKg });
+  return id;
+}
+
+export async function deleteBodyMetric(id: string) {
+  await db.bodyMetrics.delete(id);
+}
+
+export async function computeWeeklyVolumeKg(): Promise<number> {
+  const weekAgo = Date.now() - 7 * 86400000;
+  const sets = await db.sets.filter((s) => s.completedAt >= weekAgo && !s.isWarmup).toArray();
+  return sets.reduce((sum, s) => sum + s.weightKg * s.reps, 0);
+}
+
+export async function getWorkoutsInRange(startMs: number, endMs: number): Promise<Workout[]> {
+  return db.workouts
+    .filter((w) => (w.completedAt ?? w.startedAt) >= startMs && (w.completedAt ?? w.startedAt) <= endMs)
+    .toArray();
+}
+
+export async function exportAllData() {
+  const [exercises, programs, workouts, sets, bodyMetrics, settings] = await Promise.all([
+    db.exercises.toArray(),
+    db.programs.toArray(),
+    db.workouts.toArray(),
+    db.sets.toArray(),
+    db.bodyMetrics.toArray(),
+    getSettings(),
+  ]);
+  return {
+    exportedAt: new Date().toISOString(),
+    exercises,
+    programs,
+    workouts,
+    sets,
+    bodyMetrics,
+    settings,
+  };
+}
+
+export async function resetAllData() {
+  await db.transaction(
+    "rw",
+    [db.exercises, db.programs, db.workouts, db.sets, db.bodyMetrics, db.settings],
+    async () => {
+      await Promise.all([
+        db.exercises.clear(),
+        db.programs.clear(),
+        db.workouts.clear(),
+        db.sets.clear(),
+        db.bodyMetrics.clear(),
+        db.settings.clear(),
+      ]);
+    }
+  );
+}
+
+export async function deleteWorkout(workoutId: string) {
+  await db.transaction("rw", db.workouts, db.sets, async () => {
+    await db.sets.where("workoutId").equals(workoutId).delete();
+    await db.workouts.delete(workoutId);
+  });
+}
