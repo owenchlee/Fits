@@ -6,6 +6,7 @@ import { Plus, Ruler, Trash } from "@phosphor-icons/react/dist/ssr";
 import { useBodyMetrics, useSettings } from "@/lib/db/hooks";
 import { logBodyMetric, deleteBodyMetric } from "@/lib/db/repo";
 import { fromDisplayWeight, formatWeight, toDisplayWeight } from "@/lib/calc/units";
+import { sanitizeDecimalInput } from "@/lib/format";
 import { PageHeader } from "@/components/shared/page-header";
 import { EmptyState } from "@/components/shared/empty-state";
 import { TrendChart, type TrendPoint } from "@/components/charts/trend-chart";
@@ -84,7 +85,7 @@ export default function MeasurementsPage() {
                     id="weight"
                     inputMode="decimal"
                     value={weight}
-                    onChange={(e) => setWeight(e.target.value)}
+                    onChange={(e) => setWeight(sanitizeDecimalInput(e.target.value))}
                     className="h-10 w-full rounded-lg border border-input bg-secondary px-3 text-sm tabular-nums focus:border-ring focus:outline-none"
                   />
                 </div>
@@ -96,7 +97,7 @@ export default function MeasurementsPage() {
                     id="bodyfat"
                     inputMode="decimal"
                     value={bodyFat}
-                    onChange={(e) => setBodyFat(e.target.value)}
+                    onChange={(e) => setBodyFat(sanitizeDecimalInput(e.target.value))}
                     className="h-10 w-full rounded-lg border border-input bg-secondary px-3 text-sm tabular-nums focus:border-ring focus:outline-none"
                   />
                 </div>
@@ -109,7 +110,9 @@ export default function MeasurementsPage() {
                       id={field}
                       inputMode="decimal"
                       value={measurements[field] ?? ""}
-                      onChange={(e) => setMeasurements((prev) => ({ ...prev, [field]: e.target.value }))}
+                      onChange={(e) =>
+                        setMeasurements((prev) => ({ ...prev, [field]: sanitizeDecimalInput(e.target.value) }))
+                      }
                       className="h-10 w-full rounded-lg border border-input bg-secondary px-3 text-sm tabular-nums focus:border-ring focus:outline-none"
                     />
                   </div>
@@ -131,7 +134,11 @@ export default function MeasurementsPage() {
       </section>
 
       {metrics.length === 0 ? (
-        <EmptyState icon={Ruler} title="No entries yet" />
+        <EmptyState
+          icon={Ruler}
+          title="Nothing on the tape yet"
+          description="Log bodyweight or a measurement above to start tracking change over time."
+        />
       ) : (
         <div className="space-y-2">
           {metrics.map((m) => (

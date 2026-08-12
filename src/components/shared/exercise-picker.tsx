@@ -11,6 +11,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { AddExerciseDialog } from "@/components/shared/add-exercise-dialog";
 import { cn } from "@/lib/utils";
 import type { Exercise } from "@/lib/db/types";
 
@@ -58,8 +59,8 @@ export function ExercisePicker({
           </Button>
         )}
       </DialogTrigger>
-      <DialogContent className="max-h-[85vh] gap-0 p-0 sm:max-w-lg">
-        <DialogHeader className="border-b border-border p-4 pb-3">
+      <DialogContent className="flex max-h-[85vh] flex-col gap-0 overflow-hidden p-0 sm:max-w-lg">
+        <DialogHeader className="shrink-0 border-b border-border p-4 pb-3">
           <DialogTitle>{triggerLabel}</DialogTitle>
           <div className="relative mt-1">
             <MagnifyingGlass size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
@@ -88,7 +89,7 @@ export function ExercisePicker({
           </div>
         </DialogHeader>
 
-        <div className="max-h-[55vh] overflow-y-auto p-2">
+        <div className="min-h-0 flex-1 overflow-y-auto p-2">
           {filtered.length === 0 && (
             <p className="p-4 text-center text-sm text-muted-foreground">No exercises match.</p>
           )}
@@ -114,6 +115,20 @@ export function ExercisePicker({
               </button>
             );
           })}
+        </div>
+
+        <div className="shrink-0 border-t border-border p-2">
+          <AddExerciseDialog
+            trigger={
+              <Button type="button" variant="ghost" size="sm" className="w-full justify-center text-muted-foreground">
+                <Plus size={14} /> Can&apos;t find it? Add a custom exercise
+              </Button>
+            }
+            onCreated={(exercise) => {
+              onSelect(exercise);
+              setOpen(false);
+            }}
+          />
         </div>
       </DialogContent>
     </Dialog>

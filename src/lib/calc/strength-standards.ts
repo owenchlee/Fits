@@ -1,4 +1,4 @@
-import type { Sex } from "@/lib/db/types";
+import type { Exercise, Sex } from "@/lib/db/types";
 
 export type StandardLift = "squat" | "bench" | "deadlift" | "overhead-press";
 
@@ -98,6 +98,41 @@ export function calculateLiftPercentile(
   const nextTierMultiplier = tierIdx < 4 ? checkpoints[tierIdx + 1] * bodyweightKg : null;
 
   return { lift, multiplier, percentile, tier, nextTierMultiplier, nextTier };
+}
+
+export interface ExercisePercentileResult extends LiftPercentileResult {
+  exerciseId: string;
+  exerciseName: string;
+  /** True when this came from a ratio-to-anchor-lift estimate rather than a direct standards table. */
+  isEstimated: boolean;
+}
+
+/**
+ * Generalizes calculateLiftPercentile to any exercise: anchor lifts (squat/bench/deadlift/OHP) use
+ * their standards table directly, and any exercise with a standardLiftRatio (see seed-exercises.ts)
+ * gets a percentile by converting its weight to an equivalent anchor-lift weight first. Exercises
+ * with neither (isolation work like curls, leg extensions, planks) have no meaningful bodyweight-
+ * relative population data, so this returns null rather than fabricating one.
+ */
+export function calculateExercisePercentile(
+  exercise: Pick<Exercise, "id" | "name" | "standardLift" | "standardLiftRatio">,
+  liftWeightKg: number,
+  bodyweightKg: number,
+  sex: Sex
+): ExercisePercentileResult | null {
+  if (exercise.standardLift) {
+    const result = calculateLiftPercentile(exercise.standardLift, liftWeightKg, bodyweightKg, sex);
+    return { ...result, exerciseId: exercise.id, exerciseName: exercise.name, isEstimated: false };
+  }
+
+  if (exercise.standardLiftRatio && exercise.standardLiftRatio.ratio > 0) {
+    const { basedOn, ratio } = exercise.standardLiftRatio;
+    const equivalentAnchorWeightKg = liftWeightKg / ratio;
+    const result = calculateLiftPercentile(basedOn, equivalentAnchorWeightKg, bodyweightKg, sex);
+    return { ...result, exerciseId: exercise.id, exerciseName: exercise.name, isEstimated: true };
+  }
+
+  return null;
 }
 
 // --- DOTS: bodyweight-normalized total score, used for the overall composite percentile ---

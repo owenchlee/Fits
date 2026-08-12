@@ -1,7 +1,7 @@
 "use client";
 
 import { formatWeight } from "@/lib/calc/units";
-import { LIFT_LABELS, type LiftPercentileResult } from "@/lib/calc/strength-standards";
+import { LIFT_LABELS, type ExercisePercentileResult, type LiftPercentileResult } from "@/lib/calc/strength-standards";
 import { ordinalSuffix } from "@/lib/format";
 import type { UnitSystem } from "@/lib/db/types";
 import { cn } from "@/lib/utils";
@@ -14,14 +14,25 @@ const TIER_COLORS: Record<string, string> = {
   Elite: "bg-highlight",
 };
 
-export function LiftPercentileRow({ result, unit }: { result: LiftPercentileResult; unit: UnitSystem }) {
+export function LiftPercentileRow({
+  result,
+  unit,
+}: {
+  result: LiftPercentileResult | ExercisePercentileResult;
+  unit: UnitSystem;
+}) {
   const hasValue = result.multiplier > 0;
   const roundedPercentile = Math.round(result.percentile);
+  const label = "exerciseName" in result ? result.exerciseName : LIFT_LABELS[result.lift];
+  const isEstimated = "isEstimated" in result && result.isEstimated;
 
   return (
     <div className="rounded-xl border border-border bg-card p-3.5">
       <div className="flex items-center justify-between gap-2">
-        <p className="font-medium">{LIFT_LABELS[result.lift]}</p>
+        <p className="font-medium">
+          {label}
+          {isEstimated && <span className="ml-1.5 text-[11px] font-normal text-muted-foreground">(est.)</span>}
+        </p>
         <span
           className={cn(
             "rounded-full px-2 py-0.5 text-[11px] font-semibold text-primary-foreground",

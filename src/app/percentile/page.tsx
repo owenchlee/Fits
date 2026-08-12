@@ -8,12 +8,15 @@ import { useSettings } from "@/lib/db/hooks";
 import { updateSettings } from "@/lib/db/repo";
 import { estimateOneRepMax } from "@/lib/calc/one-rep-max";
 import { fromDisplayWeight, toDisplayWeight } from "@/lib/calc/units";
+import { sanitizeDecimalInput } from "@/lib/format";
 import {
   calculateDotsScore,
+  calculateExercisePercentile,
   calculateLiftPercentile,
   dotsToPercentile,
   percentileToTier,
   LIFT_LABELS,
+  type ExercisePercentileResult,
   type StandardLift,
 } from "@/lib/calc/strength-standards";
 import type { Sex } from "@/lib/db/types";
@@ -37,6 +40,25 @@ function useBestLiftsKg() {
     }
     return results;
   }, []);
+}
+
+function useAllRatedLifts(sex: Sex, bodyweightKg: number) {
+  return useLiveQuery(async () => {
+    // Anchor lifts (squat/bench/deadlift/OHP) already have their own editable row above —
+    // only list the ratio-estimated ones here to avoid showing two (possibly different) numbers
+    // for the same lift.
+    const exercises = await db.exercises.filter((e) => e.standardLift === null && !!e.standardLiftRatio).toArray();
+    const results: ExercisePercentileResult[] = [];
+    for (const ex of exercises) {
+      const sets = await db.sets.where("exerciseId").equals(ex.id).toArray();
+      if (sets.length === 0) continue;
+      const bestKg = sets.reduce((max, s) => Math.max(max, estimateOneRepMax(s.weightKg, s.reps)), 0);
+      if (bestKg <= 0) continue;
+      const result = calculateExercisePercentile(ex, bestKg, bodyweightKg, sex);
+      if (result) results.push(result);
+    }
+    return results.sort((a, b) => b.percentile - a.percentile);
+  }, [sex, bodyweightKg]);
 }
 
 export default function PercentilePage() {
@@ -79,6 +101,8 @@ export default function PercentilePage() {
   const overallPercentile = hasTotal ? dotsToPercentile(dots) : 0;
   const overallTier = percentileToTier(overallPercentile);
 
+  const allRatedLifts = useAllRatedLifts(sex, bodyweightKg);
+
   return (
     <div className="pb-6">
       <PageHeader
@@ -116,7 +140,7 @@ export default function PercentilePage() {
               id="bodyweight"
               inputMode="decimal"
               value={bodyweightStr}
-              onChange={(e) => setBodyweightStr(e.target.value)}
+              onChange={(e) => setBodyweightStr(sanitizeDecimalInput(e.target.value))}
               onBlur={() => {
                 const n = parseFloat(bodyweightStr);
                 if (Number.isFinite(n)) void updateSettings({ bodyweightKg: fromDisplayWeight(n, settings.unitSystem) });
@@ -134,7 +158,9 @@ export default function PercentilePage() {
                     id={lift}
                     inputMode="decimal"
                     value={liftInputs[lift] ?? ""}
-                    onChange={(e) => setLiftInputs((prev) => ({ ...prev, [lift]: e.target.value }))}
+                    onChange={(e) =>
+                      setLiftInputs((prev) => ({ ...prev, [lift]: sanitizeDecimalInput(e.target.value) }))
+                    }
                     placeholder="0"
                     className="h-10 w-full rounded-lg border border-input bg-secondary px-3 text-sm tabular-nums focus:border-ring focus:outline-none"
                   />
@@ -147,13 +173,15 @@ export default function PercentilePage() {
             <Info size={14} className="mt-0.5 shrink-0" />
             <p>
               Estimates are based on aggregated community strength-standards data (bodyweight-relative multipliers
-              and the DOTS formula) — not a scientific census. Use them as a rough compass, not gospel.
+              and the DOTS formula) — not a scientific census. Lifts marked &quot;est.&quot; are extrapolated from a
+              typical ratio to the nearest main lift rather than their own standards table. Use them as a rough
+              compass, not gospel.
             </p>
           </div>
         </div>
 
         <div className="space-y-4">
-          <div className="rounded-2xl border border-border bg-card p-6">
+          <div className="rounded-tl-md rounded-tr-[2.5rem] rounded-br-md rounded-bl-[2.5rem] border border-border bg-card p-6">
             <p className="mb-2 text-center text-xs font-semibold uppercase tracking-wide text-muted-foreground">
               Overall (Squat + Bench + Deadlift total, DOTS-adjusted)
             </p>
@@ -171,6 +199,19 @@ export default function PercentilePage() {
               <LiftPercentileRow key={r.lift} result={r} unit={settings.unitSystem} />
             ))}
           </div>
+
+          {allRatedLifts && allRatedLifts.length > 0 && (
+            <div>
+              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                All your lifts
+              </p>
+              <div className="grid gap-3 sm:grid-cols-2">
+                {allRatedLifts.map((r) => (
+                  <LiftPercentileRow key={r.exerciseId} result={r} unit={settings.unitSystem} />
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

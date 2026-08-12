@@ -25,19 +25,20 @@ function playChime() {
     const Ctx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
     const ctx = new Ctx();
     const now = ctx.currentTime;
-    [880, 1320].forEach((freq, i) => {
+    [880, 1320, 880, 1320].forEach((freq, i) => {
+      const start = i * 0.35;
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
       osc.type = "sine";
       osc.frequency.value = freq;
-      gain.gain.setValueAtTime(0, now + i * 0.12);
-      gain.gain.linearRampToValueAtTime(0.18, now + i * 0.12 + 0.02);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.12 + 0.35);
+      gain.gain.setValueAtTime(0, now + start);
+      gain.gain.linearRampToValueAtTime(0.18, now + start + 0.03);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + start + 0.55);
       osc.connect(gain).connect(ctx.destination);
-      osc.start(now + i * 0.12);
-      osc.stop(now + i * 0.12 + 0.4);
+      osc.start(now + start);
+      osc.stop(now + start + 0.6);
     });
-    setTimeout(() => ctx.close(), 900);
+    setTimeout(() => ctx.close(), 2000);
   } catch {
     // audio not available; ignore
   }

@@ -13,6 +13,7 @@ const FALLBACK_SETTINGS: AppSettings = {
   barWeightKg: 20,
   availablePlatesKg: [25, 20, 15, 10, 5, 2.5, 1.25],
   streak: 0,
+  updatedAt: 0,
 };
 
 export function useSettings(): AppSettings {
@@ -28,6 +29,16 @@ export function useExercises() {
 
 export function useExercise(id: string | undefined) {
   return useLiveQuery(() => (id ? db.exercises.get(id) : undefined), [id]);
+}
+
+/** IDs of exercises that have at least one logged set, for filtering the library down to "yours". */
+export function useLoggedExerciseIds() {
+  return (
+    useLiveQuery(async () => {
+      const ids = await db.sets.orderBy("exerciseId").uniqueKeys();
+      return new Set(ids as string[]);
+    }, []) ?? new Set<string>()
+  );
 }
 
 export function usePrograms() {
@@ -62,6 +73,10 @@ export function useCompletedWorkouts() {
 
 export function useBodyMetrics() {
   return useLiveQuery(() => db.bodyMetrics.orderBy("date").reverse().toArray(), []) ?? [];
+}
+
+export function usePercentileHistory() {
+  return useLiveQuery(() => db.percentileSnapshots.orderBy("date").toArray(), []) ?? [];
 }
 
 export function useRecentWorkouts(limit = 20) {

@@ -1,5 +1,5 @@
 import { db } from "@/lib/db/db";
-import { generateId } from "@/lib/id";
+import { slugId } from "@/lib/id";
 import { seedExercises } from "@/lib/db/seed-exercises";
 import { seedPrograms } from "@/lib/db/seed-programs";
 import type { AppSettings, Exercise, Program } from "@/lib/db/types";
@@ -21,10 +21,13 @@ async function seed() {
   let exercisesByName = new Map<string, Exercise>();
 
   if (exerciseCount === 0) {
+    const now = Date.now();
     const exercises: Exercise[] = seedExercises.map((e) => ({
       ...e,
-      id: generateId(),
+      // Deterministic (not random) so built-ins line up across devices without needing to sync them.
+      id: slugId("ex", e.name),
       isCustom: false,
+      updatedAt: now,
     }));
     await db.exercises.bulkAdd(exercises);
     exercisesByName = new Map(exercises.map((e) => [e.name, e]));
@@ -35,15 +38,17 @@ async function seed() {
 
   const programCount = await db.programs.count();
   if (programCount === 0) {
+    const now = Date.now();
     const programs: Program[] = seedPrograms.map((p) => ({
-      id: generateId(),
+      id: slugId("prog", p.name),
       name: p.name,
       description: p.description,
       author: p.author,
       daysPerWeek: p.daysPerWeek,
       isCustom: false,
+      updatedAt: now,
       days: p.days.map((day) => ({
-        id: generateId(),
+        id: slugId("day", `${p.name}-${day.name}`),
         name: day.name,
         exercises: day.exercises
           .map((ex) => {
@@ -74,6 +79,7 @@ async function seed() {
       barWeightKg: 20,
       availablePlatesKg: [25, 20, 15, 10, 5, 2.5, 1.25],
       streak: 0,
+      updatedAt: Date.now(),
     };
     await db.settings.add(defaults);
   }

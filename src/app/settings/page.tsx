@@ -3,11 +3,17 @@
 import * as React from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Download, Moon, Sun, Trash, Monitor } from "@phosphor-icons/react/dist/ssr";
+import { Download, Moon, Sun, Trash, Monitor, SignOut } from "@phosphor-icons/react/dist/ssr";
 import { useTheme } from "next-themes";
+import { db } from "@/lib/db/db";
 import { useSettings } from "@/lib/db/hooks";
 import { updateSettings, exportAllData, resetAllData } from "@/lib/db/repo";
 import { ensureSeeded, resetSeedState } from "@/lib/db/bootstrap";
+import { useAuth } from "@/lib/auth/auth-provider";
+import { enqueueSync } from "@/lib/sync/outbox";
+import { flushOutbox } from "@/lib/sync/engine";
+import { shouldSyncExercise, shouldSyncProgram } from "@/lib/sync/tables";
+import { sanitizeIntegerInput } from "@/lib/format";
 import type { Sex, UnitSystem } from "@/lib/db/types";
 import { PageHeader } from "@/components/shared/page-header";
 import { Label } from "@/components/ui/label";
@@ -33,6 +39,46 @@ function SettingsSection({ title, children }: { title: string; children: React.R
       <h2 className="mb-3 font-display text-lg font-bold">{title}</h2>
       {children}
     </section>
+  );
+}
+
+function CustomRestDuration({ seconds, onChange }: { seconds: number; onChange: (seconds: number) => void }) {
+  const [minutes, setMinutes] = React.useState(String(Math.floor(seconds / 60)));
+  const [secs, setSecs] = React.useState(String(seconds % 60).padStart(2, "0"));
+
+  React.useEffect(() => {
+    setMinutes(String(Math.floor(seconds / 60)));
+    setSecs(String(seconds % 60).padStart(2, "0"));
+  }, [seconds]);
+
+  function commit(nextMinutes: string, nextSecs: string) {
+    const m = Math.max(0, parseInt(nextMinutes, 10) || 0);
+    const s = Math.max(0, Math.min(59, parseInt(nextSecs, 10) || 0));
+    const total = m * 60 + s;
+    if (total > 0) onChange(total);
+  }
+
+  return (
+    <div className="flex items-center gap-2">
+      <input
+        inputMode="numeric"
+        value={minutes}
+        onChange={(e) => setMinutes(sanitizeIntegerInput(e.target.value))}
+        onBlur={() => commit(minutes, secs)}
+        aria-label="Rest duration minutes"
+        className="h-9 w-16 rounded-lg border border-transparent bg-secondary px-2 text-center text-sm font-medium tabular-nums focus:border-ring focus:bg-background focus:outline-none"
+      />
+      <span className="text-sm text-muted-foreground">min</span>
+      <input
+        inputMode="numeric"
+        value={secs}
+        onChange={(e) => setSecs(sanitizeIntegerInput(e.target.value))}
+        onBlur={() => commit(minutes, secs)}
+        aria-label="Rest duration seconds"
+        className="h-9 w-16 rounded-lg border border-transparent bg-secondary px-2 text-center text-sm font-medium tabular-nums focus:border-ring focus:bg-background focus:outline-none"
+      />
+      <span className="text-sm text-muted-foreground">sec</span>
+    </div>
   );
 }
 
@@ -67,6 +113,7 @@ export default function SettingsPage() {
   const router = useRouter();
   const settings = useSettings();
   const { theme, setTheme } = useTheme();
+  const { user, signOut, supabase } = useAuth();
 
   function handleExport() {
     exportAllData().then((data) => {
@@ -82,6 +129,23 @@ export default function SettingsPage() {
   }
 
   async function handleReset() {
+    if (user) {
+      // Reset should really mean reset — also queue deletes for the cloud copy, otherwise the
+      // next sync would just pull everything back down again.
+      const [exercises, programs, workouts, sets, bodyMetrics] = await Promise.all([
+        db.exercises.filter(shouldSyncExercise).toArray(),
+        db.programs.filter(shouldSyncProgram).toArray(),
+        db.workouts.toArray(),
+        db.sets.toArray(),
+        db.bodyMetrics.toArray(),
+      ]);
+      for (const e of exercises) await enqueueSync("exercises", "delete", e.id);
+      for (const p of programs) await enqueueSync("programs", "delete", p.id);
+      for (const w of workouts) await enqueueSync("workouts", "delete", w.id);
+      for (const s of sets) await enqueueSync("sets", "delete", s.id);
+      for (const b of bodyMetrics) await enqueueSync("bodyMetrics", "delete", b.id);
+      await flushOutbox(supabase, user.id);
+    }
     await resetAllData();
     resetSeedState();
     await ensureSeeded();
@@ -92,6 +156,16 @@ export default function SettingsPage() {
   return (
     <div className="max-w-lg space-y-4 pb-6">
       <PageHeader title="Settings" />
+
+      <SettingsSection title="Account">
+        <p className="mb-3 text-sm text-muted-foreground">
+          Signed in as <span className="text-foreground">{user?.email}</span>. Your data syncs automatically across
+          every device you log in on.
+        </p>
+        <Button variant="outline" onClick={() => void signOut()}>
+          <SignOut size={15} /> Log out
+        </Button>
+      </SettingsSection>
 
       <SettingsSection title="Units">
         <Label className="mb-1.5 block text-xs text-muted-foreground">Weight unit</Label>
@@ -135,6 +209,12 @@ export default function SettingsPage() {
             </button>
           ))}
         </div>
+
+        <Label className="mb-1.5 mt-3 block text-xs text-muted-foreground">Custom duration</Label>
+        <CustomRestDuration
+          seconds={settings.defaultRestSeconds}
+          onChange={(seconds) => updateSettings({ defaultRestSeconds: seconds })}
+        />
       </SettingsSection>
 
       <SettingsSection title="Appearance">
@@ -174,7 +254,7 @@ export default function SettingsPage() {
 
       <SettingsSection title="Your data">
         <p className="mb-3 text-sm text-muted-foreground">
-          Fits stores everything locally on this device — nothing leaves your browser.
+          Fits keeps a local copy on this device for offline use, synced to your account in the background.
         </p>
         <div className="flex flex-wrap gap-2">
           <Button variant="outline" onClick={handleExport}>
@@ -190,7 +270,7 @@ export default function SettingsPage() {
               <AlertDialogHeader>
                 <AlertDialogTitle>Reset all data?</AlertDialogTitle>
                 <AlertDialogDescription>
-                  This permanently deletes every workout, program, and measurement stored on this device. Export a
+                  This permanently deletes every workout, program, and measurement{user ? " — on this device and in your synced account" : " stored on this device"}. Export a
                   backup first if you want to keep it.
                 </AlertDialogDescription>
               </AlertDialogHeader>

@@ -3,7 +3,7 @@
 import * as React from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { db } from "@/lib/db/db";
-import { useExercises, useSettings } from "@/lib/db/hooks";
+import { useExercises, usePercentileHistory, useSettings } from "@/lib/db/hooks";
 import { estimateOneRepMax } from "@/lib/calc/one-rep-max";
 import { toDisplayWeight } from "@/lib/calc/units";
 import { PageHeader } from "@/components/shared/page-header";
@@ -85,6 +85,21 @@ function useExerciseTrend(exerciseId: string | undefined) {
   }, [exerciseId, settings.unitSystem]);
 }
 
+function usePercentileTrend() {
+  const snapshots = usePercentileHistory();
+  return React.useMemo<TrendPoint[]>(
+    () =>
+      snapshots
+        .filter((s) => s.overallPercentile !== null)
+        .map((s) => ({
+          date: s.date,
+          value: Math.round((s.overallPercentile ?? 0) * 10) / 10,
+          label: new Date(s.date).toLocaleDateString(undefined, { month: "short", day: "numeric" }),
+        })),
+    [snapshots]
+  );
+}
+
 export default function ProgressPage() {
   const settings = useSettings();
   const exercises = useExercises();
@@ -95,6 +110,7 @@ export default function ProgressPage() {
   const weeklyVolume = useWeeklyVolumeSeries(10);
   const bodyweight = useBodyweightSeries();
   const liftTrend = useExerciseTrend(exerciseId);
+  const percentileTrend = usePercentileTrend();
 
   return (
     <div className="pb-6">
@@ -117,6 +133,15 @@ export default function ProgressPage() {
           </Select>
         </div>
         <TrendChart data={liftTrend ?? []} unitLabel={`${settings.unitSystem} e1RM`} />
+      </section>
+
+      <section className="mt-6 rounded-2xl border border-border bg-card p-4">
+        <h2 className="mb-3 font-display text-lg font-bold">Strength percentile over time</h2>
+        <TrendChart
+          data={percentileTrend}
+          unitLabel="percentile"
+          emptyLabel="No percentile history yet"
+        />
       </section>
 
       <section className="mt-6 rounded-2xl border border-border bg-card p-4">

@@ -26,7 +26,11 @@ export default function HistoryPage() {
       <PageHeader title="History" description={`${workouts.length} completed workouts.`} />
 
       {workouts.length === 0 ? (
-        <EmptyState icon={ClockCounterClockwise} title="No workouts logged yet" />
+        <EmptyState
+          icon={ClockCounterClockwise}
+          title="Nothing logged yet"
+          description="Finish a workout and it'll show up here, organized by month."
+        />
       ) : (
         <div className="space-y-6">
           {Array.from(groups.entries()).map(([month, items]) => (

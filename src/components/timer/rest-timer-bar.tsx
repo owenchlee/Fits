@@ -1,7 +1,7 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
-import { Minus, Plus, SpeakerHigh, X } from "@phosphor-icons/react/dist/ssr";
+import { Minus, Plus, X } from "@phosphor-icons/react/dist/ssr";
 import { useRestTimer } from "@/lib/timer/rest-timer-context";
 import { cn } from "@/lib/utils";
 
@@ -89,7 +89,7 @@ export function RestTimerBar() {
                 className="flex size-8 items-center justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground"
                 aria-label="Dismiss timer"
               >
-                {finished ? <SpeakerHigh size={16} /> : <X size={16} />}
+                <X size={16} />
               </button>
             </div>
           </div>

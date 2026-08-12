@@ -2,10 +2,12 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Trash, X } from "@phosphor-icons/react/dist/ssr";
+import { Reorder } from "framer-motion";
+import { DotsSixVertical, Plus, Trash, X } from "@phosphor-icons/react/dist/ssr";
 import { useLiveQuery } from "dexie-react-hooks";
 import { db } from "@/lib/db/db";
 import { createCustomProgram } from "@/lib/db/repo";
+import { generateId } from "@/lib/id";
 import { ExercisePicker } from "@/components/shared/exercise-picker";
 import {
   Dialog,
@@ -19,6 +21,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 interface DraftExercise {
+  key: string;
   exerciseId: string;
   targetSets: number;
   targetReps: string;
@@ -66,11 +69,18 @@ export function ProgramBuilderDialog() {
         i === dayIndex
           ? {
               ...day,
-              exercises: [...day.exercises, { exerciseId, targetSets: 3, targetReps: "8-12", restSeconds: 90 }],
+              exercises: [
+                ...day.exercises,
+                { key: generateId(), exerciseId, targetSets: 3, targetReps: "8-12", restSeconds: 90 },
+              ],
             }
           : day
       )
     );
+  }
+
+  function reorderExercises(dayIndex: number, newOrder: DraftExercise[]) {
+    setDays((d) => d.map((day, i) => (i === dayIndex ? { ...day, exercises: newOrder } : day)));
   }
 
   function updateExercise(dayIndex: number, exIndex: number, patch: Partial<DraftExercise>) {
@@ -170,51 +180,87 @@ export function ProgramBuilderDialog() {
                 </div>
 
                 <div className="space-y-1.5">
-                  {day.exercises.map((ex, exIndex) => (
-                    <div key={exIndex} className="flex flex-wrap items-center gap-1.5 rounded-lg bg-secondary/50 p-1.5">
-                      <span className="min-w-0 flex-1 truncate px-1.5 text-sm font-medium">
-                        <ExerciseName id={ex.exerciseId} />
-                      </span>
-                      <input
-                        type="number"
-                        min={1}
-                        value={ex.targetSets}
-                        onChange={(e) => updateExercise(dayIndex, exIndex, { targetSets: Number(e.target.value) })}
-                        className="h-8 w-12 rounded-md border border-input bg-background text-center text-xs tabular-nums"
-                        aria-label="Target sets"
-                      />
-                      <span className="text-xs text-muted-foreground">×</span>
-                      <input
-                        value={ex.targetReps}
-                        onChange={(e) => updateExercise(dayIndex, exIndex, { targetReps: e.target.value })}
-                        className="h-8 w-16 rounded-md border border-input bg-background text-center text-xs"
-                        aria-label="Target reps"
-                      />
-                      <input
-                        type="number"
-                        min={0}
-                        step={15}
-                        value={ex.restSeconds}
-                        onChange={(e) => updateExercise(dayIndex, exIndex, { restSeconds: Number(e.target.value) })}
-                        className="h-8 w-16 rounded-md border border-input bg-background text-center text-xs tabular-nums"
-                        aria-label="Rest seconds"
-                        title="Rest (seconds)"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => removeExercise(dayIndex, exIndex)}
-                        className="flex size-7 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:bg-background hover:text-destructive"
-                        aria-label="Remove exercise"
-                      >
-                        <X size={13} />
-                      </button>
+                  {day.exercises.length > 0 && (
+                    <div className="flex items-center gap-1.5 px-1.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                      <span className="w-3.5 shrink-0" />
+                      <span className="min-w-0 flex-1">Exercise</span>
+                      <span className="w-12 shrink-0 text-center">Sets</span>
+                      <span className="w-3 shrink-0 text-center">×</span>
+                      <span className="w-16 shrink-0 text-center">Reps</span>
+                      <span className="w-16 shrink-0 text-center">Rest (s)</span>
+                      <span className="w-7 shrink-0" />
                     </div>
-                  ))}
+                  )}
+                  <Reorder.Group
+                    axis="y"
+                    values={day.exercises}
+                    onReorder={(newOrder) => reorderExercises(dayIndex, newOrder)}
+                    className="list-none space-y-1.5"
+                  >
+                    {day.exercises.map((ex, exIndex) => (
+                      <Reorder.Item
+                        key={ex.key}
+                        value={ex}
+                        className="flex flex-wrap items-center gap-1.5 rounded-lg bg-secondary/50 p-1.5"
+                      >
+                        <DotsSixVertical
+                          size={16}
+                          weight="bold"
+                          className="shrink-0 cursor-grab touch-none text-muted-foreground active:cursor-grabbing"
+                        />
+                        <span className="min-w-0 flex-1 truncate px-1.5 text-sm font-medium">
+                          <ExerciseName id={ex.exerciseId} />
+                        </span>
+                        <input
+                          type="number"
+                          min={1}
+                          value={ex.targetSets === 0 ? "" : ex.targetSets}
+                          onChange={(e) =>
+                            updateExercise(dayIndex, exIndex, {
+                              targetSets: e.target.value === "" ? 0 : Number(e.target.value),
+                            })
+                          }
+                          className="h-8 w-12 rounded-md border border-input bg-background text-center text-xs tabular-nums"
+                          aria-label="Target sets"
+                        />
+                        <span className="text-xs text-muted-foreground">×</span>
+                        <input
+                          value={ex.targetReps}
+                          onChange={(e) => updateExercise(dayIndex, exIndex, { targetReps: e.target.value })}
+                          className="h-8 w-16 rounded-md border border-input bg-background text-center text-xs"
+                          aria-label="Target reps"
+                        />
+                        <input
+                          type="number"
+                          min={0}
+                          step={15}
+                          value={ex.restSeconds === 0 ? "" : ex.restSeconds}
+                          onChange={(e) =>
+                            updateExercise(dayIndex, exIndex, {
+                              restSeconds: e.target.value === "" ? 0 : Number(e.target.value),
+                            })
+                          }
+                          className="h-8 w-16 rounded-md border border-input bg-background text-center text-xs tabular-nums"
+                          aria-label="Rest seconds"
+                          title="Rest (seconds)"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => removeExercise(dayIndex, exIndex)}
+                          className="flex size-7 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:bg-background hover:text-destructive"
+                          aria-label="Remove exercise"
+                        >
+                          <X size={13} />
+                        </button>
+                      </Reorder.Item>
+                    ))}
+                  </Reorder.Group>
                 </div>
 
                 <div className="mt-2">
                   <ExercisePicker
                     triggerLabel="Add exercise to day"
+                    addedIds={day.exercises.map((ex) => ex.exerciseId)}
                     onSelect={(exercise) => addExerciseToDay(dayIndex, exercise.id)}
                     trigger={
                       <Button type="button" variant="ghost" size="sm" className="text-muted-foreground">

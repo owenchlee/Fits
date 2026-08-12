@@ -20,7 +20,11 @@ export default function ProgramsPage() {
       />
 
       {programs.length === 0 ? (
-        <EmptyState icon={ClipboardText} title="No programs yet" />
+        <EmptyState
+          icon={ClipboardText}
+          title="No programs yet"
+          description="Build one above and it'll drive your dashboard's daily session."
+        />
       ) : (
         <div className="grid gap-3 sm:grid-cols-2">
           {programs.map((program) => {

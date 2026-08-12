@@ -8,8 +8,10 @@ import { db } from "@/lib/db/db";
 import { useSettings } from "@/lib/db/hooks";
 import { estimateOneRepMax } from "@/lib/calc/one-rep-max";
 import { formatWeight, toDisplayWeight } from "@/lib/calc/units";
+import { calculateExercisePercentile } from "@/lib/calc/strength-standards";
 import { StatCard } from "@/components/shared/stat-card";
 import { TrendChart, type TrendPoint } from "@/components/charts/trend-chart";
+import { LiftPercentileRow } from "@/components/percentile/lift-percentile-row";
 import { Trophy, Barbell, ChartLineUp } from "@phosphor-icons/react/dist/ssr";
 
 export default function ExerciseDetailPage() {
@@ -43,6 +45,11 @@ export default function ExerciseDetailPage() {
 
   const recentSets = [...workingSets].reverse().slice(0, 15);
 
+  const percentileResult =
+    bestE1rm > 0
+      ? calculateExercisePercentile(exercise, bestE1rm, settings.bodyweightKg, settings.sex)
+      : null;
+
   return (
     <div className="pb-6">
       <Link href="/exercises" className="mb-4 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
@@ -60,6 +67,20 @@ export default function ExerciseDetailPage() {
         <StatCard label="Sessions logged" value={String(byWorkout.size)} icon={ChartLineUp} />
         <StatCard label="Total sets" value={String(totalSets)} icon={Barbell} />
       </div>
+
+      {bestE1rm > 0 && (
+        <section className="mt-6">
+          <h2 className="mb-3 font-display text-lg font-bold">Strength percentile</h2>
+          {percentileResult ? (
+            <LiftPercentileRow result={percentileResult} unit={settings.unitSystem} />
+          ) : (
+            <p className="rounded-xl border border-dashed border-border/70 px-4 py-3 text-sm text-muted-foreground">
+              No population standards for this exercise yet — percentiles are only available for lifts related to
+              the squat, bench, deadlift, or overhead press.
+            </p>
+          )}
+        </section>
+      )}
 
       <section className="mt-6 rounded-2xl border border-border bg-card p-4">
         <h2 className="mb-3 font-display text-lg font-bold">Estimated 1RM trend</h2>

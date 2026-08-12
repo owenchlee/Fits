@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import type { StrengthTier } from "@/lib/calc/strength-standards";
 import { ordinalSuffix } from "@/lib/format";
 
@@ -73,7 +73,17 @@ export function PercentileGauge({ percentile, tier }: { percentile: number; tier
           <span className="text-2xl text-muted-foreground">{clamped < 1 ? "st" : ordinalSuffix(clamped)}</span>
         </span>
         <span className="mt-1 text-sm text-muted-foreground">percentile</span>
-        <span className="mt-2 rounded-full bg-primary/15 px-3 py-1 text-sm font-semibold text-primary">{tier}</span>
+        <AnimatePresence mode="wait">
+          <motion.span
+            key={tier}
+            initial={{ opacity: 0, scale: 0.7, y: -4 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            transition={{ type: "spring", damping: 14, stiffness: 300 }}
+            className="mt-2 rounded-full bg-primary/15 px-3 py-1 text-sm font-semibold text-primary"
+          >
+            {tier}
+          </motion.span>
+        </AnimatePresence>
       </div>
     </div>
   );

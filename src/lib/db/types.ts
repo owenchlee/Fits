@@ -35,7 +35,10 @@ export interface Exercise {
   isCustom: boolean;
   /** Used to key against strength-standard tables (squat/bench/deadlift/ohp), null if not tracked. */
   standardLift: "squat" | "bench" | "deadlift" | "overhead-press" | null;
+  /** For non-anchor lifts: estimate a percentile by ratio against one of the 4 anchor lifts. */
+  standardLiftRatio?: { basedOn: "squat" | "bench" | "deadlift" | "overhead-press"; ratio: number };
   notes?: string;
+  updatedAt: number;
 }
 
 export interface ProgramExercise {
@@ -61,6 +64,7 @@ export interface Program {
   daysPerWeek: number;
   isCustom: boolean;
   days: ProgramDay[];
+  updatedAt: number;
 }
 
 export interface SetEntry {
@@ -75,6 +79,7 @@ export interface SetEntry {
   isFailure: boolean;
   isDropSet: boolean;
   completedAt: number;
+  updatedAt: number;
 }
 
 export interface Workout {
@@ -87,6 +92,7 @@ export interface Workout {
   notes?: string;
   bodyweightKg?: number;
   exerciseOrder: string[];
+  updatedAt: number;
 }
 
 export interface BodyMetric {
@@ -97,6 +103,16 @@ export interface BodyMetric {
   measurements?: Partial<
     Record<"chest" | "waist" | "hips" | "thigh" | "arm" | "calf" | "shoulders", number>
   >;
+  updatedAt: number;
+}
+
+/** A daily snapshot of computed strength percentile, so /progress can chart it over time. */
+export interface PercentileSnapshot {
+  id: string;
+  date: string; // yyyy-mm-dd, one snapshot per day (upserted)
+  overallPercentile: number | null;
+  perLift: Record<string, number>; // exerciseId -> percentile
+  updatedAt: number;
 }
 
 export interface AppSettings {
@@ -111,4 +127,5 @@ export interface AppSettings {
   lastWorkoutDate?: string; // yyyy-mm-dd
   activeProgramId?: string;
   activeProgramDayIndex?: number;
+  updatedAt: number;
 }

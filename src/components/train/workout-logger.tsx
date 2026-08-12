@@ -10,6 +10,7 @@ import { ExercisePicker } from "@/components/shared/exercise-picker";
 import { addExerciseToWorkout } from "@/lib/db/repo";
 import { FinishWorkoutDialog } from "@/components/train/finish-workout-dialog";
 import { DiscardWorkoutButton } from "@/components/train/discard-workout-button";
+import { ManualTimerButton } from "@/components/train/manual-timer-button";
 import { EmptyState } from "@/components/shared/empty-state";
 
 export function WorkoutLogger({ workoutId }: { workoutId: string }) {
@@ -36,11 +37,16 @@ export function WorkoutLogger({ workoutId }: { workoutId: string }) {
       <div className="mb-5 flex items-start justify-between gap-3">
         <div>
           <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            <ElapsedTimer startedAt={workout.startedAt} /> elapsed
+            <ElapsedTimer startedAt={workout.startedAt} /> elapsed · Started{" "}
+            {new Date(workout.startedAt).toLocaleTimeString(undefined, {
+              hour: "numeric",
+              minute: "2-digit",
+            })}
           </p>
           <h1 className="font-display text-2xl font-bold tracking-tight md:text-3xl">{workout.title}</h1>
         </div>
         <div className="flex shrink-0 items-center gap-1.5">
+          <ManualTimerButton />
           <DiscardWorkoutButton workoutId={workoutId} />
           <FinishWorkoutDialog
             workoutId={workoutId}

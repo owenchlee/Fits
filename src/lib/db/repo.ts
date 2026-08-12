@@ -1,7 +1,31 @@
 import { db } from "@/lib/db/db";
 import { generateId } from "@/lib/id";
 import { estimateOneRepMax } from "@/lib/calc/one-rep-max";
-import type { AppSettings, BodyMetric, Program, ProgramExercise, SetEntry, Workout } from "@/lib/db/types";
+import { recordPercentileSnapshot } from "@/lib/calc/percentile-snapshot";
+import { enqueueSync } from "@/lib/sync/outbox";
+import type { AppSettings, BodyMetric, Equipment, Exercise, MuscleGroup, Program, ProgramExercise, SetEntry, Workout } from "@/lib/db/types";
+
+export async function createExercise(data: {
+  name: string;
+  primaryMuscle: MuscleGroup;
+  secondaryMuscles?: MuscleGroup[];
+  equipment: Equipment;
+}): Promise<string> {
+  const id = generateId();
+  const exercise: Exercise = {
+    id,
+    name: data.name,
+    primaryMuscle: data.primaryMuscle,
+    secondaryMuscles: data.secondaryMuscles ?? [],
+    equipment: data.equipment,
+    isCustom: true,
+    standardLift: null,
+    updatedAt: Date.now(),
+  };
+  await db.exercises.add(exercise);
+  await enqueueSync("exercises", "upsert", id);
+  return id;
+}
 
 export async function createCustomProgram(data: {
   name: string;
@@ -17,17 +41,21 @@ export async function createCustomProgram(data: {
     isCustom: true,
     daysPerWeek: data.days.length,
     days: data.days.map((d) => ({ id: generateId(), name: d.name, exercises: d.exercises })),
+    updatedAt: Date.now(),
   };
   await db.programs.add(program);
+  await enqueueSync("programs", "upsert", id);
   return id;
 }
 
 export async function updateProgram(id: string, patch: Partial<Program>) {
-  await db.programs.update(id, patch);
+  await db.programs.update(id, { ...patch, updatedAt: Date.now() });
+  await enqueueSync("programs", "upsert", id);
 }
 
 export async function deleteProgram(id: string) {
   await db.programs.delete(id);
+  await enqueueSync("programs", "delete", id);
   const settings = await getSettings();
   if (settings.activeProgramId === id) await updateSettings({ activeProgramId: undefined, activeProgramDayIndex: 0 });
 }
@@ -44,13 +72,15 @@ export async function getSettings(): Promise<AppSettings> {
     barWeightKg: 20,
     availablePlatesKg: [25, 20, 15, 10, 5, 2.5, 1.25],
     streak: 0,
+    updatedAt: Date.now(),
   };
   await db.settings.add(defaults);
   return defaults;
 }
 
 export async function updateSettings(patch: Partial<AppSettings>) {
-  await db.settings.update("singleton", patch);
+  await db.settings.update("singleton", { ...patch, updatedAt: Date.now() });
+  await enqueueSync("settings", "upsert", "singleton");
 }
 
 function todayKey(date = new Date()): string {
@@ -71,8 +101,10 @@ export async function startWorkout(opts: {
     title: opts.title,
     startedAt: Date.now(),
     exerciseOrder: opts.exerciseOrder ?? [],
+    updatedAt: Date.now(),
   };
   await db.workouts.add(workout);
+  await enqueueSync("workouts", "upsert", id);
   return id;
 }
 
@@ -80,12 +112,21 @@ export async function addExerciseToWorkout(workoutId: string, exerciseId: string
   const workout = await db.workouts.get(workoutId);
   if (!workout) return;
   if (workout.exerciseOrder.includes(exerciseId)) return;
-  await db.workouts.update(workoutId, { exerciseOrder: [...workout.exerciseOrder, exerciseId] });
+  await db.workouts.update(workoutId, {
+    exerciseOrder: [...workout.exerciseOrder, exerciseId],
+    updatedAt: Date.now(),
+  });
+  await enqueueSync("workouts", "upsert", workoutId);
 }
 
 export async function removeExerciseFromWorkout(workoutId: string, exerciseId: string) {
   const workout = await db.workouts.get(workoutId);
   if (!workout) return;
+  const removedSetIds = await db.sets
+    .where("workoutId")
+    .equals(workoutId)
+    .filter((s) => s.exerciseId === exerciseId)
+    .primaryKeys();
   await db.transaction("rw", db.workouts, db.sets, async () => {
     await db.sets
       .where("workoutId")
@@ -94,8 +135,11 @@ export async function removeExerciseFromWorkout(workoutId: string, exerciseId: s
       .delete();
     await db.workouts.update(workoutId, {
       exerciseOrder: workout.exerciseOrder.filter((id) => id !== exerciseId),
+      updatedAt: Date.now(),
     });
   });
+  for (const setId of removedSetIds) await enqueueSync("sets", "delete", String(setId));
+  await enqueueSync("workouts", "upsert", workoutId);
 }
 
 export async function setActiveProgram(programId: string | undefined) {
@@ -113,14 +157,19 @@ export async function getActiveWorkout(): Promise<Workout | undefined> {
 }
 
 export async function discardWorkout(workoutId: string) {
+  const setIds = await db.sets.where("workoutId").equals(workoutId).primaryKeys();
   await db.transaction("rw", db.workouts, db.sets, async () => {
     await db.sets.where("workoutId").equals(workoutId).delete();
     await db.workouts.delete(workoutId);
   });
+  for (const setId of setIds) await enqueueSync("sets", "delete", String(setId));
+  await enqueueSync("workouts", "delete", workoutId);
 }
 
 export async function completeWorkout(workoutId: string) {
-  await db.workouts.update(workoutId, { completedAt: Date.now() });
+  await db.workouts.update(workoutId, { completedAt: Date.now(), updatedAt: Date.now() });
+  await enqueueSync("workouts", "upsert", workoutId);
+  await recordPercentileSnapshot();
 
   const settings = await getSettings();
   const today = todayKey();
@@ -163,17 +212,21 @@ export async function addSet(entry: {
     isFailure: entry.isFailure ?? false,
     isDropSet: entry.isDropSet ?? false,
     completedAt: Date.now(),
+    updatedAt: Date.now(),
   };
   await db.sets.add(set);
+  await enqueueSync("sets", "upsert", id);
   return id;
 }
 
 export async function updateSet(id: string, patch: Partial<SetEntry>) {
-  await db.sets.update(id, patch);
+  await db.sets.update(id, { ...patch, updatedAt: Date.now() });
+  await enqueueSync("sets", "upsert", id);
 }
 
 export async function deleteSet(id: string) {
   await db.sets.delete(id);
+  await enqueueSync("sets", "delete", id);
 }
 
 export async function getLastPerformance(
@@ -197,15 +250,17 @@ export async function getBestEstimatedOneRepMax(exerciseId: string): Promise<num
   return sets.reduce((best, s) => Math.max(best, estimateOneRepMax(s.weightKg, s.reps)), 0);
 }
 
-export async function logBodyMetric(metric: Omit<BodyMetric, "id">): Promise<string> {
+export async function logBodyMetric(metric: Omit<BodyMetric, "id" | "updatedAt">): Promise<string> {
   const id = generateId();
-  await db.bodyMetrics.add({ ...metric, id });
+  await db.bodyMetrics.add({ ...metric, id, updatedAt: Date.now() });
+  await enqueueSync("bodyMetrics", "upsert", id);
   if (metric.weightKg) await updateSettings({ bodyweightKg: metric.weightKg });
   return id;
 }
 
 export async function deleteBodyMetric(id: string) {
   await db.bodyMetrics.delete(id);
+  await enqueueSync("bodyMetrics", "delete", id);
 }
 
 export async function computeWeeklyVolumeKg(): Promise<number> {
@@ -243,7 +298,7 @@ export async function exportAllData() {
 export async function resetAllData() {
   await db.transaction(
     "rw",
-    [db.exercises, db.programs, db.workouts, db.sets, db.bodyMetrics, db.settings],
+    [db.exercises, db.programs, db.workouts, db.sets, db.bodyMetrics, db.settings, db.syncOutbox],
     async () => {
       await Promise.all([
         db.exercises.clear(),
@@ -252,14 +307,18 @@ export async function resetAllData() {
         db.sets.clear(),
         db.bodyMetrics.clear(),
         db.settings.clear(),
+        db.syncOutbox.clear(),
       ]);
     }
   );
 }
 
 export async function deleteWorkout(workoutId: string) {
+  const setIds = await db.sets.where("workoutId").equals(workoutId).primaryKeys();
   await db.transaction("rw", db.workouts, db.sets, async () => {
     await db.sets.where("workoutId").equals(workoutId).delete();
     await db.workouts.delete(workoutId);
   });
+  for (const setId of setIds) await enqueueSync("sets", "delete", String(setId));
+  await enqueueSync("workouts", "delete", workoutId);
 }

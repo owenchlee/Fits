@@ -20,14 +20,14 @@ export function StatCard({
     <div
       className={cn(
         "rounded-2xl border border-border bg-card p-4",
-        accent && "border-primary/30 bg-gradient-to-br from-primary/10 to-transparent",
+        accent && "rounded-tl-md rounded-br-3xl border-l-[3px] border-l-primary bg-card",
         className
       )}
     >
       <div className="flex items-center justify-between gap-2">
         <p className="text-xs font-medium text-muted-foreground">{label}</p>
         {IconCmp && (
-          <IconCmp size={16} className={cn("text-muted-foreground", accent && "text-primary")} />
+          <IconCmp size={16} weight={accent ? "fill" : "regular"} className={cn("text-muted-foreground", accent && "text-primary")} />
         )}
       </div>
       <p className="mt-2 font-display text-2xl font-bold tabular-nums leading-none md:text-3xl">
