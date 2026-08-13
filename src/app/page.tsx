@@ -7,6 +7,7 @@ import { Flame, ArrowRight, Barbell, ClipboardText, Trophy, PlayCircle } from "@
 import { db } from "@/lib/db/db";
 import { useActiveWorkout, useProgram, useSettings } from "@/lib/db/hooks";
 import { startWorkout } from "@/lib/db/repo";
+import { mondayIndex } from "@/lib/date";
 import { estimateOneRepMax } from "@/lib/calc/one-rep-max";
 import { formatWeight } from "@/lib/calc/units";
 import { LIFT_LABELS, type StandardLift } from "@/lib/calc/strength-standards";
@@ -50,8 +51,18 @@ export default function DashboardPage() {
   const weekly = useWeeklyStats();
   const prs = useMainLiftPRs();
 
+  const usingSchedule = !!activeProgram?.schedule;
+  const scheduledDayIndex = usingSchedule ? activeProgram!.schedule![mondayIndex(new Date())] : undefined;
+  const isRestToday = usingSchedule && (scheduledDayIndex === null || scheduledDayIndex === undefined);
+
   const dayIndex = settings.activeProgramDayIndex ?? 0;
-  const nextDay = activeProgram?.days[dayIndex % activeProgram.days.length];
+  const nextDay = activeProgram
+    ? usingSchedule
+      ? scheduledDayIndex !== null && scheduledDayIndex !== undefined
+        ? activeProgram.days[scheduledDayIndex]
+        : undefined
+      : activeProgram.days[dayIndex % activeProgram.days.length]
+    : undefined;
 
   async function handleQuickStart() {
     const id = await startWorkout({ title: "Quick Workout" });
@@ -122,7 +133,23 @@ export default function DashboardPage() {
       </div>
 
       <section className="mt-6 rounded-2xl border border-border bg-card p-5">
-        {activeProgram && nextDay ? (
+        {activeProgram && isRestToday ? (
+          <>
+            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              Today&apos;s session · {activeProgram.name}
+            </p>
+            <h2 className="mt-1 font-display text-2xl font-bold">Rest day</h2>
+            <p className="mt-1 text-sm text-muted-foreground">No workout scheduled today. Recover, or log one anyway.</p>
+            <div className="mt-4 flex flex-wrap gap-2">
+              <Button onClick={handleQuickStart} disabled={!!activeWorkout} variant="outline" size="lg">
+                Start empty workout
+              </Button>
+              <Button variant="outline" size="lg" asChild>
+                <Link href="/calendar">Edit schedule</Link>
+              </Button>
+            </div>
+          </>
+        ) : activeProgram && nextDay ? (
           <>
             <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
               Today&apos;s session · {activeProgram.name}

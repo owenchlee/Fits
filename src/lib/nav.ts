@@ -1,6 +1,7 @@
 import type { Icon } from "@phosphor-icons/react";
 import {
   Barbell,
+  CalendarBlank,
   ChartLineUp,
   ClipboardText,
   ClockCounterClockwise,
@@ -24,6 +25,7 @@ export const navItems: NavItem[] = [
   { href: "/train", label: "Train", icon: Barbell, primary: true },
   { href: "/programs", label: "Programs", icon: ClipboardText, primary: true },
   { href: "/progress", label: "Progress", icon: ChartLineUp, primary: true },
+  { href: "/calendar", label: "Calendar", icon: CalendarBlank },
   { href: "/exercises", label: "Exercises", icon: BookOpenText },
   { href: "/percentile", label: "Percentile", icon: Trophy },
   { href: "/history", label: "History", icon: ClockCounterClockwise },

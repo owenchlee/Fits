@@ -105,6 +105,8 @@ export interface ExercisePercentileResult extends LiftPercentileResult {
   exerciseName: string;
   /** True when this came from a ratio-to-anchor-lift estimate rather than a direct standards table. */
   isEstimated: boolean;
+  /** Present when isEstimated: which anchor lift and ratio produced this estimate, for UI disclosure. */
+  estimatedFrom?: { basedOn: StandardLift; ratio: number };
 }
 
 /**
@@ -129,7 +131,13 @@ export function calculateExercisePercentile(
     const { basedOn, ratio } = exercise.standardLiftRatio;
     const equivalentAnchorWeightKg = liftWeightKg / ratio;
     const result = calculateLiftPercentile(basedOn, equivalentAnchorWeightKg, bodyweightKg, sex);
-    return { ...result, exerciseId: exercise.id, exerciseName: exercise.name, isEstimated: true };
+    return {
+      ...result,
+      exerciseId: exercise.id,
+      exerciseName: exercise.name,
+      isEstimated: true,
+      estimatedFrom: { basedOn, ratio },
+    };
   }
 
   return null;

@@ -5,10 +5,10 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useLiveQuery } from "dexie-react-hooks";
 import { Reorder } from "framer-motion";
-import { CaretLeft, DotsSixVertical, PlayCircle, Plus, Trash, X } from "@phosphor-icons/react/dist/ssr";
+import { CaretLeft, DotsSixVertical, EyeSlash, PlayCircle, Plus, Trash, X } from "@phosphor-icons/react/dist/ssr";
 import { db } from "@/lib/db/db";
 import { useActiveWorkout, useProgram, useSettings } from "@/lib/db/hooks";
-import { deleteProgram, setActiveProgram, startWorkout, updateProgram } from "@/lib/db/repo";
+import { deleteProgram, hideProgram, setActiveProgram, startWorkout, updateProgram } from "@/lib/db/repo";
 import { ExercisePicker } from "@/components/shared/exercise-picker";
 import type { ProgramDay, ProgramExercise } from "@/lib/db/types";
 import { Button } from "@/components/ui/button";
@@ -209,7 +209,7 @@ export default function ProgramDetailPage() {
             {program.days.length} day split · by {program.author}
           </p>
         </div>
-        {program.isCustom && (
+        {program.isCustom ? (
           <AlertDialog>
             <AlertDialogTrigger asChild>
               <button
@@ -238,6 +238,18 @@ export default function ProgramDetailPage() {
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>
+        ) : (
+          <button
+            aria-label="Remove program from list"
+            title="Remove from list — can be restored later"
+            className="flex size-9 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:bg-secondary hover:text-destructive"
+            onClick={async () => {
+              await hideProgram(program.id);
+              router.push("/programs");
+            }}
+          >
+            <EyeSlash size={16} />
+          </button>
         )}
       </div>
 

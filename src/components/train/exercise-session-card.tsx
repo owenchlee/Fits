@@ -101,6 +101,14 @@ export function ExerciseSessionCard({
 
   const workingSets = orderedSets.filter((s) => !s.isWarmup);
 
+  const weightColumnLabel = exercise?.equipment === "bodyweight" ? "Added" : "Weight";
+  const weightHint =
+    exercise?.equipment === "dumbbell"
+      ? "Enter the combined weight of both dumbbells (e.g. 60 for a pair of 30s)"
+      : exercise?.equipment === "bodyweight"
+        ? "Enter added weight only (belt, vest, plate) — leave 0 for unweighted sets"
+        : null;
+
   return (
     <div className="rounded-2xl border border-border bg-card p-4">
       <div className="mb-2.5 flex items-start justify-between gap-2">
@@ -138,10 +146,14 @@ export function ExerciseSessionCard({
         </label>
       )}
 
+      {weightHint && (
+        <p className="mb-1.5 px-1 text-[11px] text-muted-foreground">{weightHint}</p>
+      )}
+
       {orderedSets.length > 0 && (
         <div className="mb-1 flex items-center gap-2 px-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
           <span className="w-5 shrink-0" />
-          <span className="w-16 shrink-0 text-center">Weight</span>
+          <span className="w-16 shrink-0 text-center">{weightColumnLabel}</span>
           <span className="w-3 shrink-0" />
           <span className="w-12 shrink-0 text-center">Reps</span>
         </div>

@@ -1,15 +1,23 @@
 "use client";
 
+import * as React from "react";
 import Link from "next/link";
-import { CheckCircle, ClipboardText } from "@phosphor-icons/react/dist/ssr";
+import { ArrowCounterClockwise, CheckCircle, ClipboardText } from "@phosphor-icons/react/dist/ssr";
 import { usePrograms, useSettings } from "@/lib/db/hooks";
+import { restoreProgram } from "@/lib/db/repo";
 import { PageHeader } from "@/components/shared/page-header";
 import { EmptyState } from "@/components/shared/empty-state";
 import { ProgramBuilderDialog } from "@/components/programs/program-builder-dialog";
+import { Button } from "@/components/ui/button";
 
 export default function ProgramsPage() {
-  const programs = usePrograms();
+  const allPrograms = usePrograms();
   const settings = useSettings();
+  const [showRemoved, setShowRemoved] = React.useState(false);
+
+  const hiddenIds = settings.hiddenProgramIds ?? [];
+  const programs = allPrograms.filter((p) => !hiddenIds.includes(p.id));
+  const removedPrograms = allPrograms.filter((p) => hiddenIds.includes(p.id));
 
   return (
     <div className="pb-6">
@@ -52,6 +60,39 @@ export default function ProgramsPage() {
               </Link>
             );
           })}
+        </div>
+      )}
+
+      {removedPrograms.length > 0 && (
+        <div className="mt-6">
+          <button
+            type="button"
+            onClick={() => setShowRemoved((v) => !v)}
+            className="text-sm font-medium text-muted-foreground hover:text-foreground"
+          >
+            {showRemoved ? "Hide" : "Show"} removed programs ({removedPrograms.length})
+          </button>
+          {showRemoved && (
+            <div className="mt-3 grid gap-3 sm:grid-cols-2">
+              {removedPrograms.map((program) => (
+                <div
+                  key={program.id}
+                  className="flex flex-col rounded-2xl border border-dashed border-border p-4 opacity-70"
+                >
+                  <h2 className="font-display text-xl font-bold">{program.name}</h2>
+                  <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{program.description}</p>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="mt-3 self-start"
+                    onClick={() => restoreProgram(program.id)}
+                  >
+                    <ArrowCounterClockwise size={14} /> Restore
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
     </div>

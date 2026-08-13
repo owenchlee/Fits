@@ -60,6 +60,19 @@ export async function deleteProgram(id: string) {
   if (settings.activeProgramId === id) await updateSettings({ activeProgramId: undefined, activeProgramDayIndex: 0 });
 }
 
+export async function hideProgram(id: string) {
+  const settings = await getSettings();
+  const hidden = settings.hiddenProgramIds ?? [];
+  if (!hidden.includes(id)) await updateSettings({ hiddenProgramIds: [...hidden, id] });
+  if (settings.activeProgramId === id) await updateSettings({ activeProgramId: undefined, activeProgramDayIndex: 0 });
+}
+
+export async function restoreProgram(id: string) {
+  const settings = await getSettings();
+  const hidden = settings.hiddenProgramIds ?? [];
+  await updateSettings({ hiddenProgramIds: hidden.filter((h) => h !== id) });
+}
+
 export async function getSettings(): Promise<AppSettings> {
   const settings = await db.settings.get("singleton");
   if (settings) return settings;
@@ -167,11 +180,22 @@ export async function discardWorkout(workoutId: string) {
 }
 
 export async function completeWorkout(workoutId: string) {
+  const workout = await db.workouts.get(workoutId);
   await db.workouts.update(workoutId, { completedAt: Date.now(), updatedAt: Date.now() });
   await enqueueSync("workouts", "upsert", workoutId);
   await recordPercentileSnapshot();
 
   const settings = await getSettings();
+
+  // Sequential programs (no weekly schedule) advance to the next day automatically.
+  // Scheduled programs derive "today's day" from the weekday instead, so no index to advance.
+  if (workout?.programId && settings.activeProgramId === workout.programId) {
+    const program = await db.programs.get(workout.programId);
+    if (program && !program.schedule) {
+      await advanceProgramDay(program.days.length);
+    }
+  }
+
   const today = todayKey();
   const yesterday = todayKey(new Date(Date.now() - 86400000));
 

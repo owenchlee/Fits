@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { DotsThreeCircle } from "@phosphor-icons/react/dist/ssr";
 import { primaryNavItems, secondaryNavItems } from "@/lib/nav";
+import { useKeyboardVisible } from "@/lib/hooks/use-keyboard-visible";
 import { cn } from "@/lib/utils";
 import {
   Sheet,
@@ -19,10 +20,14 @@ export function BottomNav() {
   const pathname = usePathname();
   const [open, setOpen] = React.useState(false);
   const moreActive = secondaryNavItems.some((item) => pathname.startsWith(item.href));
+  const keyboardVisible = useKeyboardVisible();
 
   return (
     <nav
-      className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-card/95 backdrop-blur pb-[env(safe-area-inset-bottom)] md:hidden"
+      className={cn(
+        "fixed inset-x-0 bottom-0 z-30 border-t border-border bg-card/95 backdrop-blur pb-[env(safe-area-inset-bottom)] md:hidden",
+        keyboardVisible && "hidden"
+      )}
       aria-label="Primary"
     >
       <ul className="grid grid-cols-5">

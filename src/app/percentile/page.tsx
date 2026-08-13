@@ -174,8 +174,20 @@ export default function PercentilePage() {
             <p>
               Estimates are based on aggregated community strength-standards data (bodyweight-relative multipliers
               and the DOTS formula) — not a scientific census. Lifts marked &quot;est.&quot; are extrapolated from a
-              typical ratio to the nearest main lift rather than their own standards table. Use them as a rough
-              compass, not gospel.
+              typical ratio to the nearest main lift rather than their own standards table (tap the (est.) icon on a
+              lift to see the ratio used). Use them as a rough compass, not gospel.
+            </p>
+          </div>
+
+          <div className="flex items-start gap-2 rounded-xl bg-secondary/60 p-3 text-xs text-muted-foreground">
+            <Info size={14} className="mt-0.5 shrink-0" />
+            <p>
+              <strong className="font-medium text-foreground">How the weight you log is read:</strong> every set
+              uses the number you type as-is — there&apos;s no automatic doubling or bodyweight math. For dumbbell
+              exercises, enter the combined weight of both dumbbells (e.g. 60 for a pair of 30s), not one dumbbell.
+              For bodyweight exercises, enter only the added weight (belt, vest, plate) — leave it at 0 for
+              unweighted sets, though unweighted sets won&apos;t produce an e1RM or percentile since there&apos;s no
+              population data for bodyweight-relative reps.
             </p>
           </div>
         </div>
@@ -200,16 +212,26 @@ export default function PercentilePage() {
             ))}
           </div>
 
-          {allRatedLifts && allRatedLifts.length > 0 && (
+          {allRatedLifts && (
             <div>
               <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                 All your lifts
               </p>
-              <div className="grid gap-3 sm:grid-cols-2">
-                {allRatedLifts.map((r) => (
-                  <LiftPercentileRow key={r.exerciseId} result={r} unit={settings.unitSystem} />
-                ))}
-              </div>
+              {allRatedLifts.length > 0 ? (
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {allRatedLifts.map((r) => (
+                    <LiftPercentileRow key={r.exerciseId} result={r} unit={settings.unitSystem} />
+                  ))}
+                </div>
+              ) : (
+                <p className="rounded-xl border border-dashed border-border p-3.5 text-xs text-muted-foreground">
+                  Nothing here yet. Only exercises with a known ratio to squat/bench/deadlift/OHP get an estimated
+                  percentile (e.g. Dumbbell Bench Press, Goblet Squat, Romanian Deadlift, Hip Thrust) — log some
+                  working sets for one of those and it&apos;ll show up here. Isolation and bodyweight exercises
+                  (curls, laterals, push-ups, pull-ups, planks) aren&apos;t scored — there&apos;s no reliable
+                  population data to compare them against.
+                </p>
+              )}
             </div>
           )}
         </div>

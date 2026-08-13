@@ -34,6 +34,7 @@ async function seed() {
   } else {
     const all = await db.exercises.toArray();
     exercisesByName = new Map(all.map((e) => [e.name, e]));
+    await backfillBuiltInExercises(exercisesByName);
   }
 
   const programCount = await db.programs.count();
@@ -83,4 +84,25 @@ async function seed() {
     };
     await db.settings.add(defaults);
   }
+}
+
+/**
+ * Exercises only bulkAdd once (above), so a profile seeded before a field was added or changed
+ * in seed-exercises.ts (e.g. a standardLift/standardLiftRatio backfill, like the one that gave
+ * Dumbbell Bench Press etc. their percentile ratios) would otherwise carry stale data forever.
+ * Built-ins aren't user-editable, so it's safe to resync every field from the current seed list.
+ */
+async function backfillBuiltInExercises(exercisesByName: Map<string, Exercise>) {
+  const updates: Exercise[] = [];
+  for (const seedExercise of seedExercises) {
+    const current = exercisesByName.get(seedExercise.name);
+    if (!current || current.isCustom) continue;
+    const candidate: Exercise = { ...current, ...seedExercise };
+    if (JSON.stringify(candidate) !== JSON.stringify(current)) {
+      const merged = { ...candidate, updatedAt: Date.now() };
+      updates.push(merged);
+      exercisesByName.set(seedExercise.name, merged);
+    }
+  }
+  if (updates.length > 0) await db.exercises.bulkPut(updates);
 }

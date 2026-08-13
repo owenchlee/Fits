@@ -51,7 +51,16 @@ export function ExercisePicker({
   });
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog
+      open={open}
+      onOpenChange={(next) => {
+        setOpen(next);
+        if (next) {
+          setQuery("");
+          setMuscle("all");
+        }
+      }}
+    >
       <DialogTrigger asChild>
         {trigger ?? (
           <Button size="lg" className="w-full" type="button">
@@ -59,7 +68,7 @@ export function ExercisePicker({
           </Button>
         )}
       </DialogTrigger>
-      <DialogContent className="flex max-h-[85vh] flex-col gap-0 overflow-hidden p-0 sm:max-w-lg">
+      <DialogContent className="flex h-[85vh] flex-col gap-0 overflow-hidden p-0 sm:max-w-lg">
         <DialogHeader className="shrink-0 border-b border-border p-4 pb-3">
           <DialogTitle>{triggerLabel}</DialogTitle>
           <div className="relative mt-1">

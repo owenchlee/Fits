@@ -64,6 +64,12 @@ export interface Program {
   daysPerWeek: number;
   isCustom: boolean;
   days: ProgramDay[];
+  /**
+   * Weekly schedule, Monday-first (index 0 = Monday .. 6 = Sunday). Each entry is an
+   * index into `days`, or null for a rest day. Undefined means no schedule is set —
+   * the program just advances sequentially through `days` as workouts are completed.
+   */
+  schedule?: (number | null)[];
   updatedAt: number;
 }
 
@@ -127,5 +133,7 @@ export interface AppSettings {
   lastWorkoutDate?: string; // yyyy-mm-dd
   activeProgramId?: string;
   activeProgramDayIndex?: number;
+  /** Built-in programs the user removed from their Programs list — kept seeded so they can be restored. */
+  hiddenProgramIds?: string[];
   updatedAt: number;
 }

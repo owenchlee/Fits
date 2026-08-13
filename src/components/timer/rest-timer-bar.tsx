@@ -3,6 +3,7 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { Minus, Plus, X } from "@phosphor-icons/react/dist/ssr";
 import { useRestTimer } from "@/lib/timer/rest-timer-context";
+import { useKeyboardVisible } from "@/lib/hooks/use-keyboard-visible";
 import { cn } from "@/lib/utils";
 
 function formatClock(totalSeconds: number) {
@@ -20,6 +21,7 @@ export function RestTimerBar() {
   const circumference = 2 * Math.PI * 18;
   const dashoffset = circumference * (1 - progress);
   const finished = active && secondsLeft === 0 && !isRunning;
+  const keyboardVisible = useKeyboardVisible();
 
   return (
     <AnimatePresence>
@@ -29,7 +31,10 @@ export function RestTimerBar() {
           animate={{ y: 0, opacity: 1 }}
           exit={{ y: 96, opacity: 0 }}
           transition={{ type: "spring", damping: 26, stiffness: 260 }}
-          className="fixed inset-x-0 bottom-[calc(4.25rem+env(safe-area-inset-bottom))] z-40 flex justify-center px-3 md:bottom-4 md:left-[calc(15rem+0.75rem)] md:right-3 md:justify-end"
+          className={cn(
+            "fixed inset-x-0 z-40 flex justify-center px-3 md:bottom-4 md:left-[calc(15rem+0.75rem)] md:right-3 md:justify-end",
+            keyboardVisible ? "bottom-2" : "bottom-[calc(4.25rem+env(safe-area-inset-bottom))]"
+          )}
         >
           <div
             className={cn(

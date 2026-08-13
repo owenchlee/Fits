@@ -43,11 +43,18 @@ export function ProgramBuilderDialog() {
   const [name, setName] = React.useState("");
   const [description, setDescription] = React.useState("");
   const [days, setDays] = React.useState<DraftDay[]>([{ name: "Day 1", exercises: [] }]);
+  const [defaultSets, setDefaultSets] = React.useState(3);
 
   function reset() {
     setName("");
     setDescription("");
     setDays([{ name: "Day 1", exercises: [] }]);
+    setDefaultSets(3);
+  }
+
+  function applyDefaultSetsToAll(value: number) {
+    setDefaultSets(value);
+    setDays((d) => d.map((day) => ({ ...day, exercises: day.exercises.map((ex) => ({ ...ex, targetSets: value })) })));
   }
 
   function addDay() {
@@ -70,7 +77,7 @@ export function ProgramBuilderDialog() {
               ...day,
               exercises: [
                 ...day.exercises,
-                { key: generateId(), exerciseId, targetSets: 3, targetReps: "" },
+                { key: generateId(), exerciseId, targetSets: defaultSets, targetReps: "" },
               ],
             }
           : day
@@ -154,6 +161,21 @@ export function ProgramBuilderDialog() {
                 className="mt-1.5"
               />
             </div>
+          </div>
+
+          <div className="flex items-center gap-3 rounded-xl border border-border p-3">
+            <Label htmlFor="default-sets" className="shrink-0">
+              Sets per exercise
+            </Label>
+            <input
+              id="default-sets"
+              type="number"
+              min={1}
+              value={defaultSets}
+              onChange={(e) => applyDefaultSetsToAll(e.target.value === "" ? 0 : Number(e.target.value))}
+              className="h-8 w-16 rounded-md border border-input bg-background text-center text-xs tabular-nums"
+            />
+            <span className="text-xs text-muted-foreground">Applies to every exercise in the program</span>
           </div>
 
           <div className="space-y-3">

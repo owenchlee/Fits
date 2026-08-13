@@ -1,10 +1,12 @@
 "use client";
 
+import { Info } from "@phosphor-icons/react/dist/ssr";
 import { formatWeight } from "@/lib/calc/units";
 import { LIFT_LABELS, type ExercisePercentileResult, type LiftPercentileResult } from "@/lib/calc/strength-standards";
 import { ordinalSuffix } from "@/lib/format";
 import type { UnitSystem } from "@/lib/db/types";
 import { cn } from "@/lib/utils";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 const TIER_COLORS: Record<string, string> = {
   Beginner: "bg-muted-foreground/40",
@@ -25,13 +27,26 @@ export function LiftPercentileRow({
   const roundedPercentile = Math.round(result.percentile);
   const label = "exerciseName" in result ? result.exerciseName : LIFT_LABELS[result.lift];
   const isEstimated = "isEstimated" in result && result.isEstimated;
+  const estimatedFrom = "estimatedFrom" in result ? result.estimatedFrom : undefined;
 
   return (
     <div className="rounded-xl border border-border bg-card p-3.5">
       <div className="flex items-center justify-between gap-2">
-        <p className="font-medium">
+        <p className="flex items-center font-medium">
           {label}
-          {isEstimated && <span className="ml-1.5 text-[11px] font-normal text-muted-foreground">(est.)</span>}
+          {isEstimated && estimatedFrom && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="ml-1.5 inline-flex items-center gap-0.5 text-[11px] font-normal text-muted-foreground">
+                  (est.) <Info size={11} />
+                </span>
+              </TooltipTrigger>
+              <TooltipContent>
+                Estimated as {Math.round(estimatedFrom.ratio * 100)}% of your {LIFT_LABELS[estimatedFrom.basedOn]},
+                since {label} isn&apos;t tracked directly.
+              </TooltipContent>
+            </Tooltip>
+          )}
         </p>
         <span
           className={cn(
