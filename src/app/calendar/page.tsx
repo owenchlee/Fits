@@ -105,7 +105,7 @@ export default function CalendarPage() {
                 <select
                   value={schedule[i] ?? "rest"}
                   onChange={(e) => setDay(i, e.target.value === "rest" ? null : Number(e.target.value))}
-                  className="h-9 w-full rounded-lg border border-input bg-secondary px-1 text-center text-[11px] focus:border-ring focus:outline-none"
+                  className="h-9 w-full appearance-none rounded-lg border border-input bg-secondary px-1 text-center text-[11px] focus:border-ring focus:outline-none"
                 >
                   <option value="rest">Rest</option>
                   {activeProgram.days.map((day, di) => (
