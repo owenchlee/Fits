@@ -72,7 +72,7 @@ export function ExercisePicker({
               className="h-10 w-full rounded-lg border border-input bg-secondary pl-9 pr-3 text-sm focus:border-ring focus:outline-none"
             />
           </div>
-          <div className="-mx-1 mt-2 flex gap-1.5 overflow-x-auto px-1 pb-1 no-scrollbar">
+          <div className="-mx-1 mt-2 flex flex-wrap gap-1.5 px-1 pb-1">
             {MUSCLE_FILTERS.map((m) => (
               <button
                 key={m}

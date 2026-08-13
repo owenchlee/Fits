@@ -111,7 +111,8 @@ export function ExerciseSessionCard({
           <div className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-muted-foreground">
             {targetSets && (
               <span>
-                Target {targetSets} × {targetReps}
+                Target {targetSets}
+                {targetReps ? ` × ${targetReps}` : " sets"}
               </span>
             )}
             {bestThisSession > 0 && (

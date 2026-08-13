@@ -189,7 +189,7 @@ function ExercisePreviewRow({ exerciseId, sets, reps }: { exerciseId: string; se
     <li className="flex items-center justify-between text-sm">
       <span className="text-foreground">{exercise?.name ?? "…"}</span>
       <span className="tabular-nums text-muted-foreground">
-        {sets} × {reps}
+        {sets} {reps ? `× ${reps}` : "sets"}
       </span>
     </li>
   );

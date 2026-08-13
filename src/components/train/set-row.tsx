@@ -93,7 +93,7 @@ export function SetRow({
         inputMode="decimal"
         value={weightStr}
         onChange={(e) => commitWeight(e.target.value)}
-        placeholder={previous ? String(round1(toDisplayWeight(previous.weightKg, unit))) : "0"}
+        placeholder={previous ? String(round1(toDisplayWeight(previous.weightKg, unit))) : "–"}
         aria-label={`Set ${index} weight (${unit})`}
         className="h-9 w-16 rounded-lg border border-transparent bg-secondary px-2 text-center text-sm font-medium tabular-nums placeholder:font-normal placeholder:text-muted-foreground focus:border-ring focus:bg-background focus:outline-none"
       />
@@ -102,7 +102,7 @@ export function SetRow({
         inputMode="numeric"
         value={repsStr}
         onChange={(e) => commitReps(e.target.value)}
-        placeholder={previous ? String(previous.reps) : "0"}
+        placeholder={previous ? String(previous.reps) : "–"}
         aria-label={`Set ${index} reps`}
         className="h-9 w-12 rounded-lg border border-transparent bg-secondary px-2 text-center text-sm font-medium tabular-nums placeholder:font-normal placeholder:text-muted-foreground focus:border-ring focus:bg-background focus:outline-none"
       />

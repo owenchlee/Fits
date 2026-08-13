@@ -30,7 +30,7 @@ function DayExerciseRow({ exerciseId, sets, reps }: { exerciseId: string; sets: 
     <li className="flex items-center justify-between py-1.5 text-sm">
       <span>{exercise?.name ?? "…"}</span>
       <span className="tabular-nums text-muted-foreground">
-        {sets} × {reps}
+        {sets} {reps ? `× ${reps}` : "sets"}
       </span>
     </li>
   );
@@ -65,23 +65,6 @@ function EditableExerciseRow({
         className="h-8 w-12 rounded-md border border-input bg-background text-center text-xs tabular-nums"
         aria-label="Target sets"
       />
-      <span className="text-xs text-muted-foreground">×</span>
-      <input
-        value={ex.targetReps}
-        onChange={(e) => onChange({ targetReps: e.target.value })}
-        className="h-8 w-16 rounded-md border border-input bg-background text-center text-xs"
-        aria-label="Target reps"
-      />
-      <input
-        type="number"
-        min={0}
-        step={15}
-        value={ex.restSeconds === 0 ? "" : ex.restSeconds}
-        onChange={(e) => onChange({ restSeconds: e.target.value === "" ? 0 : Number(e.target.value) })}
-        className="h-8 w-16 rounded-md border border-input bg-background text-center text-xs tabular-nums"
-        aria-label="Rest seconds"
-        title="Rest (seconds)"
-      />
       <button
         type="button"
         onClick={onRemove}
@@ -115,7 +98,7 @@ function EditableDayCard({
   function addExercise(exerciseId: string) {
     onChange({
       ...day,
-      exercises: [...day.exercises, { exerciseId, targetSets: 3, targetReps: "8-12", restSeconds: 90 }],
+      exercises: [...day.exercises, { exerciseId, targetSets: 3, targetReps: "" }],
     });
   }
 
@@ -126,9 +109,6 @@ function EditableDayCard({
           <span className="w-3.5 shrink-0" />
           <span className="min-w-0 flex-1">Exercise</span>
           <span className="w-12 shrink-0 text-center">Sets</span>
-          <span className="w-3 shrink-0 text-center">×</span>
-          <span className="w-16 shrink-0 text-center">Reps</span>
-          <span className="w-16 shrink-0 text-center">Rest (s)</span>
           <span className="w-7 shrink-0" />
         </div>
       )}
@@ -154,7 +134,7 @@ function EditableDayCard({
           addedIds={day.exercises.map((e) => e.exerciseId)}
           onSelect={(exercise) => addExercise(exercise.id)}
           trigger={
-            <Button type="button" variant="ghost" size="sm" className="text-muted-foreground">
+            <Button type="button" variant="outline" size="sm">
               <Plus size={14} /> Add exercise
             </Button>
           }

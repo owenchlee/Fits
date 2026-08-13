@@ -47,7 +47,7 @@ export interface ProgramExercise {
   targetReps: string; // e.g. "5", "8-12", "AMRAP"
   targetRpe?: number;
   percentOfMax?: number; // for %-based programs like 5/3/1
-  restSeconds: number;
+  restSeconds?: number; // omitted on custom programs — falls back to the user's default rest timer setting
 }
 
 export interface ProgramDay {

@@ -82,7 +82,7 @@ export default function ExercisesPage() {
         />
       </div>
 
-      <div className="-mx-1 mb-4 flex gap-1.5 overflow-x-auto px-1 pb-1 no-scrollbar">
+      <div className="-mx-1 mb-4 flex flex-wrap gap-1.5 px-1 pb-1">
         {MUSCLE_FILTERS.map((m) => (
           <button
             key={m}

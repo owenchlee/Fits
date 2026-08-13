@@ -25,7 +25,6 @@ interface DraftExercise {
   exerciseId: string;
   targetSets: number;
   targetReps: string;
-  restSeconds: number;
 }
 
 interface DraftDay {
@@ -71,7 +70,7 @@ export function ProgramBuilderDialog() {
               ...day,
               exercises: [
                 ...day.exercises,
-                { key: generateId(), exerciseId, targetSets: 3, targetReps: "8-12", restSeconds: 90 },
+                { key: generateId(), exerciseId, targetSets: 3, targetReps: "" },
               ],
             }
           : day
@@ -113,7 +112,6 @@ export function ProgramBuilderDialog() {
             exerciseId: ex.exerciseId,
             targetSets: ex.targetSets,
             targetReps: ex.targetReps,
-            restSeconds: ex.restSeconds,
           })),
         })),
     });
@@ -185,9 +183,6 @@ export function ProgramBuilderDialog() {
                       <span className="w-3.5 shrink-0" />
                       <span className="min-w-0 flex-1">Exercise</span>
                       <span className="w-12 shrink-0 text-center">Sets</span>
-                      <span className="w-3 shrink-0 text-center">×</span>
-                      <span className="w-16 shrink-0 text-center">Reps</span>
-                      <span className="w-16 shrink-0 text-center">Rest (s)</span>
                       <span className="w-7 shrink-0" />
                     </div>
                   )}
@@ -223,27 +218,6 @@ export function ProgramBuilderDialog() {
                           className="h-8 w-12 rounded-md border border-input bg-background text-center text-xs tabular-nums"
                           aria-label="Target sets"
                         />
-                        <span className="text-xs text-muted-foreground">×</span>
-                        <input
-                          value={ex.targetReps}
-                          onChange={(e) => updateExercise(dayIndex, exIndex, { targetReps: e.target.value })}
-                          className="h-8 w-16 rounded-md border border-input bg-background text-center text-xs"
-                          aria-label="Target reps"
-                        />
-                        <input
-                          type="number"
-                          min={0}
-                          step={15}
-                          value={ex.restSeconds === 0 ? "" : ex.restSeconds}
-                          onChange={(e) =>
-                            updateExercise(dayIndex, exIndex, {
-                              restSeconds: e.target.value === "" ? 0 : Number(e.target.value),
-                            })
-                          }
-                          className="h-8 w-16 rounded-md border border-input bg-background text-center text-xs tabular-nums"
-                          aria-label="Rest seconds"
-                          title="Rest (seconds)"
-                        />
                         <button
                           type="button"
                           onClick={() => removeExercise(dayIndex, exIndex)}
@@ -263,7 +237,7 @@ export function ProgramBuilderDialog() {
                     addedIds={day.exercises.map((ex) => ex.exerciseId)}
                     onSelect={(exercise) => addExerciseToDay(dayIndex, exercise.id)}
                     trigger={
-                      <Button type="button" variant="ghost" size="sm" className="text-muted-foreground">
+                      <Button type="button" variant="outline" size="sm">
                         <Plus size={14} /> Add exercise
                       </Button>
                     }
