@@ -33,7 +33,7 @@ export function RestTimerBar() {
           transition={{ type: "spring", damping: 26, stiffness: 260 }}
           className={cn(
             "fixed inset-x-0 z-40 flex justify-center px-3 md:bottom-4 md:left-[calc(15rem+0.75rem)] md:right-3 md:justify-end",
-            keyboardVisible ? "bottom-2" : "bottom-[calc(4.25rem+env(safe-area-inset-bottom))]"
+            keyboardVisible ? "bottom-2" : "bottom-[calc(5.5rem+env(safe-area-inset-bottom))]"
           )}
         >
           <div

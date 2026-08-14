@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useLiveQuery } from "dexie-react-hooks";
-import { Flame, ArrowRight, Barbell, ClipboardText, Trophy, PlayCircle } from "@phosphor-icons/react/dist/ssr";
+import { Flame, ArrowRight, Barbell, ClipboardText, Trophy } from "@phosphor-icons/react/dist/ssr";
 import { db } from "@/lib/db/db";
 import { useActiveWorkout, useProgram, useSettings } from "@/lib/db/hooks";
 import { startWorkout, getCompletedSets, getCompletedWorkouts } from "@/lib/db/repo";
@@ -15,7 +15,6 @@ import { LIFT_LABELS, type StandardLift } from "@/lib/calc/strength-standards";
 import { PageHeader } from "@/components/shared/page-header";
 import { StatCard } from "@/components/shared/stat-card";
 import { Button } from "@/components/ui/button";
-import { motion } from "framer-motion";
 
 function useWeeklyStats() {
   return useLiveQuery(async () => {
@@ -99,28 +98,6 @@ export default function DashboardPage() {
           ) : undefined
         }
       />
-
-      {activeWorkout && (
-        <motion.div
-          initial={{ opacity: 0, y: -8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.25 }}
-        >
-          <Link
-            href={`/train?workoutId=${activeWorkout.id}`}
-            className="mb-6 flex items-center justify-between gap-3 rounded-2xl border border-primary/40 bg-primary/10 px-4 py-3.5 transition-colors hover:bg-primary/15"
-          >
-            <div className="flex items-center gap-3">
-              <PlayCircle size={22} weight="fill" className="text-primary" />
-              <div>
-                <p className="text-sm font-semibold">Workout in progress</p>
-                <p className="text-xs text-muted-foreground">{activeWorkout.title} · tap to resume</p>
-              </div>
-            </div>
-            <ArrowRight size={18} className="text-primary" />
-          </Link>
-        </motion.div>
-      )}
 
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
         <StatCard label="Streak" value={String(settings.streak)} unit="days" icon={Flame} accent />
