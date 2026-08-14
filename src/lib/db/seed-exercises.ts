@@ -13,6 +13,8 @@ const list: SeedExercise[] = [
   { name: "Push-Up", primaryMuscle: "chest", secondaryMuscles: ["triceps", "core"], equipment: "bodyweight", standardLift: null },
   { name: "Dip (Chest-Focused)", primaryMuscle: "chest", secondaryMuscles: ["triceps"], equipment: "bodyweight", standardLift: null },
   { name: "Machine Chest Press", primaryMuscle: "chest", secondaryMuscles: ["triceps"], equipment: "machine", standardLift: null, standardLiftRatio: { basedOn: "bench", ratio: 0.9 } },
+  { name: "Decline Bench Press", primaryMuscle: "chest", secondaryMuscles: ["triceps"], equipment: "barbell", standardLift: null, standardLiftRatio: { basedOn: "bench", ratio: 1.05 } },
+  { name: "Pec Deck Fly", primaryMuscle: "chest", secondaryMuscles: [], equipment: "machine", standardLift: null },
 
   // Back
   { name: "Deadlift", primaryMuscle: "back", secondaryMuscles: ["hamstrings", "glutes", "traps"], equipment: "barbell", standardLift: "deadlift" },
@@ -25,17 +27,23 @@ const list: SeedExercise[] = [
   { name: "Pendlay Row", primaryMuscle: "back", secondaryMuscles: ["biceps"], equipment: "barbell", standardLift: null, standardLiftRatio: { basedOn: "deadlift", ratio: 0.55 } },
   { name: "T-Bar Row", primaryMuscle: "back", secondaryMuscles: ["biceps"], equipment: "machine", standardLift: null },
   { name: "Seated Cable Row", primaryMuscle: "back", secondaryMuscles: ["biceps"], equipment: "cable", standardLift: null },
-  { name: "Dumbbell Row", primaryMuscle: "back", secondaryMuscles: ["biceps"], equipment: "dumbbell", standardLift: null },
+  { name: "Dumbbell Row", primaryMuscle: "back", secondaryMuscles: ["biceps"], equipment: "dumbbell", standardLift: null, isUnilateral: true },
   { name: "Rack Pull", primaryMuscle: "back", secondaryMuscles: ["traps", "hamstrings"], equipment: "barbell", standardLift: null, standardLiftRatio: { basedOn: "deadlift", ratio: 1.15 } },
   { name: "Face Pull", primaryMuscle: "shoulders", secondaryMuscles: ["back", "traps"], equipment: "cable", standardLift: null },
+  { name: "Straight-Arm Pulldown", primaryMuscle: "back", secondaryMuscles: [], equipment: "cable", standardLift: null },
+  { name: "Landmine Row", primaryMuscle: "back", secondaryMuscles: ["biceps"], equipment: "barbell", standardLift: null },
 
   // Shoulders
   { name: "Overhead Press", primaryMuscle: "shoulders", secondaryMuscles: ["triceps"], equipment: "barbell", standardLift: "overhead-press" },
   { name: "Seated Dumbbell Press", primaryMuscle: "shoulders", secondaryMuscles: ["triceps"], equipment: "dumbbell", standardLift: null, standardLiftRatio: { basedOn: "overhead-press", ratio: 0.85 } },
+  { name: "Dumbbell Shoulder Press", primaryMuscle: "shoulders", secondaryMuscles: ["triceps"], equipment: "dumbbell", standardLift: null, standardLiftRatio: { basedOn: "overhead-press", ratio: 0.8 } },
+  { name: "Machine Shoulder Press", primaryMuscle: "shoulders", secondaryMuscles: ["triceps"], equipment: "machine", standardLift: null, standardLiftRatio: { basedOn: "overhead-press", ratio: 0.95 } },
   { name: "Arnold Press", primaryMuscle: "shoulders", secondaryMuscles: ["triceps"], equipment: "dumbbell", standardLift: null, standardLiftRatio: { basedOn: "overhead-press", ratio: 0.75 } },
   { name: "Lateral Raise", primaryMuscle: "shoulders", secondaryMuscles: [], equipment: "dumbbell", standardLift: null },
   { name: "Cable Lateral Raise", primaryMuscle: "shoulders", secondaryMuscles: [], equipment: "cable", standardLift: null },
   { name: "Rear Delt Fly", primaryMuscle: "shoulders", secondaryMuscles: ["back"], equipment: "dumbbell", standardLift: null },
+  { name: "Cable Rear Delt Fly", primaryMuscle: "shoulders", secondaryMuscles: ["back"], equipment: "cable", standardLift: null },
+  { name: "Upright Row", primaryMuscle: "shoulders", secondaryMuscles: ["traps"], equipment: "barbell", standardLift: null },
   { name: "Shrug", primaryMuscle: "traps", secondaryMuscles: [], equipment: "barbell", standardLift: null },
 
   // Arms
@@ -45,17 +53,22 @@ const list: SeedExercise[] = [
   { name: "Hammer Curl", primaryMuscle: "biceps", secondaryMuscles: ["forearms"], equipment: "dumbbell", standardLift: null },
   { name: "Preacher Curl", primaryMuscle: "biceps", secondaryMuscles: [], equipment: "machine", standardLift: null },
   { name: "Cable Curl", primaryMuscle: "biceps", secondaryMuscles: [], equipment: "cable", standardLift: null },
+  { name: "Concentration Curl", primaryMuscle: "biceps", secondaryMuscles: [], equipment: "dumbbell", standardLift: null, isUnilateral: true },
+  { name: "Spider Curl", primaryMuscle: "biceps", secondaryMuscles: [], equipment: "barbell", standardLift: null },
+  { name: "Reverse Curl", primaryMuscle: "biceps", secondaryMuscles: ["forearms"], equipment: "barbell", standardLift: null },
   { name: "Close-Grip Bench Press", primaryMuscle: "triceps", secondaryMuscles: ["chest"], equipment: "barbell", standardLift: null, standardLiftRatio: { basedOn: "bench", ratio: 0.9 } },
   { name: "Triceps Pushdown", primaryMuscle: "triceps", secondaryMuscles: [], equipment: "cable", standardLift: null },
   { name: "Skull Crusher", primaryMuscle: "triceps", secondaryMuscles: [], equipment: "barbell", standardLift: null },
-  { name: "Overhead Triceps Extension", primaryMuscle: "triceps", secondaryMuscles: [], equipment: "dumbbell", standardLift: null },
+  { name: "Dumbbell Skull Crusher", primaryMuscle: "triceps", secondaryMuscles: [], equipment: "dumbbell", standardLift: null, standardLiftRatio: { basedOn: "bench", ratio: 0.35 } },
+  { name: "Overhead Triceps Extension", primaryMuscle: "triceps", secondaryMuscles: [], equipment: "dumbbell", standardLift: null, isUnilateral: true },
+  { name: "Triceps Kickback", primaryMuscle: "triceps", secondaryMuscles: [], equipment: "dumbbell", standardLift: null, isUnilateral: true },
   { name: "Dip (Triceps-Focused)", primaryMuscle: "triceps", secondaryMuscles: ["chest"], equipment: "bodyweight", standardLift: null },
   { name: "Wrist Curl", primaryMuscle: "forearms", secondaryMuscles: [], equipment: "dumbbell", standardLift: null },
 
   // Legs
   { name: "Back Squat", primaryMuscle: "quads", secondaryMuscles: ["glutes", "hamstrings"], equipment: "barbell", standardLift: "squat" },
   { name: "Front Squat", primaryMuscle: "quads", secondaryMuscles: ["glutes", "core"], equipment: "barbell", standardLift: null, standardLiftRatio: { basedOn: "squat", ratio: 0.85 } },
-  { name: "Goblet Squat", primaryMuscle: "quads", secondaryMuscles: ["glutes"], equipment: "dumbbell", standardLift: null, standardLiftRatio: { basedOn: "squat", ratio: 0.5 } },
+  { name: "Goblet Squat", primaryMuscle: "quads", secondaryMuscles: ["glutes"], equipment: "dumbbell", standardLift: null, standardLiftRatio: { basedOn: "squat", ratio: 0.5 }, isUnilateral: true },
   { name: "Leg Press", primaryMuscle: "quads", secondaryMuscles: ["glutes"], equipment: "machine", standardLift: null, standardLiftRatio: { basedOn: "squat", ratio: 2.2 } },
   { name: "Bulgarian Split Squat", primaryMuscle: "quads", secondaryMuscles: ["glutes"], equipment: "dumbbell", standardLift: null, standardLiftRatio: { basedOn: "squat", ratio: 0.4 } },
   { name: "Walking Lunge", primaryMuscle: "quads", secondaryMuscles: ["glutes"], equipment: "dumbbell", standardLift: null, standardLiftRatio: { basedOn: "squat", ratio: 0.35 } },
@@ -66,21 +79,33 @@ const list: SeedExercise[] = [
   { name: "Standing Calf Raise", primaryMuscle: "calves", secondaryMuscles: [], equipment: "machine", standardLift: null },
   { name: "Seated Calf Raise", primaryMuscle: "calves", secondaryMuscles: [], equipment: "machine", standardLift: null },
   { name: "Hip Abduction Machine", primaryMuscle: "glutes", secondaryMuscles: [], equipment: "machine", standardLift: null },
+  { name: "Hack Squat", primaryMuscle: "quads", secondaryMuscles: ["glutes"], equipment: "machine", standardLift: null, standardLiftRatio: { basedOn: "squat", ratio: 1.1 } },
+  { name: "Smith Machine Squat", primaryMuscle: "quads", secondaryMuscles: ["glutes"], equipment: "machine", standardLift: null, standardLiftRatio: { basedOn: "squat", ratio: 0.95 } },
+  { name: "Step-Up", primaryMuscle: "quads", secondaryMuscles: ["glutes"], equipment: "dumbbell", standardLift: null, standardLiftRatio: { basedOn: "squat", ratio: 0.35 } },
+  { name: "Good Morning", primaryMuscle: "hamstrings", secondaryMuscles: ["glutes", "back"], equipment: "barbell", standardLift: null, standardLiftRatio: { basedOn: "deadlift", ratio: 0.45 } },
+  { name: "Nordic Curl", primaryMuscle: "hamstrings", secondaryMuscles: [], equipment: "bodyweight", standardLift: null },
+  { name: "Sissy Squat", primaryMuscle: "quads", secondaryMuscles: [], equipment: "bodyweight", standardLift: null },
 
   // Core
   { name: "Plank", primaryMuscle: "core", secondaryMuscles: [], equipment: "bodyweight", standardLift: null },
+  { name: "Side Plank", primaryMuscle: "core", secondaryMuscles: [], equipment: "bodyweight", standardLift: null },
   { name: "Hanging Leg Raise", primaryMuscle: "core", secondaryMuscles: [], equipment: "bodyweight", standardLift: null },
   { name: "Cable Crunch", primaryMuscle: "core", secondaryMuscles: [], equipment: "cable", standardLift: null },
   { name: "Ab Wheel Rollout", primaryMuscle: "core", secondaryMuscles: [], equipment: "other", standardLift: null },
   { name: "Russian Twist", primaryMuscle: "core", secondaryMuscles: [], equipment: "bodyweight", standardLift: null },
   { name: "Weighted Sit-Up", primaryMuscle: "core", secondaryMuscles: [], equipment: "bodyweight", standardLift: null },
+  { name: "Sit-Up", primaryMuscle: "core", secondaryMuscles: [], equipment: "bodyweight", standardLift: null },
+  { name: "V-Up", primaryMuscle: "core", secondaryMuscles: [], equipment: "bodyweight", standardLift: null },
 
   // Full body / Olympic
   { name: "Power Clean", primaryMuscle: "full-body", secondaryMuscles: ["back", "quads", "traps"], equipment: "barbell", standardLift: null, standardLiftRatio: { basedOn: "deadlift", ratio: 0.65 } },
+  { name: "Barbell Snatch", primaryMuscle: "full-body", secondaryMuscles: ["back", "shoulders", "traps"], equipment: "barbell", standardLift: null, standardLiftRatio: { basedOn: "deadlift", ratio: 0.5 } },
+  { name: "Clean and Jerk", primaryMuscle: "full-body", secondaryMuscles: ["back", "shoulders", "quads"], equipment: "barbell", standardLift: null, standardLiftRatio: { basedOn: "deadlift", ratio: 0.55 } },
   { name: "Kettlebell Swing", primaryMuscle: "full-body", secondaryMuscles: ["glutes", "hamstrings"], equipment: "kettlebell", standardLift: null },
   { name: "Farmer's Carry", primaryMuscle: "full-body", secondaryMuscles: ["forearms", "traps"], equipment: "dumbbell", standardLift: null },
   { name: "Thruster", primaryMuscle: "full-body", secondaryMuscles: ["shoulders", "quads"], equipment: "barbell", standardLift: null, standardLiftRatio: { basedOn: "squat", ratio: 0.5 } },
   { name: "Burpee", primaryMuscle: "full-body", secondaryMuscles: ["core"], equipment: "bodyweight", standardLift: null },
+  { name: "Sled Push", primaryMuscle: "full-body", secondaryMuscles: ["quads", "glutes"], equipment: "other", standardLift: null },
 ];
 
 export const seedExercises: SeedExercise[] = list;

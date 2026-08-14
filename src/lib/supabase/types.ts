@@ -35,6 +35,7 @@ export interface Database {
           primary_muscle: string;
           secondary_muscles: string[];
           equipment: string;
+          is_unilateral: boolean | null;
           is_custom: boolean;
           standard_lift: string | null;
           standard_lift_ratio: { basedOn: string; ratio: number } | null;
@@ -56,6 +57,8 @@ export interface Database {
           days_per_week: number;
           is_custom: boolean;
           days: unknown;
+          schedule: unknown;
+          cycle_start_date: string | null;
           updated_at: string;
           deleted_at: string | null;
         };

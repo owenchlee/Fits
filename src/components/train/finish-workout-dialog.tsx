@@ -2,9 +2,12 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
+import { useLiveQuery } from "dexie-react-hooks";
 import { toast } from "sonner";
 import { CheckCircle } from "@phosphor-icons/react/dist/ssr";
+import { db } from "@/lib/db/db";
 import { completeWorkout } from "@/lib/db/repo";
+import { toTotalLoadKg } from "@/lib/calc/load";
 import { formatWeight } from "@/lib/calc/units";
 import type { SetEntry, UnitSystem } from "@/lib/db/types";
 import {
@@ -36,7 +39,10 @@ export function FinishWorkoutDialog({
   const router = useRouter();
   const [durationMin, setDurationMin] = React.useState(1);
   const workingSets = sets.filter((s) => !s.isWarmup);
-  const volumeKg = workingSets.reduce((sum, s) => sum + s.weightKg * s.reps, 0);
+  const exerciseIds = React.useMemo(() => Array.from(new Set(workingSets.map((s) => s.exerciseId))), [workingSets]);
+  const exercises = useLiveQuery(() => db.exercises.bulkGet(exerciseIds), [exerciseIds]);
+  const exerciseById = new Map((exercises ?? []).filter((e) => !!e).map((e) => [e!.id, e!]));
+  const volumeKg = workingSets.reduce((sum, s) => sum + toTotalLoadKg(s.weightKg, exerciseById.get(s.exerciseId)) * s.reps, 0);
 
   async function handleFinish() {
     await completeWorkout(workoutId);

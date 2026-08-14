@@ -7,6 +7,7 @@ import { CaretLeft } from "@phosphor-icons/react/dist/ssr";
 import { db } from "@/lib/db/db";
 import { useSettings } from "@/lib/db/hooks";
 import { estimateOneRepMax } from "@/lib/calc/one-rep-max";
+import { toTotalLoadKg } from "@/lib/calc/load";
 import { formatWeight, toDisplayWeight } from "@/lib/calc/units";
 import { calculateExercisePercentile } from "@/lib/calc/strength-standards";
 import { StatCard } from "@/components/shared/stat-card";
@@ -26,7 +27,10 @@ export default function ExerciseDetailPage() {
   if (!exercise) return <div className="py-16 text-center text-sm text-muted-foreground">Loading…</div>;
 
   const workingSets = (sets ?? []).filter((s) => !s.isWarmup);
+  // This exercise's own e1RM/trend stays in the weight you actually entered (per dumbbell, if
+  // applicable) — only the strength-standard comparison below needs the doubled total load.
   const bestE1rm = workingSets.reduce((max, s) => Math.max(max, estimateOneRepMax(s.weightKg, s.reps)), 0);
+  const bestTotalLoadE1rm = workingSets.reduce((max, s) => Math.max(max, estimateOneRepMax(toTotalLoadKg(s.weightKg, exercise), s.reps)), 0);
   const totalSets = workingSets.length;
 
   const byWorkout = new Map<string, { date: number; best: number }>();
@@ -46,8 +50,8 @@ export default function ExerciseDetailPage() {
   const recentSets = [...workingSets].reverse().slice(0, 15);
 
   const percentileResult =
-    bestE1rm > 0
-      ? calculateExercisePercentile(exercise, bestE1rm, settings.bodyweightKg, settings.sex)
+    bestTotalLoadE1rm > 0
+      ? calculateExercisePercentile(exercise, bestTotalLoadE1rm, settings.bodyweightKg, settings.sex)
       : null;
 
   return (

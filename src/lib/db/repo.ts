@@ -1,6 +1,5 @@
 import { db } from "@/lib/db/db";
 import { generateId } from "@/lib/id";
-import { estimateOneRepMax } from "@/lib/calc/one-rep-max";
 import { recordPercentileSnapshot } from "@/lib/calc/percentile-snapshot";
 import { enqueueSync } from "@/lib/sync/outbox";
 import type { AppSettings, BodyMetric, Equipment, Exercise, MuscleGroup, Program, ProgramExercise, SetEntry, Workout } from "@/lib/db/types";
@@ -10,6 +9,7 @@ export async function createExercise(data: {
   primaryMuscle: MuscleGroup;
   secondaryMuscles?: MuscleGroup[];
   equipment: Equipment;
+  isUnilateral?: boolean;
 }): Promise<string> {
   const id = generateId();
   const exercise: Exercise = {
@@ -18,6 +18,7 @@ export async function createExercise(data: {
     primaryMuscle: data.primaryMuscle,
     secondaryMuscles: data.secondaryMuscles ?? [],
     equipment: data.equipment,
+    isUnilateral: data.isUnilateral,
     isCustom: true,
     standardLift: null,
     updatedAt: Date.now(),
@@ -187,8 +188,8 @@ export async function completeWorkout(workoutId: string) {
 
   const settings = await getSettings();
 
-  // Sequential programs (no weekly schedule) advance to the next day automatically.
-  // Scheduled programs derive "today's day" from the weekday instead, so no index to advance.
+  // Sequential programs (no cycle schedule) advance to the next day automatically.
+  // Scheduled programs derive "today's day" from the cycle instead, so no index to advance.
   if (workout?.programId && settings.activeProgramId === workout.programId) {
     const program = await db.programs.get(workout.programId);
     if (program && !program.schedule) {
@@ -269,11 +270,6 @@ export async function getLastPerformance(
     .sort((a, b) => a.setIndex - b.setIndex);
 }
 
-export async function getBestEstimatedOneRepMax(exerciseId: string): Promise<number> {
-  const sets = await db.sets.where("exerciseId").equals(exerciseId).toArray();
-  return sets.reduce((best, s) => Math.max(best, estimateOneRepMax(s.weightKg, s.reps)), 0);
-}
-
 export async function logBodyMetric(metric: Omit<BodyMetric, "id" | "updatedAt">): Promise<string> {
   const id = generateId();
   await db.bodyMetrics.add({ ...metric, id, updatedAt: Date.now() });
@@ -285,12 +281,6 @@ export async function logBodyMetric(metric: Omit<BodyMetric, "id" | "updatedAt">
 export async function deleteBodyMetric(id: string) {
   await db.bodyMetrics.delete(id);
   await enqueueSync("bodyMetrics", "delete", id);
-}
-
-export async function computeWeeklyVolumeKg(): Promise<number> {
-  const weekAgo = Date.now() - 7 * 86400000;
-  const sets = await db.sets.filter((s) => s.completedAt >= weekAgo && !s.isWarmup).toArray();
-  return sets.reduce((sum, s) => sum + s.weightKg * s.reps, 0);
 }
 
 export async function getWorkoutsInRange(startMs: number, endMs: number): Promise<Workout[]> {

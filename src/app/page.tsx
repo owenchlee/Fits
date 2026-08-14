@@ -7,8 +7,9 @@ import { Flame, ArrowRight, Barbell, ClipboardText, Trophy, PlayCircle } from "@
 import { db } from "@/lib/db/db";
 import { useActiveWorkout, useProgram, useSettings } from "@/lib/db/hooks";
 import { startWorkout } from "@/lib/db/repo";
-import { mondayIndex } from "@/lib/date";
+import { scheduledDayIndexFor } from "@/lib/schedule";
 import { estimateOneRepMax } from "@/lib/calc/one-rep-max";
+import { toTotalLoadKg } from "@/lib/calc/load";
 import { formatWeight } from "@/lib/calc/units";
 import { LIFT_LABELS, type StandardLift } from "@/lib/calc/strength-standards";
 import { PageHeader } from "@/components/shared/page-header";
@@ -24,7 +25,9 @@ function useWeeklyStats() {
       db.workouts.filter((w) => (w.completedAt ?? w.startedAt) >= weekAgo).toArray(),
       db.workouts.filter((w) => !!w.completedAt).toArray(),
     ]);
-    const volumeKg = sets.reduce((sum, s) => sum + s.weightKg * s.reps, 0);
+    const exercises = await db.exercises.bulkGet(Array.from(new Set(sets.map((s) => s.exerciseId))));
+    const exerciseById = new Map(exercises.filter((e) => !!e).map((e) => [e!.id, e!]));
+    const volumeKg = sets.reduce((sum, s) => sum + toTotalLoadKg(s.weightKg, exerciseById.get(s.exerciseId)) * s.reps, 0);
     return { volumeKg, workoutsThisWeek: workouts.length, totalWorkouts: allWorkouts.length };
   }, []);
 }
@@ -35,7 +38,7 @@ function useMainLiftPRs() {
     const results: Partial<Record<StandardLift, number>> = {};
     for (const ex of exercises) {
       const sets = await db.sets.where("exerciseId").equals(ex.id).toArray();
-      const best = sets.reduce((max, s) => Math.max(max, estimateOneRepMax(s.weightKg, s.reps)), 0);
+      const best = sets.reduce((max, s) => Math.max(max, estimateOneRepMax(toTotalLoadKg(s.weightKg, ex), s.reps)), 0);
       const lift = ex.standardLift as StandardLift;
       results[lift] = Math.max(results[lift] ?? 0, best);
     }
@@ -52,7 +55,7 @@ export default function DashboardPage() {
   const prs = useMainLiftPRs();
 
   const usingSchedule = !!activeProgram?.schedule;
-  const scheduledDayIndex = usingSchedule ? activeProgram!.schedule![mondayIndex(new Date())] : undefined;
+  const scheduledDayIndex = usingSchedule ? scheduledDayIndexFor(activeProgram!, new Date()) : undefined;
   const isRestToday = usingSchedule && (scheduledDayIndex === null || scheduledDayIndex === undefined);
 
   const dayIndex = settings.activeProgramDayIndex ?? 0;
@@ -190,7 +193,7 @@ export default function DashboardPage() {
       <section className="mt-6">
         <div className="mb-3 flex items-center justify-between">
           <h2 className="font-display text-xl font-bold">Personal Records</h2>
-          <Link href="/percentile" className="flex items-center gap-1 text-sm font-medium text-primary">
+          <Link href="/statistics?tab=overview" className="flex items-center gap-1 text-sm font-medium text-primary">
             See percentile <ArrowRight size={14} />
           </Link>
         </div>

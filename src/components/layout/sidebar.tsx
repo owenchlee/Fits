@@ -11,7 +11,7 @@ export function Sidebar() {
   const pathname = usePathname();
 
   return (
-    <aside className="fixed inset-y-0 left-0 z-30 hidden w-60 flex-col border-r border-border bg-sidebar md:flex">
+    <aside className="glass fixed inset-y-0 left-0 z-30 hidden w-60 flex-col border-r border-border bg-sidebar md:flex">
       <div className="flex h-16 items-center gap-2 px-5">
         <div className="flex size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
           <LogoMark size={18} weight="fill" />

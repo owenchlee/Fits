@@ -28,6 +28,7 @@ export function exerciseToRow(e: Exercise, userId: string): Database["public"]["
     primary_muscle: e.primaryMuscle,
     secondary_muscles: e.secondaryMuscles,
     equipment: e.equipment,
+    is_unilateral: e.isUnilateral ?? null,
     is_custom: e.isCustom,
     standard_lift: e.standardLift,
     standard_lift_ratio: e.standardLiftRatio ?? null,
@@ -43,6 +44,7 @@ export function rowToExercise(r: Database["public"]["Tables"]["exercises"]["Row"
     primaryMuscle: r.primary_muscle as Exercise["primaryMuscle"],
     secondaryMuscles: r.secondary_muscles as Exercise["secondaryMuscles"],
     equipment: r.equipment as Exercise["equipment"],
+    isUnilateral: r.is_unilateral ?? undefined,
     isCustom: r.is_custom,
     standardLift: r.standard_lift as Exercise["standardLift"],
     standardLiftRatio: (r.standard_lift_ratio as Exercise["standardLiftRatio"]) ?? undefined,
@@ -66,6 +68,8 @@ export function programToRow(p: Program, userId: string): Database["public"]["Ta
     days_per_week: p.daysPerWeek,
     is_custom: p.isCustom,
     days: p.days,
+    schedule: p.schedule ?? null,
+    cycle_start_date: p.cycleStartDate ?? null,
     updated_at: iso(p.updatedAt),
   };
 }
@@ -79,6 +83,8 @@ export function rowToProgram(r: Database["public"]["Tables"]["programs"]["Row"])
     daysPerWeek: r.days_per_week,
     isCustom: r.is_custom,
     days: r.days as Program["days"],
+    schedule: (r.schedule as Program["schedule"]) ?? undefined,
+    cycleStartDate: r.cycle_start_date ?? undefined,
     updatedAt: ms(r.updated_at),
   };
 }

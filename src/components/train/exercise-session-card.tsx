@@ -102,12 +102,6 @@ export function ExerciseSessionCard({
   const workingSets = orderedSets.filter((s) => !s.isWarmup);
 
   const weightColumnLabel = exercise?.equipment === "bodyweight" ? "Added" : "Weight";
-  const weightHint =
-    exercise?.equipment === "dumbbell"
-      ? "Enter the combined weight of both dumbbells (e.g. 60 for a pair of 30s)"
-      : exercise?.equipment === "bodyweight"
-        ? "Enter added weight only (belt, vest, plate) — leave 0 for unweighted sets"
-        : null;
 
   return (
     <div className="rounded-2xl border border-border bg-card p-4">
@@ -144,10 +138,6 @@ export function ExerciseSessionCard({
           <Switch size="sm" checked={hasWarmupSet} onCheckedChange={toggleWarmup} />
           Warm-up set
         </label>
-      )}
-
-      {weightHint && (
-        <p className="mb-1.5 px-1 text-[11px] text-muted-foreground">{weightHint}</p>
       )}
 
       {orderedSets.length > 0 && (

@@ -2,6 +2,7 @@ import { db } from "@/lib/db/db";
 import { slugId } from "@/lib/id";
 import { seedExercises } from "@/lib/db/seed-exercises";
 import { seedPrograms } from "@/lib/db/seed-programs";
+import { enqueueSync } from "@/lib/sync/outbox";
 import type { AppSettings, Exercise, Program } from "@/lib/db/types";
 
 let seedPromise: Promise<void> | null = null;
@@ -34,6 +35,8 @@ async function seed() {
   } else {
     const all = await db.exercises.toArray();
     exercisesByName = new Map(all.map((e) => [e.name, e]));
+    await promoteMatchingCustomExercises(exercisesByName);
+    await addNewSeedExercises(exercisesByName);
     await backfillBuiltInExercises(exercisesByName);
   }
 
@@ -84,6 +87,52 @@ async function seed() {
     };
     await db.settings.add(defaults);
   }
+}
+
+/**
+ * If a seed exercise is later added with the same name as a custom exercise the user already
+ * created, treat it as that exercise graduating into the built-in library rather than leaving a
+ * duplicate: convert the existing row in place (same id, so workouts/programs referencing it keep
+ * working) and adopt the seed's muscle/equipment/standard-lift metadata.
+ */
+async function promoteMatchingCustomExercises(exercisesByName: Map<string, Exercise>) {
+  const seedByNormalizedName = new Map(seedExercises.map((e) => [e.name.toLowerCase().trim(), e]));
+  const updates: Exercise[] = [];
+  for (const current of Array.from(exercisesByName.values())) {
+    if (!current.isCustom) continue;
+    const seedMatch = seedByNormalizedName.get(current.name.toLowerCase().trim());
+    if (!seedMatch) continue;
+    const promoted: Exercise = { ...current, ...seedMatch, isCustom: false, updatedAt: Date.now() };
+    updates.push(promoted);
+    exercisesByName.set(promoted.name, promoted);
+  }
+  if (updates.length > 0) {
+    await db.exercises.bulkPut(updates);
+    for (const u of updates) await enqueueSync("exercises", "upsert", u.id);
+  }
+}
+
+/**
+ * The initial exercises.bulkAdd only ever runs once (exerciseCount === 0 above), so exercises added
+ * to seed-exercises.ts later would otherwise never reach a profile that was already seeded. Insert
+ * whichever seed entries aren't present yet (by name — promoteMatchingCustomExercises above already
+ * claimed any that match an existing custom exercise).
+ */
+async function addNewSeedExercises(exercisesByName: Map<string, Exercise>) {
+  const now = Date.now();
+  const additions: Exercise[] = [];
+  for (const seedExercise of seedExercises) {
+    if (exercisesByName.has(seedExercise.name)) continue;
+    const exercise: Exercise = {
+      ...seedExercise,
+      id: slugId("ex", seedExercise.name),
+      isCustom: false,
+      updatedAt: now,
+    };
+    additions.push(exercise);
+    exercisesByName.set(exercise.name, exercise);
+  }
+  if (additions.length > 0) await db.exercises.bulkAdd(additions);
 }
 
 /**

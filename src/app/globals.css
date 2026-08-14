@@ -42,6 +42,7 @@
   --color-card: var(--card);
   --color-highlight: var(--highlight);
   --color-highlight-foreground: var(--highlight-foreground);
+  --color-glass-border: var(--glass-border);
   --color-success: var(--success);
   --color-success-foreground: var(--success-foreground);
   --radius-sm: calc(var(--radius) * 0.55);
@@ -55,10 +56,11 @@
 :root {
   --background: oklch(0.9911 0 0);
   --foreground: oklch(0.1913 0.008 285);
-  --card: oklch(1 0 0);
+  --card: oklch(1 0 0 / 72%);
   --card-foreground: oklch(0.1913 0.008 285);
-  --popover: oklch(1 0 0);
+  --popover: oklch(1 0 0 / 85%);
   --popover-foreground: oklch(0.1913 0.008 285);
+  --glass-border: oklch(0 0 0 / 8%);
   --primary: oklch(0.8687 0.2559 128.99);
   --primary-foreground: oklch(0.1522 0.012 285);
   --secondary: oklch(0.965 0.003 285);
@@ -82,7 +84,7 @@
   --chart-4: oklch(0.62 0.19 25);
   --chart-5: oklch(0.5 0.02 285);
   --radius: 0.75rem;
-  --sidebar: oklch(0.975 0.003 285);
+  --sidebar: oklch(0.975 0.003 285 / 75%);
   --sidebar-foreground: oklch(0.1913 0.008 285);
   --sidebar-primary: oklch(0.8687 0.2559 128.99);
   --sidebar-primary-foreground: oklch(0.1522 0.012 285);
@@ -95,10 +97,11 @@
 .dark {
   --background: oklch(0.1477 0.004 285);
   --foreground: oklch(0.9611 0.002 285);
-  --card: oklch(0.26 0.005 285);
+  --card: oklch(0.26 0.005 285 / 68%);
   --card-foreground: oklch(0.9611 0.002 285);
-  --popover: oklch(0.26 0.006 285);
+  --popover: oklch(0.26 0.006 285 / 78%);
   --popover-foreground: oklch(0.9611 0.002 285);
+  --glass-border: oklch(1 0 0 / 12%);
   --primary: oklch(0.8687 0.2559 128.99);
   --primary-foreground: oklch(0.1477 0.02 128);
   --secondary: oklch(0.34 0.006 285);
@@ -121,7 +124,7 @@
   --chart-3: oklch(0.65 0.16 230);
   --chart-4: oklch(0.65 0.19 25);
   --chart-5: oklch(0.55 0.015 285);
-  --sidebar: oklch(0.17 0.005 285);
+  --sidebar: oklch(0.17 0.005 285 / 70%);
   --sidebar-foreground: oklch(0.9611 0.002 285);
   --sidebar-primary: oklch(0.8687 0.2559 128.99);
   --sidebar-primary-foreground: oklch(0.1477 0.02 128);
@@ -162,4 +165,12 @@
     -ms-overflow-style: none;
     scrollbar-width: none;
   }
+}
+
+/* Liquid-glass surface: pairs with the alpha already baked into --card/--popover/--sidebar so
+   real overlays (dialogs, sheets, popovers, dropdowns, fixed nav chrome) blur what's behind them.
+   Applying it to a surface that isn't layered over other content is a visual no-op. */
+@utility glass {
+  backdrop-filter: blur(20px) saturate(1.6);
+  -webkit-backdrop-filter: blur(20px) saturate(1.6);
 }

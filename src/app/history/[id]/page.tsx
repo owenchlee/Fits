@@ -7,6 +7,7 @@ import { CaretLeft, Trash } from "@phosphor-icons/react/dist/ssr";
 import { db } from "@/lib/db/db";
 import { useSettings, useWorkoutSets } from "@/lib/db/hooks";
 import { deleteWorkout } from "@/lib/db/repo";
+import { toTotalLoadKg } from "@/lib/calc/load";
 import { formatWeight } from "@/lib/calc/units";
 import {
   AlertDialog,
@@ -26,15 +27,22 @@ export default function WorkoutDetailPage() {
   const settings = useSettings();
   const workout = useLiveQuery(() => db.workouts.get(params.id), [params.id]);
   const sets = useWorkoutSets(params.id);
+  const exercises = useLiveQuery(
+    () => db.exercises.bulkGet(workout?.exerciseOrder ?? []),
+    [workout]
+  );
 
   if (!workout) return <div className="py-16 text-center text-sm text-muted-foreground">Loading…</div>;
 
+  const exerciseById = new Map((exercises ?? []).filter((e) => !!e).map((e) => [e!.id, e!]));
   const durationMin = workout.completedAt ? Math.round((workout.completedAt - workout.startedAt) / 60000) : 0;
-  const volumeKg = sets.filter((s) => !s.isWarmup).reduce((sum, s) => sum + s.weightKg * s.reps, 0);
+  const volumeKg = sets
+    .filter((s) => !s.isWarmup)
+    .reduce((sum, s) => sum + toTotalLoadKg(s.weightKg, exerciseById.get(s.exerciseId)) * s.reps, 0);
 
   return (
     <div className="pb-6">
-      <Link href="/history" className="mb-4 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
+      <Link href="/statistics?tab=history" className="mb-4 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
         <CaretLeft size={14} /> History
       </Link>
 
@@ -63,7 +71,7 @@ export default function WorkoutDetailPage() {
                 className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                 onClick={async () => {
                   await deleteWorkout(workout.id);
-                  router.push("/history");
+                  router.push("/statistics?tab=history");
                 }}
               >
                 Delete

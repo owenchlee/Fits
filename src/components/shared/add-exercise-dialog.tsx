@@ -14,6 +14,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
 import type { Equipment, Exercise, MuscleGroup } from "@/lib/db/types";
 
@@ -66,12 +67,14 @@ export function AddExerciseDialog({
   const [name, setName] = React.useState("");
   const [primaryMuscle, setPrimaryMuscle] = React.useState<MuscleGroup | null>(null);
   const [equipment, setEquipment] = React.useState<Equipment | null>(null);
+  const [isUnilateral, setIsUnilateral] = React.useState(false);
   const [saving, setSaving] = React.useState(false);
 
   function reset() {
     setName("");
     setPrimaryMuscle(null);
     setEquipment(null);
+    setIsUnilateral(false);
     setSaving(false);
   }
 
@@ -80,7 +83,7 @@ export function AddExerciseDialog({
   async function handleSave() {
     if (!canSave || !primaryMuscle || !equipment) return;
     setSaving(true);
-    const id = await createExercise({ name: name.trim(), primaryMuscle, equipment });
+    const id = await createExercise({ name: name.trim(), primaryMuscle, equipment, isUnilateral });
     const exercise = await db.exercises.get(id);
     setOpen(false);
     reset();
@@ -128,6 +131,16 @@ export function AddExerciseDialog({
           <div>
             <Label className="mb-1.5">Equipment</Label>
             <ChipPicker options={EQUIPMENT} value={equipment} onChange={setEquipment} />
+          </div>
+
+          <div className="flex items-start justify-between gap-3 rounded-xl bg-secondary/60 p-3">
+            <div>
+              <Label htmlFor="exercise-unilateral">Single arm / single leg</Label>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                The weight you log is that side&apos;s full working load — not doubled for stats.
+              </p>
+            </div>
+            <Switch id="exercise-unilateral" checked={isUnilateral} onCheckedChange={setIsUnilateral} />
           </div>
         </div>
 

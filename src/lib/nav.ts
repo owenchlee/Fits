@@ -4,11 +4,8 @@ import {
   CalendarBlank,
   ChartLineUp,
   ClipboardText,
-  ClockCounterClockwise,
-  GearSix,
   House,
-  Ruler,
-  Trophy,
+  UserCircle,
 } from "@phosphor-icons/react/dist/ssr";
 import { BookOpenText } from "@phosphor-icons/react/dist/ssr";
 
@@ -24,13 +21,10 @@ export const navItems: NavItem[] = [
   { href: "/", label: "Home", icon: House, primary: true },
   { href: "/train", label: "Train", icon: Barbell, primary: true },
   { href: "/programs", label: "Programs", icon: ClipboardText, primary: true },
-  { href: "/progress", label: "Progress", icon: ChartLineUp, primary: true },
+  { href: "/statistics", label: "Statistics", icon: ChartLineUp, primary: true },
   { href: "/calendar", label: "Calendar", icon: CalendarBlank },
   { href: "/exercises", label: "Exercises", icon: BookOpenText },
-  { href: "/percentile", label: "Percentile", icon: Trophy },
-  { href: "/history", label: "History", icon: ClockCounterClockwise },
-  { href: "/measurements", label: "Measurements", icon: Ruler },
-  { href: "/settings", label: "Settings", icon: GearSix },
+  { href: "/profile", label: "Profile", icon: UserCircle, primary: true },
 ];
 
 export const secondaryNavItems = navItems.filter((item) => !item.primary);

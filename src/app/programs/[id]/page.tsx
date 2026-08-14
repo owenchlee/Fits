@@ -4,14 +4,16 @@ import * as React from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useLiveQuery } from "dexie-react-hooks";
-import { Reorder } from "framer-motion";
+import { Reorder, useDragControls } from "framer-motion";
 import { CaretLeft, DotsSixVertical, EyeSlash, PlayCircle, Plus, Trash, X } from "@phosphor-icons/react/dist/ssr";
 import { db } from "@/lib/db/db";
 import { useActiveWorkout, useProgram, useSettings } from "@/lib/db/hooks";
 import { deleteProgram, hideProgram, setActiveProgram, startWorkout, updateProgram } from "@/lib/db/repo";
+import { generateId } from "@/lib/id";
 import { ExercisePicker } from "@/components/shared/exercise-picker";
-import type { ProgramDay, ProgramExercise } from "@/lib/db/types";
+import type { Program, ProgramDay, ProgramExercise } from "@/lib/db/types";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -46,14 +48,18 @@ function EditableExerciseRow({
   onRemove: () => void;
 }) {
   const exercise = useLiveQuery(() => db.exercises.get(ex.exerciseId), [ex.exerciseId]);
+  const controls = useDragControls();
   return (
     <Reorder.Item
       value={ex}
+      dragListener={false}
+      dragControls={controls}
       className="flex flex-wrap items-center gap-1.5 rounded-lg bg-secondary/50 p-1.5"
     >
       <DotsSixVertical
         size={16}
         weight="bold"
+        onPointerDown={(e) => controls.start(e)}
         className="shrink-0 cursor-grab touch-none text-muted-foreground active:cursor-grabbing"
       />
       <span className="min-w-0 flex-1 truncate px-1.5 text-sm font-medium">{exercise?.name ?? "…"}</span>
@@ -152,12 +158,17 @@ export default function ProgramDetailPage() {
   const activeWorkout = useActiveWorkout();
 
   const [localDays, setLocalDays] = React.useState<ProgramDay[] | null>(null);
+  const [localName, setLocalName] = React.useState<string | null>(null);
+  const [localDescription, setLocalDescription] = React.useState<string | null>(null);
   const loadedIdRef = React.useRef<string | null>(null);
   const saveTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pendingPatchRef = React.useRef<Partial<Program>>({});
 
   React.useEffect(() => {
     if (program && loadedIdRef.current !== program.id) {
       setLocalDays(program.days);
+      setLocalName(program.name);
+      setLocalDescription(program.description);
       loadedIdRef.current = program.id;
     }
   }, [program]);
@@ -174,14 +185,49 @@ export default function ProgramDetailPage() {
 
   const isActive = settings.activeProgramId === program.id;
   const days = localDays ?? program.days;
+  const name = localName ?? program.name;
+  const description = localDescription ?? program.description;
+
+  function schedulePatch(patch: Partial<Program>) {
+    pendingPatchRef.current = { ...pendingPatchRef.current, ...patch };
+    if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+    saveTimeoutRef.current = setTimeout(() => {
+      const toSave = pendingPatchRef.current;
+      pendingPatchRef.current = {};
+      updateProgram(program!.id, toSave);
+    }, 500);
+  }
 
   function handleDayChange(dayIndex: number, updatedDay: ProgramDay) {
     const next = days.map((d, i) => (i === dayIndex ? updatedDay : d));
     setLocalDays(next);
-    if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
-    saveTimeoutRef.current = setTimeout(() => {
-      updateProgram(program!.id, { days: next });
-    }, 500);
+    schedulePatch({ days: next });
+  }
+
+  function handleNameChange(value: string) {
+    setLocalName(value);
+    schedulePatch({ name: value });
+  }
+
+  function handleDescriptionChange(value: string) {
+    setLocalDescription(value);
+    schedulePatch({ description: value });
+  }
+
+  function renameDay(dayIndex: number, value: string) {
+    handleDayChange(dayIndex, { ...days[dayIndex], name: value });
+  }
+
+  function addDay() {
+    const next = [...days, { id: generateId(), name: `Day ${days.length + 1}`, exercises: [] }];
+    setLocalDays(next);
+    schedulePatch({ days: next, daysPerWeek: next.length });
+  }
+
+  function removeDay(dayIndex: number) {
+    const next = days.filter((_, i) => i !== dayIndex);
+    setLocalDays(next);
+    schedulePatch({ days: next, daysPerWeek: next.length });
   }
 
   async function handleStartDay(dayIndex: number) {
@@ -202,11 +248,31 @@ export default function ProgramDetailPage() {
       </Link>
 
       <div className="mb-5 flex items-start justify-between gap-3">
-        <div>
-          <h1 className="font-display text-3xl font-bold tracking-tight">{program.name}</h1>
-          <p className="mt-1.5 max-w-prose text-sm text-muted-foreground">{program.description}</p>
+        <div className="min-w-0 flex-1">
+          {program.isCustom ? (
+            <>
+              <Input
+                value={name}
+                onChange={(e) => handleNameChange(e.target.value)}
+                aria-label="Program name"
+                className="h-auto border-0 bg-transparent px-0 py-0 font-display text-3xl font-bold tracking-tight shadow-none focus-visible:border-transparent focus-visible:ring-0"
+              />
+              <Input
+                value={description}
+                onChange={(e) => handleDescriptionChange(e.target.value)}
+                placeholder="What's this for?"
+                aria-label="Program description"
+                className="mt-1.5 h-auto max-w-prose border-0 bg-transparent px-0 py-0 text-sm text-muted-foreground shadow-none focus-visible:border-transparent focus-visible:ring-0"
+              />
+            </>
+          ) : (
+            <>
+              <h1 className="font-display text-3xl font-bold tracking-tight">{program.name}</h1>
+              <p className="mt-1.5 max-w-prose text-sm text-muted-foreground">{program.description}</p>
+            </>
+          )}
           <p className="mt-2 text-xs text-muted-foreground">
-            {program.days.length} day split · by {program.author}
+            {days.length} day split · by {program.author}
           </p>
         </div>
         {program.isCustom ? (
@@ -266,15 +332,36 @@ export default function ProgramDetailPage() {
         {days.map((day, i) => (
           <div key={day.id} className="rounded-2xl border border-border bg-card p-4">
             <div className="mb-2 flex items-center justify-between gap-2">
-              <h2 className="font-display text-lg font-bold">{day.name}</h2>
-              <Button
-                size="sm"
-                variant="outline"
-                disabled={!!activeWorkout}
-                onClick={() => handleStartDay(i)}
-              >
-                <PlayCircle size={14} /> Start
-              </Button>
+              {program.isCustom ? (
+                <Input
+                  value={day.name}
+                  onChange={(e) => renameDay(i, e.target.value)}
+                  aria-label="Day name"
+                  className="h-8 max-w-[10rem] font-display font-semibold"
+                />
+              ) : (
+                <h2 className="font-display text-lg font-bold">{day.name}</h2>
+              )}
+              <div className="flex shrink-0 items-center gap-1.5">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={!!activeWorkout}
+                  onClick={() => handleStartDay(i)}
+                >
+                  <PlayCircle size={14} /> Start
+                </Button>
+                {program.isCustom && days.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={() => removeDay(i)}
+                    className="flex size-8 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:bg-secondary hover:text-destructive"
+                    aria-label={`Remove ${day.name}`}
+                  >
+                    <Trash size={14} />
+                  </button>
+                )}
+              </div>
             </div>
             {program.isCustom ? (
               <EditableDayCard day={day} onChange={(updated) => handleDayChange(i, updated)} />
@@ -288,6 +375,12 @@ export default function ProgramDetailPage() {
           </div>
         ))}
       </div>
+
+      {program.isCustom && (
+        <Button type="button" variant="outline" size="sm" className="mt-4" onClick={addDay}>
+          <Plus size={14} /> Add day
+        </Button>
+      )}
     </div>
   );
 }

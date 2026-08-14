@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { Reorder } from "framer-motion";
+import { Reorder, useDragControls } from "framer-motion";
 import { DotsSixVertical, Plus, Trash, X } from "@phosphor-icons/react/dist/ssr";
 import { useLiveQuery } from "dexie-react-hooks";
 import { db } from "@/lib/db/db";
@@ -35,6 +35,52 @@ interface DraftDay {
 function ExerciseName({ id }: { id: string }) {
   const exercise = useLiveQuery(() => db.exercises.get(id), [id]);
   return <span>{exercise?.name ?? "…"}</span>;
+}
+
+function DraftExerciseRow({
+  ex,
+  onChange,
+  onRemove,
+}: {
+  ex: DraftExercise;
+  onChange: (patch: Partial<DraftExercise>) => void;
+  onRemove: () => void;
+}) {
+  const controls = useDragControls();
+  return (
+    <Reorder.Item
+      value={ex}
+      dragListener={false}
+      dragControls={controls}
+      className="flex flex-wrap items-center gap-1.5 rounded-lg bg-secondary/50 p-1.5"
+    >
+      <DotsSixVertical
+        size={16}
+        weight="bold"
+        onPointerDown={(e) => controls.start(e)}
+        className="shrink-0 cursor-grab touch-none text-muted-foreground active:cursor-grabbing"
+      />
+      <span className="min-w-0 flex-1 truncate px-1.5 text-sm font-medium">
+        <ExerciseName id={ex.exerciseId} />
+      </span>
+      <input
+        type="number"
+        min={1}
+        value={ex.targetSets === 0 ? "" : ex.targetSets}
+        onChange={(e) => onChange({ targetSets: e.target.value === "" ? 0 : Number(e.target.value) })}
+        className="h-8 w-12 rounded-md border border-input bg-background text-center text-xs tabular-nums"
+        aria-label="Target sets"
+      />
+      <button
+        type="button"
+        onClick={onRemove}
+        className="flex size-7 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:bg-background hover:text-destructive"
+        aria-label="Remove exercise"
+      >
+        <X size={13} />
+      </button>
+    </Reorder.Item>
+  );
 }
 
 export function ProgramBuilderDialog() {
@@ -215,40 +261,12 @@ export function ProgramBuilderDialog() {
                     className="list-none space-y-1.5"
                   >
                     {day.exercises.map((ex, exIndex) => (
-                      <Reorder.Item
+                      <DraftExerciseRow
                         key={ex.key}
-                        value={ex}
-                        className="flex flex-wrap items-center gap-1.5 rounded-lg bg-secondary/50 p-1.5"
-                      >
-                        <DotsSixVertical
-                          size={16}
-                          weight="bold"
-                          className="shrink-0 cursor-grab touch-none text-muted-foreground active:cursor-grabbing"
-                        />
-                        <span className="min-w-0 flex-1 truncate px-1.5 text-sm font-medium">
-                          <ExerciseName id={ex.exerciseId} />
-                        </span>
-                        <input
-                          type="number"
-                          min={1}
-                          value={ex.targetSets === 0 ? "" : ex.targetSets}
-                          onChange={(e) =>
-                            updateExercise(dayIndex, exIndex, {
-                              targetSets: e.target.value === "" ? 0 : Number(e.target.value),
-                            })
-                          }
-                          className="h-8 w-12 rounded-md border border-input bg-background text-center text-xs tabular-nums"
-                          aria-label="Target sets"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => removeExercise(dayIndex, exIndex)}
-                          className="flex size-7 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:bg-background hover:text-destructive"
-                          aria-label="Remove exercise"
-                        >
-                          <X size={13} />
-                        </button>
-                      </Reorder.Item>
+                        ex={ex}
+                        onChange={(patch) => updateExercise(dayIndex, exIndex, patch)}
+                        onRemove={() => removeExercise(dayIndex, exIndex)}
+                      />
                     ))}
                   </Reorder.Group>
                 </div>
