@@ -89,12 +89,14 @@ export default function DashboardPage() {
         eyebrow={new Date().toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" })}
         title="Overview"
         action={
-          settings.streak > 0 ? (
-            <div className="flex items-center gap-1.5 rounded-full border border-highlight/30 bg-highlight/10 px-3 py-1.5">
-              <Flame size={16} weight="fill" className="text-highlight" />
-              <span className="font-display text-sm font-bold tabular-nums">{settings.streak}</span>
-              <span className="text-xs text-muted-foreground">day streak</span>
-            </div>
+          !activeWorkout ? (
+            <button
+              onClick={handleQuickStart}
+              aria-label="Start empty workout"
+              className="flex size-10 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg shadow-primary/30 transition-transform active:scale-95"
+            >
+              <Plus size={18} weight="bold" />
+            </button>
           ) : undefined
         }
       />
@@ -185,16 +187,6 @@ export default function DashboardPage() {
           ))}
         </div>
       </section>
-
-      {!activeWorkout && (
-        <button
-          onClick={handleQuickStart}
-          aria-label="Start empty workout"
-          className="fixed bottom-[calc(6.25rem+env(safe-area-inset-bottom))] right-4 z-30 flex size-10 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg shadow-primary/30 transition-transform active:scale-95 md:hidden"
-        >
-          <Plus size={18} weight="bold" />
-        </button>
-      )}
     </div>
   );
 }

@@ -2,7 +2,8 @@
 
 import * as React from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { CircleNotch } from "@phosphor-icons/react/dist/ssr";
+import { motion } from "framer-motion";
+import { Barbell } from "@phosphor-icons/react/dist/ssr";
 import { useAuth } from "@/lib/auth/auth-provider";
 import { AppShell } from "@/components/layout/app-shell";
 
@@ -13,8 +14,28 @@ const ALWAYS_ACCESSIBLE_PATHS = ["/reset-password/confirm"];
 
 function FullScreenLoader() {
   return (
-    <div className="flex min-h-dvh items-center justify-center">
-      <CircleNotch className="animate-spin text-muted-foreground" size={24} />
+    <div className="flex min-h-dvh flex-col items-center justify-center gap-4 bg-background">
+      <motion.div
+        initial={{ scale: 0.5, opacity: 0 }}
+        animate={{ scale: [0.5, 1.08, 1], opacity: 1 }}
+        transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+        className="flex size-20 items-center justify-center rounded-3xl bg-primary text-primary-foreground shadow-xl shadow-primary/30"
+      >
+        <motion.div
+          animate={{ scale: [1, 1.1, 1] }}
+          transition={{ duration: 1.4, repeat: Infinity, ease: "easeInOut", delay: 0.7 }}
+        >
+          <Barbell size={40} weight="fill" />
+        </motion.div>
+      </motion.div>
+      <motion.span
+        initial={{ opacity: 0, y: 4 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, delay: 0.25 }}
+        className="font-display text-2xl font-bold tracking-tight"
+      >
+        Fits
+      </motion.span>
     </div>
   );
 }
