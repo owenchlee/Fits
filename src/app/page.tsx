@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useLiveQuery } from "dexie-react-hooks";
-import { Flame, ArrowRight, Barbell, ClipboardText, Trophy } from "@phosphor-icons/react/dist/ssr";
+import { Flame, ArrowRight, Barbell, ClipboardText, Trophy, Plus } from "@phosphor-icons/react/dist/ssr";
 import { db } from "@/lib/db/db";
 import { useActiveWorkout, useProgram, useSettings } from "@/lib/db/hooks";
 import { startWorkout, getCompletedSets, getCompletedWorkouts } from "@/lib/db/repo";
@@ -185,6 +185,16 @@ export default function DashboardPage() {
           ))}
         </div>
       </section>
+
+      {!activeWorkout && (
+        <button
+          onClick={handleQuickStart}
+          aria-label="Start empty workout"
+          className="fixed bottom-[calc(6.25rem+env(safe-area-inset-bottom))] right-4 z-30 flex size-10 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg shadow-primary/30 transition-transform active:scale-95 md:hidden"
+        >
+          <Plus size={18} weight="bold" />
+        </button>
+      )}
     </div>
   );
 }

@@ -67,9 +67,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html
       lang="en"
       suppressHydrationWarning
-      className={`${fontSans.variable} ${fontDisplay.variable} ${fontMono.variable} h-full antialiased`}
+      className={`${fontSans.variable} ${fontDisplay.variable} ${fontMono.variable} h-full overflow-hidden antialiased`}
     >
-      <body className="min-h-full flex flex-col bg-background text-foreground">
+      <body className="flex h-dvh flex-col overflow-y-auto bg-background text-foreground">
         <ThemeProvider
           attribute="class"
           defaultTheme="dark"

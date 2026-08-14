@@ -12,18 +12,17 @@ export type NavItem = {
   href: string;
   label: string;
   icon: Icon;
-  /** Shown directly in the mobile bottom bar, flanking the start-workout FAB. Keep to 3 so nav + FAB + "+ More" stays at 5 tabs total. */
+  /** Shown directly in the mobile bottom bar. */
   primary?: boolean;
 };
 
 export const navItems: NavItem[] = [
   { href: "/", label: "Home", icon: House, primary: true },
+  { href: "/programs", label: "Programs", icon: ClipboardText, primary: true },
   { href: "/statistics", label: "Statistics", icon: ChartLineUp, primary: true },
   { href: "/profile", label: "Profile", icon: UserCircle, primary: true },
-  { href: "/programs", label: "Programs", icon: ClipboardText },
   { href: "/calendar", label: "Calendar", icon: CalendarBlank },
   { href: "/exercises", label: "Exercises", icon: BookOpenText },
 ];
 
-export const secondaryNavItems = navItems.filter((item) => !item.primary);
 export const primaryNavItems = navItems.filter((item) => item.primary);
