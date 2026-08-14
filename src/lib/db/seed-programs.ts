@@ -48,7 +48,7 @@ export const seedPrograms: SeedProgram[] = [
   {
     name: "Push / Pull / Legs",
     description:
-      "A balanced hypertrophy split run 3-6 days a week. Rotate Push, Pull, Legs in order and repeat — take a rest day whenever you need one.",
+      "A balanced hypertrophy split run 3-6 days a week. Rotate Push, Pull, Legs in order and repeat, taking a rest day whenever you need one.",
     author: "Built-in",
     daysPerWeek: 6,
     days: [

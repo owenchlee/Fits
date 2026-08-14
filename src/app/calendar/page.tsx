@@ -124,7 +124,7 @@ export default function CalendarPage() {
     <div className="pb-6">
       <PageHeader
         title="Calendar"
-        description={`Rotating cycle for ${activeProgram.name}. Build a sequence like Push, Pull, Legs, Rest — it repeats on its own schedule, independent of the day of the week.`}
+        description={`Rotating cycle for ${activeProgram.name}. Build a sequence like Push, Pull, Legs, Rest, and it repeats on its own schedule regardless of the day of the week.`}
       />
 
       {!schedule ? (

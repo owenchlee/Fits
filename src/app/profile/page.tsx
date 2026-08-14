@@ -289,7 +289,7 @@ export default function ProfilePage() {
               <AlertDialogHeader>
                 <AlertDialogTitle>Reset all data?</AlertDialogTitle>
                 <AlertDialogDescription>
-                  This permanently deletes every workout, program, and measurement{user ? " — on this device and in your synced account" : " stored on this device"}. Export a
+                  This permanently deletes every workout, program, and measurement{user ? " on this device and in your synced account" : " stored on this device"}. Export a
                   backup first if you want to keep it.
                 </AlertDialogDescription>
               </AlertDialogHeader>

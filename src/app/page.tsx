@@ -6,7 +6,7 @@ import { useLiveQuery } from "dexie-react-hooks";
 import { Flame, ArrowRight, Barbell, ClipboardText, Trophy, PlayCircle } from "@phosphor-icons/react/dist/ssr";
 import { db } from "@/lib/db/db";
 import { useActiveWorkout, useProgram, useSettings } from "@/lib/db/hooks";
-import { startWorkout } from "@/lib/db/repo";
+import { startWorkout, getCompletedSets, getCompletedWorkouts } from "@/lib/db/repo";
 import { scheduledDayIndexFor } from "@/lib/schedule";
 import { estimateOneRepMax } from "@/lib/calc/one-rep-max";
 import { toTotalLoadKg } from "@/lib/calc/load";
@@ -20,15 +20,14 @@ import { motion } from "framer-motion";
 function useWeeklyStats() {
   return useLiveQuery(async () => {
     const weekAgo = Date.now() - 7 * 86400000;
-    const [sets, workouts, allWorkouts] = await Promise.all([
-      db.sets.filter((s) => s.completedAt >= weekAgo && !s.isWarmup).toArray(),
-      db.workouts.filter((w) => (w.completedAt ?? w.startedAt) >= weekAgo).toArray(),
-      db.workouts.filter((w) => !!w.completedAt).toArray(),
-    ]);
+    const [completedSets, completedWorkouts] = await Promise.all([getCompletedSets(), getCompletedWorkouts()]);
+    const workoutsThisWeek = completedWorkouts.filter((w) => w.completedAt! >= weekAgo);
+    const workoutIdsThisWeek = new Set(workoutsThisWeek.map((w) => w.id));
+    const sets = completedSets.filter((s) => workoutIdsThisWeek.has(s.workoutId) && !s.isWarmup);
     const exercises = await db.exercises.bulkGet(Array.from(new Set(sets.map((s) => s.exerciseId))));
     const exerciseById = new Map(exercises.filter((e) => !!e).map((e) => [e!.id, e!]));
     const volumeKg = sets.reduce((sum, s) => sum + toTotalLoadKg(s.weightKg, exerciseById.get(s.exerciseId)) * s.reps, 0);
-    return { volumeKg, workoutsThisWeek: workouts.length, totalWorkouts: allWorkouts.length };
+    return { volumeKg, workoutsThisWeek: workoutsThisWeek.length, totalWorkouts: completedWorkouts.length };
   }, []);
 }
 
@@ -115,7 +114,7 @@ export default function DashboardPage() {
               <PlayCircle size={22} weight="fill" className="text-primary" />
               <div>
                 <p className="text-sm font-semibold">Workout in progress</p>
-                <p className="text-xs text-muted-foreground">{activeWorkout.title} — tap to resume</p>
+                <p className="text-xs text-muted-foreground">{activeWorkout.title} · tap to resume</p>
               </div>
             </div>
             <ArrowRight size={18} className="text-primary" />

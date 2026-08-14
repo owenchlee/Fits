@@ -137,7 +137,7 @@ export function AddExerciseDialog({
             <div>
               <Label htmlFor="exercise-unilateral">Single arm / single leg</Label>
               <p className="mt-0.5 text-xs text-muted-foreground">
-                The weight you log is that side&apos;s full working load — not doubled for stats.
+                The weight you log is that side&apos;s full working load, so we don&apos;t double it for stats.
               </p>
             </div>
             <Switch id="exercise-unilateral" checked={isUnilateral} onCheckedChange={setIsUnilateral} />

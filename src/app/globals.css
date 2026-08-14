@@ -43,6 +43,8 @@
   --color-highlight: var(--highlight);
   --color-highlight-foreground: var(--highlight-foreground);
   --color-glass-border: var(--glass-border);
+  --color-glass-highlight: var(--glass-highlight);
+  --color-glass-shadow: var(--glass-shadow);
   --color-success: var(--success);
   --color-success-foreground: var(--success-foreground);
   --radius-sm: calc(var(--radius) * 0.55);
@@ -61,6 +63,8 @@
   --popover: oklch(1 0 0 / 85%);
   --popover-foreground: oklch(0.1913 0.008 285);
   --glass-border: oklch(0 0 0 / 8%);
+  --glass-highlight: oklch(1 0 0 / 65%);
+  --glass-shadow: oklch(0.1913 0.008 285 / 12%);
   --primary: oklch(0.8687 0.2559 128.99);
   --primary-foreground: oklch(0.1522 0.012 285);
   --secondary: oklch(0.965 0.003 285);
@@ -102,6 +106,8 @@
   --popover: oklch(0.26 0.006 285 / 78%);
   --popover-foreground: oklch(0.9611 0.002 285);
   --glass-border: oklch(1 0 0 / 12%);
+  --glass-highlight: oklch(1 0 0 / 16%);
+  --glass-shadow: oklch(0 0 0 / 45%);
   --primary: oklch(0.8687 0.2559 128.99);
   --primary-foreground: oklch(0.1477 0.02 128);
   --secondary: oklch(0.34 0.006 285);
@@ -140,13 +146,15 @@
   }
   body {
     @apply bg-background text-foreground;
+    overscroll-behavior-y: none;
   }
   button:not(:disabled), [role="button"]:not(:disabled) {
     cursor: pointer;
   }
   html {
-    @apply font-sans;
+    @apply font-sans bg-background;
     -webkit-font-smoothing: antialiased;
+    overscroll-behavior-y: none;
   }
   .font-display {
     font-family: var(--font-display);
@@ -169,8 +177,13 @@
 
 /* Liquid-glass surface: pairs with the alpha already baked into --card/--popover/--sidebar so
    real overlays (dialogs, sheets, popovers, dropdowns, fixed nav chrome) blur what's behind them.
-   Applying it to a surface that isn't layered over other content is a visual no-op. */
+   Applying it to a surface that isn't layered over other content is a visual no-op.
+   The gradient fakes light catching the top edge of curved glass; the outline gives it a rim
+   without fighting Tailwind's own box-shadow-based ring/shadow utilities on the same element. */
 @utility glass {
-  backdrop-filter: blur(20px) saturate(1.6);
-  -webkit-backdrop-filter: blur(20px) saturate(1.6);
+  backdrop-filter: blur(24px) saturate(1.8) brightness(1.03);
+  -webkit-backdrop-filter: blur(24px) saturate(1.8) brightness(1.03);
+  background-image: linear-gradient(to bottom, var(--glass-highlight), transparent 45%);
+  outline: 1px solid var(--glass-border);
+  outline-offset: -1px;
 }

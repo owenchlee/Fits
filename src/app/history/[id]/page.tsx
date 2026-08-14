@@ -1,14 +1,17 @@
 "use client";
 
+import * as React from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useLiveQuery } from "dexie-react-hooks";
 import { CaretLeft, Trash } from "@phosphor-icons/react/dist/ssr";
 import { db } from "@/lib/db/db";
 import { useSettings, useWorkoutSets } from "@/lib/db/hooks";
-import { deleteWorkout } from "@/lib/db/repo";
+import { deleteWorkout, updateSet } from "@/lib/db/repo";
 import { toTotalLoadKg } from "@/lib/calc/load";
-import { formatWeight } from "@/lib/calc/units";
+import { toDisplayWeight, fromDisplayWeight, formatWeight } from "@/lib/calc/units";
+import { sanitizeDecimalInput, sanitizeIntegerInput } from "@/lib/format";
+import type { SetEntry, UnitSystem } from "@/lib/db/types";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -119,15 +122,62 @@ function ExerciseBlock({
       <p className="font-display text-lg font-bold">{exercise?.name ?? "…"}</p>
       <div className="mt-2 space-y-1">
         {sets.map((s, i) => (
-          <div key={s.id} className="flex items-center gap-3 text-sm">
-            <span className="w-5 text-center text-xs text-muted-foreground">{s.isWarmup ? "W" : i + 1}</span>
-            <span className="tabular-nums">{formatWeight(s.weightKg, unit)}</span>
-            <span className="text-muted-foreground">×</span>
-            <span className="tabular-nums">{s.reps}</span>
-            {s.rpe && <span className="tabular-nums text-muted-foreground">RPE {s.rpe}</span>}
-          </div>
+          <EditableSetRow key={s.id} set={s} index={i + 1} unit={unit} />
         ))}
       </div>
     </div>
   );
+}
+
+function EditableSetRow({ set, index, unit }: { set: SetEntry; index: number; unit: UnitSystem }) {
+  const [weightStr, setWeightStr] = React.useState(() => String(round1(toDisplayWeight(set.weightKg, unit))));
+  const [repsStr, setRepsStr] = React.useState(() => String(set.reps));
+
+  React.useEffect(() => {
+    setWeightStr(String(round1(toDisplayWeight(set.weightKg, unit))));
+  }, [set.weightKg, unit]);
+
+  React.useEffect(() => {
+    setRepsStr(String(set.reps));
+  }, [set.reps]);
+
+  function commitWeight(value: string) {
+    const cleaned = sanitizeDecimalInput(value);
+    setWeightStr(cleaned);
+    const n = parseFloat(cleaned);
+    if (!Number.isNaN(n) && n >= 0) void updateSet(set.id, { weightKg: fromDisplayWeight(n, unit) });
+  }
+
+  function commitReps(value: string) {
+    const cleaned = sanitizeIntegerInput(value);
+    setRepsStr(cleaned);
+    const n = parseInt(cleaned, 10);
+    if (!Number.isNaN(n) && n >= 0) void updateSet(set.id, { reps: n });
+  }
+
+  return (
+    <div className="flex items-center gap-2 text-sm">
+      <span className="w-5 shrink-0 text-center text-xs text-muted-foreground">{set.isWarmup ? "W" : index}</span>
+      <input
+        inputMode="decimal"
+        value={weightStr}
+        onChange={(e) => commitWeight(e.target.value)}
+        aria-label={`Set ${index} weight (${unit})`}
+        className="h-8 w-16 rounded-lg border border-transparent bg-secondary px-2 text-center text-sm font-medium tabular-nums focus:border-ring focus:bg-background focus:outline-none"
+      />
+      <span className="text-muted-foreground">×</span>
+      <input
+        inputMode="numeric"
+        value={repsStr}
+        onChange={(e) => commitReps(e.target.value)}
+        aria-label={`Set ${index} reps`}
+        className="h-8 w-12 rounded-lg border border-transparent bg-secondary px-2 text-center text-sm font-medium tabular-nums focus:border-ring focus:bg-background focus:outline-none"
+      />
+      {set.rpe && <span className="tabular-nums text-muted-foreground">RPE {set.rpe}</span>}
+    </div>
+  );
+}
+
+function round1(n: number) {
+  return Math.round(n * 10) / 10;
 }

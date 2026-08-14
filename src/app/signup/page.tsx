@@ -166,7 +166,7 @@ export default function SignupPage() {
             <AlertDialogTitle>Sync your existing data?</AlertDialogTitle>
             <AlertDialogDescription>
               This device already has workouts logged locally. Upload them to your new account so they sync across
-              your devices — otherwise they&apos;ll stay only on this device.
+              your devices, or skip and they&apos;ll stay only on this device.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

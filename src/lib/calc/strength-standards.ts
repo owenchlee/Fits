@@ -158,8 +158,14 @@ export function calculateDotsScore(totalKg: number, bodyweightKg: number, sex: S
   return (totalKg * 500) / denom;
 }
 
-/** DOTS checkpoints at the same percentile grid, approximated from published DOTS distributions. */
-const DOTS_CHECKPOINTS = [180, 230, 300, 370, 430, 480];
+/**
+ * DOTS checkpoints at the same percentile grid. Derived from the bodyweight-multiplier
+ * standards above (summing squat+bench+deadlift at each checkpoint and converting through
+ * the DOTS formula across a range of bodyweights) rather than from powerlifting-meet
+ * distributions, so the "Overall" score reflects everyday gym-goers instead of competitive
+ * lifters — a 300+ DOTS total is a serious powerlifter, not a typical 50th-percentile lifter.
+ */
+const DOTS_CHECKPOINTS = [80, 140, 220, 290, 360, 420];
 
 export function dotsToPercentile(dots: number): number {
   return multiplierToPercentile(dots, DOTS_CHECKPOINTS);

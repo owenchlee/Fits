@@ -34,7 +34,7 @@ const fontMono = JetBrains_Mono({
 export const metadata: Metadata = {
   title: "Fits — Strength Training Tracker",
   description:
-    "Log workouts, track lift progress, follow proven programs, and see how your strength compares — a fast, offline-first training log.",
+    "An offline-first training log: log workouts, track lift progress, follow proven programs, and see how your strength compares.",
   applicationName: "Fits",
   manifest: "/manifest.webmanifest",
   icons: {

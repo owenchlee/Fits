@@ -79,7 +79,7 @@ export default function ExerciseDetailPage() {
             <LiftPercentileRow result={percentileResult} unit={settings.unitSystem} />
           ) : (
             <p className="rounded-xl border border-dashed border-border/70 px-4 py-3 text-sm text-muted-foreground">
-              No population standards for this exercise yet — percentiles are only available for lifts related to
+              No population standards for this exercise yet. Percentiles are only available for lifts related to
               the squat, bench, deadlift, or overhead press.
             </p>
           )}

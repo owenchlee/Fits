@@ -4,6 +4,7 @@ import * as React from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { db } from "@/lib/db/db";
 import { useExercises, usePercentileHistory, useSettings } from "@/lib/db/hooks";
+import { getCompletedSets } from "@/lib/db/repo";
 import { estimateOneRepMax } from "@/lib/calc/one-rep-max";
 import { toTotalLoadKg } from "@/lib/calc/load";
 import { toDisplayWeight } from "@/lib/calc/units";
@@ -31,7 +32,8 @@ function useWeeklyVolumeSeries(weeks: number) {
   return useLiveQuery(async () => {
     const now = Date.now();
     const earliest = now - weeks * 7 * 86400000;
-    const sets = await db.sets.filter((s) => s.completedAt >= earliest && !s.isWarmup).toArray();
+    const completedSets = await getCompletedSets();
+    const sets = completedSets.filter((s) => s.completedAt >= earliest && !s.isWarmup);
     const exercises = await db.exercises.bulkGet(Array.from(new Set(sets.map((s) => s.exerciseId))));
     const exerciseById = new Map(exercises.filter((e) => !!e).map((e) => [e!.id, e!]));
     const buckets = new Map<number, number>();

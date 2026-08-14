@@ -307,7 +307,7 @@ export default function ProgramDetailPage() {
         ) : (
           <button
             aria-label="Remove program from list"
-            title="Remove from list — can be restored later"
+            title="Remove from list (can be restored later)"
             className="flex size-9 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:bg-secondary hover:text-destructive"
             onClick={async () => {
               await hideProgram(program.id);
@@ -325,7 +325,7 @@ export default function ProgramDetailPage() {
         className="mb-6"
         onClick={() => setActiveProgram(isActive ? undefined : program.id)}
       >
-        {isActive ? "Currently active — tap to unset" : "Set as active program"}
+        {isActive ? "Currently active, tap to unset" : "Set as active program"}
       </Button>
 
       <div className="space-y-4">

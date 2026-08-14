@@ -289,6 +289,18 @@ export async function getWorkoutsInRange(startMs: number, endMs: number): Promis
     .toArray();
 }
 
+/** Workouts that were actually finished — in-progress and discarded sessions don't count toward stats. */
+export async function getCompletedWorkouts(): Promise<Workout[]> {
+  return db.workouts.filter((w) => !!w.completedAt).toArray();
+}
+
+/** Sets belonging only to completed workouts, so an in-progress session's sets don't inflate stats. */
+export async function getCompletedSets(): Promise<SetEntry[]> {
+  const completed = await getCompletedWorkouts();
+  const completedIds = new Set(completed.map((w) => w.id));
+  return db.sets.filter((s) => completedIds.has(s.workoutId)).toArray();
+}
+
 export async function exportAllData() {
   const [exercises, programs, workouts, sets, bodyMetrics, settings] = await Promise.all([
     db.exercises.toArray(),
