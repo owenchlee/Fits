@@ -12,10 +12,9 @@ import { toTotalLoadKg } from "@/lib/calc/load";
 import { fromDisplayWeight, toDisplayWeight, formatWeight } from "@/lib/calc/units";
 import { sanitizeDecimalInput } from "@/lib/format";
 import {
-  calculateDotsScore,
   calculateExercisePercentile,
   calculateLiftPercentile,
-  dotsToPercentile,
+  totalToPercentile,
   percentileToTier,
   LIFT_LABELS,
   type ExercisePercentileResult,
@@ -143,8 +142,7 @@ export function OverviewTab() {
   });
   const totalKg = bigThreeKg.reduce((sum, kg) => sum + kg, 0);
   const hasTotal = bigThreeKg.every((kg) => kg > 0) && bodyweightKg > 0;
-  const dots = hasTotal ? calculateDotsScore(totalKg, bodyweightKg, sex) : 0;
-  const overallPercentile = hasTotal ? dotsToPercentile(dots) : 0;
+  const overallPercentile = hasTotal ? totalToPercentile(totalKg, bodyweightKg, sex) : 0;
   const overallTier = percentileToTier(overallPercentile);
 
   const allRatedLifts = useAllRatedLifts(sex, bodyweightKg);
@@ -226,7 +224,8 @@ export function OverviewTab() {
             <Info size={14} className="mt-0.5 shrink-0" />
             <p>
               Estimates are based on aggregated community strength-standards data (bodyweight-relative multipliers
-              and the DOTS formula), not a scientific census. Lifts marked &quot;est.&quot; are extrapolated from a
+              and total-vs-bodyweight tables from strengthlevel.com), not a scientific census. Lifts marked
+              &quot;est.&quot; are extrapolated from a
               typical ratio to the nearest main lift rather than their own standards table (tap the (est.) icon on a
               lift to see the ratio used). Use them as a rough compass, not gospel.
             </p>
@@ -236,7 +235,7 @@ export function OverviewTab() {
         <div className="space-y-4">
           <div className="rounded-tl-md rounded-tr-[2.5rem] rounded-br-md rounded-bl-[2.5rem] border border-border bg-card p-6">
             <p className="mb-2 text-center text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-              Overall (Squat + Bench + Deadlift total, DOTS-adjusted)
+              Overall (Squat + Bench + Deadlift total, bodyweight-adjusted)
             </p>
             {hasTotal ? (
               <PercentileGauge percentile={overallPercentile} tier={overallTier} />

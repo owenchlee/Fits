@@ -1,7 +1,7 @@
 import { db } from "@/lib/db/db";
 import { estimateOneRepMax } from "@/lib/calc/one-rep-max";
 import { toTotalLoadKg } from "@/lib/calc/load";
-import { calculateDotsScore, calculateExercisePercentile, dotsToPercentile, type StandardLift } from "@/lib/calc/strength-standards";
+import { calculateExercisePercentile, totalToPercentile, type StandardLift } from "@/lib/calc/strength-standards";
 import { enqueueSync } from "@/lib/sync/outbox";
 
 const BIG_THREE: StandardLift[] = ["squat", "bench", "deadlift"];
@@ -34,7 +34,7 @@ export async function recordPercentileSnapshot() {
   let overallPercentile: number | null = null;
   if (BIG_THREE.every((l) => (anchorBestKg[l] ?? 0) > 0)) {
     const totalKg = BIG_THREE.reduce((sum, l) => sum + (anchorBestKg[l] ?? 0), 0);
-    overallPercentile = Math.round(dotsToPercentile(calculateDotsScore(totalKg, bodyweightKg, sex)) * 10) / 10;
+    overallPercentile = Math.round(totalToPercentile(totalKg, bodyweightKg, sex) * 10) / 10;
   }
 
   if (overallPercentile === null && Object.keys(perLift).length === 0) return;

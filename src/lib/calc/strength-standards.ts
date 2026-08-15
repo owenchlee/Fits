@@ -143,30 +143,80 @@ export function calculateExercisePercentile(
   return null;
 }
 
-// --- DOTS: bodyweight-normalized total score, used for the overall composite percentile ---
+// --- Total: bodyweight-varying Squat+Bench+Deadlift standards, used for the overall composite
+// percentile. Sourced from strengthlevel.com's powerlifting-total standards (aggregated from
+// user-submitted totals across their app/site, not IPF competition results), rather than a
+// formula like DOTS/Wilks that's regressed specifically from powerlifting-meet data. ---
 
-const DOTS_COEFFICIENTS: Record<Sex, [number, number, number, number, number]> = {
-  male: [-0.0000010930, 0.0007391293, -0.1918759221, 24.0900756, -307.75076],
-  female: [-0.0000010706, 0.0005158568, -0.1126655495, 13.6175032, 57.96288],
-};
-
-export function calculateDotsScore(totalKg: number, bodyweightKg: number, sex: Sex): number {
-  if (bodyweightKg <= 0 || totalKg <= 0) return 0;
-  const bw = Math.min(Math.max(bodyweightKg, 40), sex === "male" ? 210 : 150);
-  const [a, b, c, d, e] = DOTS_COEFFICIENTS[sex];
-  const denom = a * bw ** 4 + b * bw ** 3 + c * bw ** 2 + d * bw + e;
-  return (totalKg * 500) / denom;
+interface TotalStandardRow {
+  bodyweightKg: number;
+  /** Total kg at the 5th/20th/50th/80th/95th percentile for this bodyweight. */
+  checkpoints: [number, number, number, number, number];
 }
 
-/**
- * DOTS checkpoints at the same percentile grid. Derived from the bodyweight-multiplier
- * standards above (summing squat+bench+deadlift at each checkpoint and converting through
- * the DOTS formula across a range of bodyweights) rather than from powerlifting-meet
- * distributions, so the "Overall" score reflects everyday gym-goers instead of competitive
- * lifters — a 300+ DOTS total is a serious powerlifter, not a typical 50th-percentile lifter.
- */
-const DOTS_CHECKPOINTS = [80, 140, 220, 290, 360, 420];
+const MALE_TOTAL_STANDARDS: TotalStandardRow[] = [
+  { bodyweightKg: 50, checkpoints: [138, 185, 242, 307, 375] },
+  { bodyweightKg: 55, checkpoints: [160, 210, 270, 338, 410] },
+  { bodyweightKg: 60, checkpoints: [180, 234, 297, 368, 443] },
+  { bodyweightKg: 65, checkpoints: [201, 257, 323, 397, 475] },
+  { bodyweightKg: 70, checkpoints: [221, 279, 348, 425, 505] },
+  { bodyweightKg: 75, checkpoints: [240, 301, 372, 451, 534] },
+  { bodyweightKg: 80, checkpoints: [259, 322, 396, 477, 562] },
+  { bodyweightKg: 85, checkpoints: [277, 342, 418, 502, 589] },
+  { bodyweightKg: 90, checkpoints: [295, 362, 440, 526, 614] },
+  { bodyweightKg: 95, checkpoints: [312, 381, 461, 549, 639] },
+  { bodyweightKg: 100, checkpoints: [329, 400, 482, 571, 663] },
+  { bodyweightKg: 105, checkpoints: [345, 418, 502, 593, 687] },
+  { bodyweightKg: 110, checkpoints: [362, 436, 521, 614, 709] },
+  { bodyweightKg: 115, checkpoints: [377, 453, 540, 634, 731] },
+  { bodyweightKg: 120, checkpoints: [393, 470, 558, 654, 753] },
+  { bodyweightKg: 125, checkpoints: [408, 486, 576, 673, 773] },
+  { bodyweightKg: 130, checkpoints: [422, 502, 594, 692, 794] },
+  { bodyweightKg: 135, checkpoints: [437, 518, 611, 711, 813] },
+  { bodyweightKg: 140, checkpoints: [451, 533, 627, 729, 833] },
+];
 
-export function dotsToPercentile(dots: number): number {
-  return multiplierToPercentile(dots, DOTS_CHECKPOINTS);
+const FEMALE_TOTAL_STANDARDS: TotalStandardRow[] = [
+  { bodyweightKg: 40, checkpoints: [86, 121, 165, 215, 270] },
+  { bodyweightKg: 45, checkpoints: [96, 134, 179, 232, 288] },
+  { bodyweightKg: 50, checkpoints: [106, 145, 193, 247, 305] },
+  { bodyweightKg: 55, checkpoints: [115, 156, 205, 261, 321] },
+  { bodyweightKg: 60, checkpoints: [124, 166, 217, 274, 335] },
+  { bodyweightKg: 65, checkpoints: [133, 176, 228, 287, 349] },
+  { bodyweightKg: 70, checkpoints: [141, 185, 239, 299, 362] },
+  { bodyweightKg: 75, checkpoints: [149, 194, 249, 310, 374] },
+  { bodyweightKg: 80, checkpoints: [156, 203, 258, 320, 386] },
+  { bodyweightKg: 85, checkpoints: [163, 211, 267, 331, 397] },
+  { bodyweightKg: 90, checkpoints: [170, 219, 276, 340, 408] },
+  { bodyweightKg: 95, checkpoints: [177, 226, 285, 350, 418] },
+  { bodyweightKg: 100, checkpoints: [183, 233, 293, 359, 428] },
+  { bodyweightKg: 105, checkpoints: [189, 240, 301, 367, 437] },
+  { bodyweightKg: 110, checkpoints: [195, 247, 308, 376, 447] },
+  { bodyweightKg: 115, checkpoints: [201, 254, 315, 384, 455] },
+  { bodyweightKg: 120, checkpoints: [207, 260, 322, 392, 464] },
+];
+
+function totalStandardsFor(sex: Sex): TotalStandardRow[] {
+  return sex === "male" ? MALE_TOTAL_STANDARDS : FEMALE_TOTAL_STANDARDS;
+}
+
+/** Linearly interpolates the percentile-checkpoint row for a bodyweight between table rows (clamped at the ends). */
+function totalCheckpointsFor(bodyweightKg: number, sex: Sex): number[] {
+  const rows = totalStandardsFor(sex);
+  const bw = Math.min(Math.max(bodyweightKg, rows[0].bodyweightKg), rows[rows.length - 1].bodyweightKg);
+
+  for (let i = 0; i < rows.length - 1; i++) {
+    const lo = rows[i];
+    const hi = rows[i + 1];
+    if (bw >= lo.bodyweightKg && bw <= hi.bodyweightKg) {
+      const t = (bw - lo.bodyweightKg) / (hi.bodyweightKg - lo.bodyweightKg);
+      return lo.checkpoints.map((c, idx) => c + t * (hi.checkpoints[idx] - c));
+    }
+  }
+  return rows[rows.length - 1].checkpoints;
+}
+
+export function totalToPercentile(totalKg: number, bodyweightKg: number, sex: Sex): number {
+  if (bodyweightKg <= 0 || totalKg <= 0) return 0;
+  return multiplierToPercentile(totalKg, totalCheckpointsFor(bodyweightKg, sex));
 }
