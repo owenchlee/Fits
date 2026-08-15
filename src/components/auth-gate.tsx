@@ -3,9 +3,13 @@
 import * as React from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { motion } from "framer-motion";
+import { Capacitor } from "@capacitor/core";
 import { Barbell } from "@phosphor-icons/react/dist/ssr";
 import { useAuth } from "@/lib/auth/auth-provider";
 import { AppShell } from "@/components/layout/app-shell";
+
+/** How long the splash replays for on native app-resume, in ms. */
+const RESUME_SPLASH_DURATION = 900;
 
 const PUBLIC_PATHS = ["/login", "/signup", "/reset-password"];
 /** Reached via the password-recovery email link, which signs the user in — must render even
@@ -47,6 +51,37 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
   const isAlwaysAccessible = ALWAYS_ACCESSIBLE_PATHS.some((p) => pathname.startsWith(p));
   const isPublicAuthPage = !isAlwaysAccessible && PUBLIC_PATHS.some((p) => pathname.startsWith(p));
 
+  const [resuming, setResuming] = React.useState(false);
+  const hasLoadedOnceRef = React.useRef(false);
+  React.useEffect(() => {
+    if (!loading) hasLoadedOnceRef.current = true;
+  }, [loading]);
+
+  // The native webview stays alive across backgrounding, so `loading` above never flips back
+  // to true on resume — replay the splash manually when the app returns to the foreground.
+  React.useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return;
+
+    let hideTimeout: ReturnType<typeof setTimeout> | undefined;
+    let removeListener: (() => void) | undefined;
+
+    void (async () => {
+      const { App } = await import("@capacitor/app");
+      const handle = await App.addListener("appStateChange", ({ isActive }) => {
+        if (!isActive || !hasLoadedOnceRef.current) return;
+        setResuming(true);
+        clearTimeout(hideTimeout);
+        hideTimeout = setTimeout(() => setResuming(false), RESUME_SPLASH_DURATION);
+      });
+      removeListener = () => void handle.remove();
+    })();
+
+    return () => {
+      clearTimeout(hideTimeout);
+      removeListener?.();
+    };
+  }, []);
+
   React.useEffect(() => {
     if (loading || isAlwaysAccessible) return;
     if (!user && !isPublicAuthPage) router.replace("/login");
@@ -57,7 +92,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
     return <div className="flex min-h-dvh items-center justify-center px-4 py-10">{children}</div>;
   }
 
-  if (loading) return <FullScreenLoader />;
+  if (loading || resuming) return <FullScreenLoader />;
 
   if (isPublicAuthPage) {
     if (user) return <FullScreenLoader />;
