@@ -35,7 +35,7 @@ function useMainLiftPRs() {
     const exercises = await db.exercises.filter((e) => e.standardLift !== null).toArray();
     const results: Partial<Record<StandardLift, number>> = {};
     for (const ex of exercises) {
-      const sets = await db.sets.where("exerciseId").equals(ex.id).toArray();
+      const sets = await db.sets.where("exerciseId").equals(ex.id).filter((s) => !s.isWarmup).toArray();
       const best = sets.reduce((max, s) => Math.max(max, estimateOneRepMax(toTotalLoadKg(s.weightKg, ex), s.reps)), 0);
       const lift = ex.standardLift as StandardLift;
       results[lift] = Math.max(results[lift] ?? 0, best);

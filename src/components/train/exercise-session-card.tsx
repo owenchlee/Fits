@@ -46,7 +46,9 @@ export function ExerciseSessionCard({
   const timer = useRestTimer();
 
   const orderedSets = React.useMemo(() => orderSets(sets), [sets]);
-  const bestThisSession = sets.reduce((max, s) => Math.max(max, estimateOneRepMax(s.weightKg, s.reps)), 0);
+  const bestThisSession = sets
+    .filter((s) => !s.isWarmup)
+    .reduce((max, s) => Math.max(max, estimateOneRepMax(s.weightKg, s.reps)), 0);
   const recommendedWarmup = previousSets ? calculateWarmupSet(previousSets, unit) : null;
   const hasWarmupSet = sets.some((s) => s.isWarmup);
 

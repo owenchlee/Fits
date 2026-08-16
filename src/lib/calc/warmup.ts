@@ -23,7 +23,7 @@ export function calculateWarmupSet(
   const roundedDisplay = Math.max(Math.round(rawDisplay / increment) * increment, floor);
 
   const weightKg = unit === "kg" ? roundedDisplay : lbToKg(roundedDisplay);
-  const reps = Math.min(Math.max(topSet.reps, 5), 10);
+  const reps = Math.max(topSet.reps, 10);
 
   return { weightKg, reps };
 }

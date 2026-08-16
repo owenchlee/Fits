@@ -20,7 +20,7 @@ export async function recordPercentileSnapshot() {
   const anchorBestKg: Partial<Record<StandardLift, number>> = {};
 
   for (const ex of exercises) {
-    const sets = await db.sets.where("exerciseId").equals(ex.id).toArray();
+    const sets = await db.sets.where("exerciseId").equals(ex.id).filter((s) => !s.isWarmup).toArray();
     if (sets.length === 0) continue;
     const bestKg = sets.reduce((max, s) => Math.max(max, estimateOneRepMax(toTotalLoadKg(s.weightKg, ex), s.reps)), 0);
     if (bestKg <= 0) continue;
