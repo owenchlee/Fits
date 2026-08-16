@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { Capacitor } from "@capacitor/core";
 
 type RestTimerState = {
   label: string | null;
@@ -53,50 +54,100 @@ export function RestTimerProvider({ children }: { children: React.ReactNode }) {
     isRunning: false,
   });
   const hasFiredRef = React.useRef(false);
+  // Wall-clock deadline rather than a per-tick decrement, so the countdown stays correct even
+  // when `setInterval` is throttled or fully suspended while the tab/app is backgrounded —
+  // a foreground tick or resume event just recomputes from this instead of losing time.
+  const endAtRef = React.useRef<number | null>(null);
+
+  const tick = React.useCallback(() => {
+    setState((s) => {
+      if (!s.isRunning || endAtRef.current === null) return s;
+      const remaining = Math.max(0, Math.ceil((endAtRef.current - Date.now()) / 1000));
+      if (remaining <= 0) {
+        if (!hasFiredRef.current) {
+          hasFiredRef.current = true;
+          playChime();
+        }
+        endAtRef.current = null;
+        return { ...s, secondsLeft: 0, isRunning: false };
+      }
+      if (remaining === s.secondsLeft) return s;
+      return { ...s, secondsLeft: remaining };
+    });
+  }, []);
 
   React.useEffect(() => {
     if (!state.isRunning) return;
-    const id = setInterval(() => {
-      setState((s) => {
-        if (!s.isRunning) return s;
-        const next = s.secondsLeft - 1;
-        if (next <= 0) {
-          if (!hasFiredRef.current) {
-            hasFiredRef.current = true;
-            playChime();
-          }
-          return { ...s, secondsLeft: 0, isRunning: false };
-        }
-        return { ...s, secondsLeft: next };
-      });
-    }, 1000);
+    const id = setInterval(tick, 1000);
     return () => clearInterval(id);
-  }, [state.isRunning]);
+  }, [state.isRunning, tick]);
+
+  React.useEffect(() => {
+    function onVisible() {
+      if (document.visibilityState === "visible") tick();
+    }
+    document.addEventListener("visibilitychange", onVisible);
+
+    let removeListener: (() => void) | undefined;
+    if (Capacitor.isNativePlatform()) {
+      void (async () => {
+        const { App } = await import("@capacitor/app");
+        const handle = await App.addListener("appStateChange", ({ isActive }) => {
+          if (isActive) tick();
+        });
+        removeListener = () => void handle.remove();
+      })();
+    }
+
+    return () => {
+      document.removeEventListener("visibilitychange", onVisible);
+      removeListener?.();
+    };
+  }, [tick]);
 
   const start = React.useCallback((seconds: number, label?: string) => {
     hasFiredRef.current = false;
+    endAtRef.current = Date.now() + seconds * 1000;
     setState({ label: label ?? null, totalSeconds: seconds, secondsLeft: seconds, isRunning: true });
   }, []);
 
-  const pause = React.useCallback(() => setState((s) => ({ ...s, isRunning: false })), []);
-  const resume = React.useCallback(
-    () => setState((s) => (s.secondsLeft > 0 ? { ...s, isRunning: true } : s)),
-    []
-  );
-  const addTime = React.useCallback(
-    (delta: number) =>
-      setState((s) => {
-        if (s.totalSeconds === 0) return s;
-        hasFiredRef.current = false;
-        const secondsLeft = Math.max(0, s.secondsLeft + delta);
-        return { ...s, secondsLeft, totalSeconds: Math.max(s.totalSeconds, secondsLeft), isRunning: secondsLeft > 0 };
-      }),
-    []
-  );
-  const stop = React.useCallback(
-    () => setState({ label: null, totalSeconds: 0, secondsLeft: 0, isRunning: false }),
-    []
-  );
+  const pause = React.useCallback(() => {
+    setState((s) => {
+      if (!s.isRunning) return s;
+      const remaining =
+        endAtRef.current !== null ? Math.max(0, Math.ceil((endAtRef.current - Date.now()) / 1000)) : s.secondsLeft;
+      endAtRef.current = null;
+      return { ...s, secondsLeft: remaining, isRunning: false };
+    });
+  }, []);
+
+  const resume = React.useCallback(() => {
+    setState((s) => {
+      if (s.secondsLeft <= 0) return s;
+      endAtRef.current = Date.now() + s.secondsLeft * 1000;
+      return { ...s, isRunning: true };
+    });
+  }, []);
+
+  const addTime = React.useCallback((delta: number) => {
+    setState((s) => {
+      if (s.totalSeconds === 0) return s;
+      hasFiredRef.current = false;
+      const baseRemaining =
+        s.isRunning && endAtRef.current !== null
+          ? Math.max(0, Math.ceil((endAtRef.current - Date.now()) / 1000))
+          : s.secondsLeft;
+      const secondsLeft = Math.max(0, baseRemaining + delta);
+      const isRunning = secondsLeft > 0;
+      endAtRef.current = isRunning ? Date.now() + secondsLeft * 1000 : null;
+      return { ...s, secondsLeft, totalSeconds: Math.max(s.totalSeconds, secondsLeft), isRunning };
+    });
+  }, []);
+
+  const stop = React.useCallback(() => {
+    endAtRef.current = null;
+    setState({ label: null, totalSeconds: 0, secondsLeft: 0, isRunning: false });
+  }, []);
 
   const value = React.useMemo(
     () => ({ ...state, start, pause, resume, addTime, stop }),
