@@ -2,19 +2,39 @@ name: Supabase keep-alive
 
 on:
   schedule:
-    - cron: '0 0 */3 * *'
+    # Daily, not every third day. `*/3` in the day-of-month field only fires
+    # on the 1st, 4th, 7th... which meant the first run after this workflow
+    # landed was two days out — long enough for Supabase's 7-day inactivity
+    # clock to run out first. GitHub also silently drops scheduled runs under
+    # load, so a daily ping leaves room to miss a few and still stay well
+    # inside the window. Off-the-hour minute because :00 is the most
+    # congested slot on GitHub's scheduler.
+    - cron: '23 6 * * *'
   workflow_dispatch: {}
 
 jobs:
   ping:
     runs-on: ubuntu-latest
     steps:
-      - name: Ping Supabase REST API
-        run: |
-          curl -sS -f \
-            -H "apikey: ${SUPABASE_ANON_KEY}" \
-            -H "Authorization: Bearer ${SUPABASE_ANON_KEY}" \
-            "${SUPABASE_URL}/rest/v1/profiles?select=id&limit=1"
+      # Fail loudly rather than silently pinging a bare "/rest/v1/profiles"
+      # with an empty apikey header: an unset secret expands to an empty
+      # string, which would otherwise look like a normal failed request.
+      - name: Verify secrets are present
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: |
+          if [ -z "$SUPABASE_URL" ] || [ -z "$SUPABASE_ANON_KEY" ]; then
+            echo "::error::SUPABASE_URL and/or SUPABASE_ANON_KEY repo secrets are not set (Settings > Secrets and variables > Actions)."
+            exit 1
+          fi
+
+      - name: Ping Supabase REST API
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: |
+          curl -sS -f --retry 3 --retry-delay 15 \
+            -H "apikey: ${SUPABASE_ANON_KEY}" \
+            -H "Authorization: Bearer ${SUPABASE_ANON_KEY}" \
+            "${SUPABASE_URL}/rest/v1/profiles?select=id&limit=1"
