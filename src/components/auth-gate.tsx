@@ -13,8 +13,9 @@ const RESUME_SPLASH_DURATION = 900;
 
 const PUBLIC_PATHS = ["/login", "/signup", "/reset-password"];
 /** Reached via the password-recovery email link, which signs the user in — must render even
- * though a session exists, unlike every other "public" auth page (login/signup). */
-const ALWAYS_ACCESSIBLE_PATHS = ["/reset-password/confirm"];
+ * though a session exists, unlike every other "public" auth page (login/signup). Privacy policy
+ * must also be reachable without a session for App Store review and for signed-out visitors. */
+const ALWAYS_ACCESSIBLE_PATHS = ["/reset-password/confirm", "/privacy"];
 
 function FullScreenLoader() {
   return (

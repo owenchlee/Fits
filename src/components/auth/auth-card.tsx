@@ -24,6 +24,11 @@ export function AuthCard({
         <div className="mt-5 space-y-4">{children}</div>
       </div>
       {footer && <div className="mt-4 text-center text-sm text-muted-foreground">{footer}</div>}
+      <p className="mt-4 text-center text-xs text-muted-foreground">
+        <Link href="/privacy" className="hover:underline">
+          Privacy Policy
+        </Link>
+      </p>
     </div>
   );
 }

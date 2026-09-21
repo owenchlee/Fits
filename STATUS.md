@@ -166,7 +166,29 @@ Created `ios/App/App/PrivacyInfo.xcprivacy` (full reasoning is also documented a
 
 ## Phase 6 — Privacy policy draft
 
-Status: NOT STARTED
+Status: DRAFTED — needs legal review before publishing, and surfaced a real App Store blocker (see below).
+
+- Created `src/app/privacy/page.tsx`, a plain page describing what Fits actually collects (email for
+  Supabase Auth, training data synced to Supabase when signed in), where it lives (local-first on
+  device + Supabase as infrastructure processor), that there's no analytics/tracking/third-party
+  sharing (confirmed in Phase 3), and how to delete data (Settings > Reset all data). Marked with an
+  in-page banner: "Draft — not final... has not been reviewed by a lawyer."
+- Added `/privacy` to `ALWAYS_ACCESSIBLE_PATHS` in `src/components/auth-gate.tsx` so it's reachable
+  without signing in (needed for App Store review and for signed-out visitors).
+- Linked it from `src/components/auth/auth-card.tsx` (shows on login/signup/reset-password pages).
+
+**Real finding while writing this, not just a copywriting detail:** Fits has a "Reset all data"
+feature (`src/app/profile/page.tsx`) that deletes training data, but there is no way to delete the
+*account* itself (the Supabase Auth email/password credential) — only sign out. Apple's App Store
+Review Guideline 5.1.1(v) requires that any app supporting account creation also support account
+deletion from within the app, not just a data wipe. **This is a likely App Store rejection risk, not
+just a privacy-policy wording issue.** Did not build an account-deletion flow this session — that's
+a real feature (needs a Supabase server-side/admin-privileged path to actually delete the
+`auth.users` row, plus UX for the destructive confirmation) that deserves its own design and testing,
+not something to improvise inside a scoped iOS-prep pass. Flagged prominently here and in the final
+summary below. The privacy policy draft itself is honest about this gap rather than glossing over it.
+
+Verified with `npm run build` + `npm run lint` (logs: `.logs/phase6-build.log`, `.logs/phase6-lint.log`).
 
 ## Open concerns (things flagged, not silently fixed)
 
