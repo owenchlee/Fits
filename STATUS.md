@@ -5,7 +5,9 @@ Started: 2026-09-20
 
 This file is the resume point for this work. If you're picking this up again, read the whole thing before doing anything — especially "Open concerns" at the bottom.
 
-## ⚠️ PAUSED — concurrent session collision detected (2026-09-21)
+## ⚠️ RESOLVED — concurrent session collision detected (2026-09-21)
+
+Update: no reply was received from `fits-90` (it stayed idle for the rest of this session), and repeated `git status` checks before every subsequent commit showed no further changes appearing from outside this session. Proceeded with the remaining phases, checking `git status` before and after every edit as a precaution, and reconciled the touch-target fix to the other session's `hit-slop-44` utility (see Phase 2). All six phases completed without further collisions. If you're reading this after both sessions have finished, it's worth a final `git log --oneline` sanity check that history looks coherent before treating this branch as done.
 
 Mid-way through Phase 2, I detected that another live Claude Code session (peer session name `fits-90` on this machine) is editing files in this **exact same working directory** (not a separate git worktree) — same repo path, same branch (`ios-app-store-prep`), apparently working the same task. Evidence: `git status`/`git diff` showed changes I never made appearing in my working tree mid-session (a `hit-slop-44` CSS utility added to `src/app/globals.css`, and a matching touch-target fix in `src/components/ui/dialog.tsx`) — these match the exact fix I was independently in the middle of applying to other files by hand (inline `before:inset-[-Npx]` hit-slop on icon buttons).
 
@@ -193,8 +195,33 @@ Verified with `npm run build` + `npm run lint` (logs: `.logs/phase6-build.log`, 
 ## Open concerns (things flagged, not silently fixed)
 
 1. **Remote-URL wrapper architecture (Guideline 4.2 risk).** The iOS app loads `https://fits-app-owenl1-cc3d.vercel.app` live rather than bundling assets. This is an intentional, already-existing architecture choice (documented in a code comment) driven by the app's use of Next.js middleware/SSR. It is not something this session is changing — it's a product/legal-risk decision for the human developer. Flagging clearly: Apple app review sometimes rejects thin WebView wrappers around a remote site under "minimum functionality." Mitigating factors already in place: native StatusBar/SplashScreen integration, native back-button handling, Capacitor Preferences-backed auth storage — these show native-specific engineering beyond a bare WebView, which helps the case, but this should be a conscious call before submission, ideally researched against current Apple review guidance closer to submission time.
-2. `src/app/layout.tsx` still needs `viewportFit: "cover"` — a real, uncontroversial bug fix (see Phase 2 above), not a judgment call.
+2. **No offline/guest mode (Phase 3).** `AuthGate` blocks the entire app behind a Supabase sign-in with no local-only path, contradicting the app's "offline-first" framing for first-run/logged-out users. Not fixed — a real feature decision, not a bug.
+3. **No in-app account deletion (Phase 6).** Only data-reset exists, not account deletion. Apple Guideline 5.1.1(v) requires the latter for any app with account creation — likely rejection risk if unaddressed.
 
-## Remaining steps requiring Apple Developer account / Xcode / human decision
+## Final summary
 
-(To be finalized at the end of all phases — see full summary at the bottom of this file once complete.)
+All six phases from the original task brief are complete. Branch `ios-app-store-prep` has 6 commits, each independently reviewed via `npm run build` + `npm run lint` before committing (logs under `.logs/`, gitignored). Nothing was pushed anywhere and no destructive git operations were used.
+
+**What's actually done (real fixes, not placeholders):**
+- Capacitor/iOS/Android native projects — already existed before this session (Phase 0).
+- Safe-area viewport fix (`viewportFit: "cover"`), 44×44pt touch targets via a `hit-slop-44` utility (shared with a concurrently-working session — see collision note above), a real focusable/tappable tooltip trigger, and `-webkit-touch-callout` suppression on interactive chrome (Phase 2).
+- Graceful offline/network-failure handling: friendly auth error messages, a fixed stuck-spinner bug in post-signup data migration, try/catch around the sync engine's network calls, offline-aware error boundary copy (Phase 3).
+- A drafted `PrivacyInfo.xcprivacy` covering the one plugin (`@capacitor/preferences`) that touches an Apple required-reason API, plus a data-collection declaration matching actual app behavior (Phase 5).
+- A drafted, honest privacy policy page at `/privacy`, linked from the auth pages and reachable without signing in (Phase 6).
+
+**What's a placeholder / explicitly marked "not final":**
+- `PrivacyInfo.xcprivacy`'s reason code (`CA92.1`) — best-guess, needs confirmation against Apple's current approved list.
+- `src/app/privacy/page.tsx` — drafted from a code audit, explicitly marked as unreviewed by a lawyer, with two inline notes (account-deletion gap, missing contact email) that must be resolved before it's accurate enough to publish.
+- App icon/splash — turned out to already be real, on-brand artwork, not placeholders (Phase 4 correction to the original brief's assumption).
+
+**Remaining steps that need the Apple Developer account, Xcode, or a human decision — nothing here was attempted:**
+1. Open the project in Xcode on a Mac; confirm it builds and runs in Simulator/on a device.
+2. Add `PrivacyInfo.xcprivacy` to the App target in Xcode (Copy Bundle Resources) — the file exists on disk but Xcode project membership can't be safely scripted without Xcode itself.
+3. Confirm the `PrivacyInfo.xcprivacy` reason code(s) against Apple's current approved list, and address anything Xcode/App Store Connect's own static analysis flags at upload that this code-level audit couldn't see.
+4. **Decide on the remote-URL wrapper architecture** (open concern #1) before submitting — either accept the Guideline 4.2 risk as-is, or reconsider bundling static assets.
+5. **Decide on the no-offline/guest-mode gap** (open concern #2) — ship as-is with adjusted marketing copy, or build a local-only mode.
+6. **Build an in-app account-deletion flow** (open concern #3) before submitting — this needs a privileged Supabase-side deletion path plus destructive-action UX, not something guessed at in this session.
+7. Get real legal review of `src/app/privacy/page.tsx`, fill in a real contact method, and update it once #6 is resolved either way.
+8. Set up an actual Apple Developer account / App Store Connect listing, screenshots, App Privacy questionnaire (must match `PrivacyInfo.xcprivacy`'s declarations), and TestFlight testing — none of this was started.
+9. Decide what to do with the three unreferenced leftover splash source files noted in Phase 4 (harmless but worth a cleanup pass).
+10. Merge `ios-app-store-prep` into `main` once the above is resolved and the branch has been reviewed — not done automatically by this session.
