@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { CircleNotch } from "@phosphor-icons/react/dist/ssr";
 import { useAuth } from "@/lib/auth/auth-provider";
+import { authErrorMessage } from "@/lib/auth/friendly-error";
 import { AuthCard } from "@/components/auth/auth-card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -26,7 +27,7 @@ export default function LoginPage() {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     setSubmitting(false);
     if (error) {
-      setError(error.message);
+      setError(authErrorMessage(error));
       return;
     }
     toast.success("Welcome back");

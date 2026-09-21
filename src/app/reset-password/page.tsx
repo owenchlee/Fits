@@ -4,6 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 import { CircleNotch, EnvelopeSimple } from "@phosphor-icons/react/dist/ssr";
 import { useAuth } from "@/lib/auth/auth-provider";
+import { authErrorMessage } from "@/lib/auth/friendly-error";
 import { AuthCard } from "@/components/auth/auth-card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -25,7 +26,7 @@ export default function ResetPasswordPage() {
     });
     setSubmitting(false);
     if (error) {
-      setError(error.message);
+      setError(authErrorMessage(error));
       return;
     }
     setSent(true);

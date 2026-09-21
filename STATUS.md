@@ -127,6 +127,13 @@ Because `capacitor.config.ts` loads the live Vercel URL remotely (`server.url`, 
 
 Not touched: `flushOutbox`'s existing silent catch-and-retry (reasonable for a background queue), the realtime channel's lack of reconnect UI (cosmetic, not a crash/hang risk), and the server-side `updateSession` middleware (runs on Vercel, not on-device, out of scope for a native-wrapper offline audit).
 
+**Done.** All four fixes applied and verified with `npm run build` + `npm run lint` (logs: `.logs/phase3-build2.log`, `.logs/phase3-lint2.log`, gitignored):
+- New shared helper `src/lib/auth/friendly-error.ts` (`authErrorMessage`) maps raw fetch/network-failure strings to "Check your internet connection and try again." — wired into all four auth pages (`login`, `signup`, `reset-password`, `reset-password/confirm`).
+- `src/app/signup/page.tsx` `handleMigrate` now wraps the migration call in try/catch/finally so the dialog spinner always clears, with a toast explaining the data is safe locally and will sync automatically later.
+- `src/lib/sync/engine.ts` `pullAll` — both the `profiles` select and the per-table select loop are now wrapped in try/catch, consistent with the graceful `{error}` handling the per-table loop already had.
+- `src/lib/auth/auth-provider.tsx` — `startSync(...)` call now has `.catch(() => {})` as defense-in-depth.
+- `src/app/error.tsx` / `src/app/global-error.tsx` — now check `navigator.onLine` and show "You're offline / check your connection" instead of the generic crash message when applicable. (First attempt called `setState` inside `useEffect`, which a repo ESLint rule — `react-hooks/set-state-in-effect` — flags; fixed by computing `offline` directly during render instead, since these components only mount client-side after an error already occurred.)
+
 ### Data/privacy inventory (for Phase 5 and 6)
 
 - Local (Dexie/IndexedDB, always): exercises, programs, workouts, sets, bodyMetrics, settings, percentileSnapshots.

@@ -43,7 +43,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     if (syncedUserId.current) stopSync(supabase);
     syncedUserId.current = userId;
-    if (userId) void startSync(supabase, userId);
+    if (userId) startSync(supabase, userId).catch(() => {});
 
     return () => {
       if (syncedUserId.current) {

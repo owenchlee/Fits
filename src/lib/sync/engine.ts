@@ -105,18 +105,28 @@ async function mergeRow(table: SyncTable, row: never) {
 }
 
 export async function pullAll(supabase: Client, userId: string) {
-  const { data: profile } = await supabase.from("profiles").select("*").eq("id", userId).single();
-  if (profile) {
-    const local = await db.settings.get("singleton");
-    const remoteUpdatedAt = new Date(profile.updated_at).getTime();
-    if (!local || remoteUpdatedAt > local.updatedAt) {
-      await db.settings.update("singleton", { ...profileRowToSettings(profile), updatedAt: remoteUpdatedAt });
+  try {
+    const { data: profile } = await supabase.from("profiles").select("*").eq("id", userId).single();
+    if (profile) {
+      const local = await db.settings.get("singleton");
+      const remoteUpdatedAt = new Date(profile.updated_at).getTime();
+      if (!local || remoteUpdatedAt > local.updatedAt) {
+        await db.settings.update("singleton", { ...profileRowToSettings(profile), updatedAt: remoteUpdatedAt });
+      }
     }
+  } catch {
+    // No network (or Supabase unreachable) — local data is still usable; the next pullAll retries.
   }
 
   for (const table of SYNC_TABLES) {
-    const { data, error } = await dynamicFrom(supabase, REMOTE_TABLE[table]).select("*").eq("user_id", userId);
-    if (error || !data) continue;
+    let data: unknown[] | null = null;
+    try {
+      const result = await dynamicFrom(supabase, REMOTE_TABLE[table]).select("*").eq("user_id", userId);
+      if (!result.error) data = result.data;
+    } catch {
+      // No network (or Supabase unreachable) — skip this table for now, retry on the next pullAll.
+    }
+    if (!data) continue;
     for (const row of data) await mergeRow(table, row as never);
   }
 }

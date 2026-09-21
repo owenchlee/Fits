@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { CircleNotch, EnvelopeSimple } from "@phosphor-icons/react/dist/ssr";
 import { useAuth } from "@/lib/auth/auth-provider";
+import { authErrorMessage } from "@/lib/auth/friendly-error";
 import { hasLocalDataToMigrate, migrateLocalDataToAccount } from "@/lib/sync/migrate-local-data";
 import { AuthCard } from "@/components/auth/auth-card";
 import { Label } from "@/components/ui/label";
@@ -50,7 +51,7 @@ export default function SignupPage() {
     const { data, error } = await supabase.auth.signUp({ email, password });
     setSubmitting(false);
     if (error) {
-      setError(error.message);
+      setError(authErrorMessage(error));
       return;
     }
 
@@ -72,9 +73,14 @@ export default function SignupPage() {
     if (!migratePrompt) return;
     if (shouldMigrate) {
       setMigrating(true);
-      await migrateLocalDataToAccount(supabase, migratePrompt.userId);
-      setMigrating(false);
-      toast.success("Your data is synced to your account");
+      try {
+        await migrateLocalDataToAccount(supabase, migratePrompt.userId);
+        toast.success("Your data is synced to your account");
+      } catch {
+        toast.error("Couldn't finish syncing right now. Your data is safe on this device and will sync automatically once you're back online.");
+      } finally {
+        setMigrating(false);
+      }
     } else {
       toast.success("Account created");
     }
