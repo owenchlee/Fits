@@ -92,7 +92,7 @@ export function ExercisePicker({
                 type="button"
                 onClick={goBack}
                 aria-label="Back to categories"
-                className="-ml-1.5 flex size-7 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:bg-secondary hover:text-foreground"
+                className="relative -ml-1.5 flex size-7 shrink-0 items-center justify-center rounded-full text-muted-foreground hit-slop-44 hover:bg-secondary hover:text-foreground"
               >
                 <CaretLeft size={16} />
               </button>
@@ -196,7 +196,7 @@ function ExerciseRow({
             <button
               type="button"
               aria-label={`${exercise.name} details`}
-              className="flex size-6 items-center justify-center text-muted-foreground hover:text-foreground"
+              className="relative flex size-6 items-center justify-center text-muted-foreground hit-slop-44 hover:text-foreground"
             >
               <Info size={15} />
             </button>

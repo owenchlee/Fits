@@ -42,3 +42,6 @@ next-env.d.ts
 
 # Terminal Paste Image folder
 .cp-images/
+
+# scratch build/lint logs from iOS-prep work
+/.logs/

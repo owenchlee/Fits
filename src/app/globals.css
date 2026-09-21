@@ -151,6 +151,13 @@
   button:not(:disabled), [role="button"]:not(:disabled) {
     cursor: pointer;
   }
+  /* Native iOS long-press shows a callout menu (Copy/Share/Look Up) on any element with
+     selectable content underneath it. Buttons and icon-only controls aren't text, so the
+     callout is just visual noise on a long press — this suppresses it app-wide, while
+     leaving real text content (notes, numbers) selectable as normal. */
+  button, [role="button"], svg, nav {
+    -webkit-touch-callout: none;
+  }
   html {
     @apply font-sans bg-background;
     -webkit-font-smoothing: antialiased;
@@ -186,4 +193,20 @@
   background-image: linear-gradient(to bottom, var(--glass-highlight), transparent 45%);
   outline: 1px solid var(--glass-border);
   outline-offset: -1px;
+}
+
+/* Expands the tap target of small icon-only controls to Apple's 44x44pt minimum
+   without changing their visual size, via an invisible centered ::after box.
+   The element itself must already be `relative`/`absolute`/`fixed` (add `relative`
+   alongside this utility if it isn't already positioned for other reasons). */
+@utility hit-slop-44 {
+  &::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 44px;
+    height: 44px;
+    transform: translate(-50%, -50%);
+  }
 }

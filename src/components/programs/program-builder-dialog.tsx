@@ -74,7 +74,7 @@ function DraftExerciseRow({
       <button
         type="button"
         onClick={onRemove}
-        className="flex size-7 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:bg-background hover:text-destructive"
+        className="relative flex size-7 shrink-0 items-center justify-center rounded-full text-muted-foreground hit-slop-44 hover:bg-background hover:text-destructive"
         aria-label="Remove exercise"
       >
         <X size={13} />
@@ -237,7 +237,7 @@ export function ProgramBuilderDialog() {
                     <button
                       type="button"
                       onClick={() => removeDay(dayIndex)}
-                      className="ml-auto flex size-7 items-center justify-center rounded-full text-muted-foreground hover:bg-secondary hover:text-destructive"
+                      className="relative ml-auto flex size-7 items-center justify-center rounded-full text-muted-foreground hit-slop-44 hover:bg-secondary hover:text-destructive"
                       aria-label={`Remove ${day.name}`}
                     >
                       <Trash size={14} />

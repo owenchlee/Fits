@@ -129,7 +129,7 @@ export function ExerciseSessionCard({
         <button
           aria-label={`Remove ${exercise?.name ?? "exercise"} from workout`}
           onClick={() => removeExerciseFromWorkout(workoutId, exerciseId)}
-          className="flex size-7 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:bg-secondary hover:text-destructive"
+          className="relative flex size-7 shrink-0 items-center justify-center rounded-full text-muted-foreground hit-slop-44 hover:bg-secondary hover:text-destructive"
         >
           <X size={14} />
         </button>

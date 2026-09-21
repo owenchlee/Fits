@@ -37,9 +37,12 @@ export function LiftPercentileRow({
           {isEstimated && estimatedFrom && (
             <Tooltip>
               <TooltipTrigger asChild>
-                <span className="ml-1.5 inline-flex items-center gap-0.5 text-[11px] font-normal text-muted-foreground">
+                <button
+                  type="button"
+                  className="relative ml-1.5 inline-flex items-center gap-0.5 text-[11px] font-normal text-muted-foreground hit-slop-44"
+                >
                   (est.) <Info size={11} />
-                </span>
+                </button>
               </TooltipTrigger>
               <TooltipContent>
                 Estimated as {Math.round(estimatedFrom.ratio * 100)}% of your {LIFT_LABELS[estimatedFrom.basedOn]},
