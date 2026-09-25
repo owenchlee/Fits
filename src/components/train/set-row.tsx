@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { toDisplayWeight, fromDisplayWeight } from "@/lib/calc/units";
 import { sanitizeDecimalInput, sanitizeIntegerInput } from "@/lib/format";
+import { hapticLightTap } from "@/lib/native/haptics";
 import type { SetEntry, UnitSystem } from "@/lib/db/types";
 import { cn } from "@/lib/utils";
 
@@ -46,6 +47,7 @@ export function SetRow({
   React.useEffect(() => {
     if (isComplete && !wasComplete.current) {
       setJustCompleted(true);
+      void hapticLightTap();
       const t = setTimeout(() => setJustCompleted(false), 550);
       wasComplete.current = isComplete;
       return () => clearTimeout(t);
