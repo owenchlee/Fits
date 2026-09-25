@@ -117,6 +117,7 @@ export default function ProfilePage() {
   const settings = useSettings();
   const { theme, setTheme } = useTheme();
   const { user, signOut, supabase } = useAuth();
+  const [deletingAccount, setDeletingAccount] = React.useState(false);
 
   function handleExport() {
     exportAllData().then((data) => {
@@ -156,6 +157,26 @@ export default function ProfilePage() {
     router.push("/");
   }
 
+  async function handleDeleteAccount() {
+    setDeletingAccount(true);
+    try {
+      const res = await fetch("/api/account/delete", { method: "POST" });
+      if (!res.ok) {
+        const body = (await res.json().catch(() => ({}))) as { error?: string };
+        throw new Error(body.error ?? "Failed to delete account");
+      }
+      await resetAllData();
+      resetSeedState();
+      await supabase.auth.signOut();
+      toast.success("Account deleted");
+      router.push("/login");
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Failed to delete account";
+      toast.error(message.toLowerCase().includes("fetch") ? "Check your internet connection and try again." : message);
+      setDeletingAccount(false);
+    }
+  }
+
   return (
     <div className="max-w-lg space-y-4 pb-6">
       <PageHeader title="Profile" />
@@ -165,9 +186,37 @@ export default function ProfilePage() {
           Signed in as <span className="text-foreground">{user?.email}</span>. Your data syncs automatically across
           every device you log in on.
         </p>
-        <Button variant="outline" onClick={() => void signOut()}>
-          <SignOut size={15} /> Log out
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" onClick={() => void signOut()}>
+            <SignOut size={15} /> Log out
+          </Button>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="outline" className="text-destructive hover:text-destructive">
+                <Trash size={15} /> Delete account
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Delete your account?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This permanently deletes your account and every workout, program, and measurement on this device and
+                  in your synced account. This can&apos;t be undone — export a backup first if you want to keep it.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  disabled={deletingAccount}
+                  onClick={() => void handleDeleteAccount()}
+                >
+                  {deletingAccount ? "Deleting…" : "Delete account"}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </div>
       </SettingsSection>
 
       <section className="overflow-hidden rounded-2xl border border-border bg-card">

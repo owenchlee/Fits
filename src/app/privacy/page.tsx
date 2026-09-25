@@ -50,16 +50,14 @@ export default function PrivacyPage() {
 
       <h2 className="mt-6 font-display text-lg font-bold">Your choices</h2>
       <p className="mt-2">
-        You can permanently delete your training data — locally and from your synced account — at
-        any time from Settings &gt; Reset all data. You can sign out at any time from Profile.
+        You can permanently delete just your training data — locally and from your synced account —
+        at any time from Settings &gt; Reset all data. You can sign out at any time from Profile.
       </p>
-      <p className="mt-2 rounded-lg bg-secondary p-3 text-xs text-muted-foreground">
-        Draft-stage note, not for publication as-is: as of this audit, Fits does not yet have a
-        separate flow to delete the account itself (the email/password credential), only the
-        training data associated with it. Apple requires apps that support account creation to
-        also support in-app account deletion. This needs to be either built before submission, or
-        this section needs to describe a real deletion path (e.g. an in-app request that a person
-        actually fulfills) before this policy is accurate and before the app is submitted.
+      <p className="mt-2">
+        You can also permanently delete your account itself — your email/password credential and
+        all associated training data — from Settings &gt; Delete account. This immediately and
+        irreversibly removes your account from our systems; there is no recovery period or backup
+        retention after deletion.
       </p>
 
       <h2 className="mt-6 font-display text-lg font-bold">Children</h2>
