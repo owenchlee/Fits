@@ -5,7 +5,6 @@ import { ThemeProvider } from "@/components/theme-provider";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "@/components/ui/sonner";
 import { RestTimerProvider } from "@/lib/timer/rest-timer-context";
-import { RestTimerBar } from "@/components/timer/rest-timer-bar";
 import { DbInit } from "@/components/db-init";
 import { PwaRegister } from "@/components/pwa-register";
 import { CapacitorInit } from "@/components/capacitor-init";
@@ -84,7 +83,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 <PwaRegister />
                 <CapacitorInit />
                 <AuthGate>{children}</AuthGate>
-                <RestTimerBar />
                 <Toaster position="top-center" richColors closeButton />
               </RestTimerProvider>
             </AuthProvider>
