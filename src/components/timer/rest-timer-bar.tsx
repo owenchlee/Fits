@@ -1,9 +1,11 @@
 "use client";
 
+import { usePathname } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import { Minus, Plus, X } from "@phosphor-icons/react/dist/ssr";
 import { useRestTimer } from "@/lib/timer/rest-timer-context";
 import { useKeyboardVisible } from "@/lib/hooks/use-keyboard-visible";
+import { useActiveWorkout } from "@/lib/db/hooks";
 import { cn } from "@/lib/utils";
 
 function formatClock(totalSeconds: number) {
@@ -22,6 +24,11 @@ export function RestTimerBar() {
   const dashoffset = circumference * (1 - progress);
   const finished = active && secondsLeft === 0 && !isRunning;
   const keyboardVisible = useKeyboardVisible();
+  const pathname = usePathname();
+  const activeWorkout = useActiveWorkout();
+  // Mirrors ActiveWorkoutBar's visibility so the timer stacks above the Resume pill instead of
+  // covering it once you leave /train mid-rest.
+  const resumeBarVisible = !!activeWorkout && !pathname.startsWith("/train") && !keyboardVisible;
 
   return (
     <AnimatePresence>
@@ -32,8 +39,12 @@ export function RestTimerBar() {
           exit={{ y: 96, opacity: 0 }}
           transition={{ type: "spring", damping: 26, stiffness: 260 }}
           className={cn(
-            "fixed inset-x-0 z-40 flex justify-center px-3 md:bottom-4 md:left-[calc(15rem+0.75rem)] md:right-3 md:justify-end",
-            keyboardVisible ? "bottom-2" : "bottom-[calc(5.5rem+env(safe-area-inset-bottom))]"
+            "fixed inset-x-0 z-40 flex justify-center px-3 md:left-[calc(15rem+0.75rem)] md:right-3 md:justify-end",
+            keyboardVisible
+              ? "bottom-2"
+              : resumeBarVisible
+                ? "bottom-[calc(9.75rem+env(safe-area-inset-bottom))] md:bottom-[4.5rem]"
+                : "bottom-[calc(6.25rem+env(safe-area-inset-bottom))] md:bottom-4"
           )}
         >
           <div

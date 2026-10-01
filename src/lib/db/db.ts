@@ -65,3 +65,15 @@ class FitsDatabase extends Dexie {
 }
 
 export const db = new FitsDatabase();
+
+/** iOS/Android WebViews can drop the IndexedDB connection while the app is backgrounded
+ * ("Connection to Indexed Database server lost"). Dexie doesn't retry that, so every live query
+ * then throws into the nearest error boundary. Probe the connection and reopen it if it's dead. */
+export async function ensureDbConnection() {
+  try {
+    await db.settings.get("singleton");
+  } catch {
+    db.close({ disableAutoOpen: false });
+    await db.open();
+  }
+}
