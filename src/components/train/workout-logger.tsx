@@ -66,13 +66,14 @@ export function WorkoutLogger({ workoutId }: { workoutId: string }) {
         />
       ) : (
         <div className="space-y-4">
-          {workout.exerciseOrder.map((exerciseId) => {
+          {workout.exerciseOrder.map((exerciseId, i) => {
             const target = programDay?.exercises.find((e) => e.exerciseId === exerciseId);
             return (
               <ExerciseSessionCard
                 key={exerciseId}
                 workoutId={workoutId}
                 exerciseId={exerciseId}
+                nextExerciseId={workout.exerciseOrder[i + 1]}
                 targetSets={target?.targetSets}
                 targetReps={target?.targetReps}
                 restSeconds={target?.restSeconds ?? settings.defaultRestSeconds}

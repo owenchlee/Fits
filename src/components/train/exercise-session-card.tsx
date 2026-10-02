@@ -27,6 +27,7 @@ function orderSets(sets: SetEntry[]): SetEntry[] {
 export function ExerciseSessionCard({
   workoutId,
   exerciseId,
+  nextExerciseId,
   targetSets,
   targetReps,
   restSeconds,
@@ -35,6 +36,7 @@ export function ExerciseSessionCard({
 }: {
   workoutId: string;
   exerciseId: string;
+  nextExerciseId?: string;
   targetSets?: number;
   targetReps?: string;
   restSeconds: number;
@@ -42,6 +44,10 @@ export function ExerciseSessionCard({
   sets: SetEntry[];
 }) {
   const exercise = useLiveQuery(() => db.exercises.get(exerciseId), [exerciseId]);
+  const nextExercise = useLiveQuery(
+    () => (nextExerciseId ? db.exercises.get(nextExerciseId) : undefined),
+    [nextExerciseId]
+  );
   const previousSets = useLiveQuery(() => getLastPerformance(exerciseId, workoutId), [exerciseId, workoutId]);
   const timer = useRestTimer();
 
@@ -94,10 +100,21 @@ export function ExerciseSessionCard({
     await addSet({ workoutId, exerciseId, weightKg, reps });
   }
 
+  /** e.g. "Bench Press · Set 3 of 4 done", or "Next up: Row" once this is the last set, so the
+   * rest timer says where you are in the workout rather than just naming the exercise. */
+  function restLabel(completedSetId: string) {
+    const working = sets.filter((s) => !s.isWarmup);
+    const done = working.filter((s) => s.id !== completedSetId && s.weightKg > 0 && s.reps > 0).length + 1;
+    if (done >= working.length && nextExercise) return `Next up: ${nextExercise.name}`;
+    const name = exercise?.name;
+    const progress = `Set ${done} of ${working.length} done`;
+    return name ? `${name} · ${progress}` : progress;
+  }
+
   function handleSetChange(setId: string, patch: Partial<SetEntry>, isNewlyCompleted: boolean) {
     void updateSet(setId, patch);
     if (isNewlyCompleted) {
-      timer.start(restSeconds, exercise?.name);
+      timer.start(restSeconds, restLabel(setId));
     }
   }
 

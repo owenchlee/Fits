@@ -3,7 +3,7 @@
 import * as React from "react";
 import "./globals.css";
 
-export default function GlobalError({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
+export default function GlobalError({ error }: { error: Error & { digest?: string } }) {
   const offline = typeof navigator !== "undefined" && !navigator.onLine;
 
   React.useEffect(() => {
@@ -23,8 +23,9 @@ export default function GlobalError({ error, reset }: { error: Error & { digest?
               : "Something went wrong. Your workout data is stored locally and hasn't been lost."}
           </p>
         </div>
+        {/* The root layout itself crashed, so a full reload is the only state reset that helps. */}
         <button
-          onClick={reset}
+          onClick={() => window.location.reload()}
           className="rounded-lg bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground"
         >
           Try again

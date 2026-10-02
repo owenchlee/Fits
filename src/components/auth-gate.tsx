@@ -7,6 +7,7 @@ import { Capacitor } from "@capacitor/core";
 import { Barbell } from "@phosphor-icons/react/dist/ssr";
 import { useAuth } from "@/lib/auth/auth-provider";
 import { AppShell } from "@/components/layout/app-shell";
+import { cn } from "@/lib/utils";
 
 /** How long the splash replays for on native app-resume, in ms. */
 const RESUME_SPLASH_DURATION = 900;
@@ -17,9 +18,14 @@ const PUBLIC_PATHS = ["/login", "/signup", "/reset-password"];
  * must also be reachable without a session for App Store review and for signed-out visitors. */
 const ALWAYS_ACCESSIBLE_PATHS = ["/reset-password/confirm", "/privacy"];
 
-function FullScreenLoader() {
+function FullScreenLoader({ overlay = false }: { overlay?: boolean }) {
   return (
-    <div className="flex min-h-dvh flex-col items-center justify-center gap-4 bg-background">
+    <div
+      className={cn(
+        "flex min-h-dvh flex-col items-center justify-center gap-4 bg-background",
+        overlay && "fixed inset-0 z-[60]"
+      )}
+    >
       <motion.div
         initial={{ scale: 0.5, opacity: 0 }}
         animate={{ scale: [0.5, 1.08, 1], opacity: 1 }}
@@ -93,7 +99,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
     return <div className="flex min-h-dvh items-center justify-center px-4 py-10">{children}</div>;
   }
 
-  if (loading || resuming) return <FullScreenLoader />;
+  if (loading) return <FullScreenLoader />;
 
   if (isPublicAuthPage) {
     if (user) return <FullScreenLoader />;
@@ -102,5 +108,12 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
 
   if (!user) return <FullScreenLoader />;
 
-  return <AppShell>{children}</AppShell>;
+  // The resume splash covers the app rather than replacing it: unmounting here would remount
+  // every page on each foreground, dropping unsaved input and re-running every DB query at once.
+  return (
+    <>
+      <AppShell>{children}</AppShell>
+      {resuming && <FullScreenLoader overlay />}
+    </>
+  );
 }
