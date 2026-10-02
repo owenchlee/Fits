@@ -221,12 +221,12 @@ All six phases from the original task brief are complete. Branch `ios-app-store-
 - App icon/splash — turned out to already be real, on-brand artwork, not placeholders (Phase 4 correction to the original brief's assumption).
 
 **Remaining steps that need the Apple Developer account, Xcode, or a human decision:**
-1. Open the project in Xcode on a Mac; confirm it builds and runs in Simulator/on a device (now including the newly-added `@capacitor/haptics` plugin — worth confirming on a real device since haptics don't do anything in Simulator).
-2. Add `PrivacyInfo.xcprivacy` to the App target in Xcode (Copy Bundle Resources) — the file exists on disk but Xcode project membership can't be safely scripted without Xcode itself.
+1. ~~Open the project in Xcode on a Mac; confirm it builds and runs~~ — **done, confirmed by developer** (built successfully in Xcode; not independently verified by any Claude Code session since none has Mac/Xcode access).
+2. Add `PrivacyInfo.xcprivacy` to the App target in Xcode (Copy Bundle Resources) — the file exists on disk but Xcode project membership can't be safely scripted without Xcode itself. Status unconfirmed — worth checking now that the project has been opened in Xcode.
 3. Confirm the `PrivacyInfo.xcprivacy` reason code(s) against Apple's current approved list, and address anything Xcode/App Store Connect's own static analysis flags at upload that this code-level audit couldn't see.
 4. ~~Decide on the remote-URL wrapper architecture~~ — **decided: ship as-is**, see open concern #1.
 5. ~~Decide on the no-offline/guest-mode gap~~ — **decided: not addressing before submission**, see open concern #2.
-6. ~~Build an in-app account-deletion flow~~ — **done**, see "Post-review additions" above. **Still needed: set `SUPABASE_SERVICE_ROLE_KEY` in `.env.local` and in Vercel's project env vars**, or the delete-account button will fail with a clear error.
+6. ~~Build an in-app account-deletion flow~~ — **done**, see "Post-review additions" above. `SUPABASE_SERVICE_ROLE_KEY` is set in `.env.local` (confirmed on disk) and **confirmed by the developer as set in Vercel and working** (deletion tested successfully) — not independently re-verified via Vercel CLI in this session (CLI token here isn't authenticated).
 7. Get real legal review of `src/app/privacy/page.tsx` and fill in a real contact method.
 8. Set up an actual Apple Developer account / App Store Connect listing, screenshots, App Privacy questionnaire (must match `PrivacyInfo.xcprivacy`'s declarations), and TestFlight testing — none of this was started.
 9. Decide what to do with the three unreferenced leftover splash source files noted in Phase 4 (harmless but worth a cleanup pass).
