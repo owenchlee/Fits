@@ -15,6 +15,16 @@ import type { SetEntry, UnitSystem } from "@/lib/db/types";
 import { SetRow } from "@/components/train/set-row";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 /** Warm-up sets always render first regardless of insertion order, so toggling the warm-up
  * on/off after working sets already exist doesn't reshuffle their numbering. */
@@ -51,6 +61,7 @@ export function ExerciseSessionCard({
   );
   const previousSets = useLiveQuery(() => getLastPerformance(exerciseId, workoutId), [exerciseId, workoutId]);
   const timer = useRestTimer();
+  const [confirmRemove, setConfirmRemove] = React.useState(false);
 
   const orderedSets = React.useMemo(() => orderSets(sets), [sets]);
   const bestThisSession = sets
@@ -148,11 +159,32 @@ export function ExerciseSessionCard({
         </div>
         <button
           aria-label={`Remove ${exercise?.name ?? "exercise"} from workout`}
-          onClick={() => removeExerciseFromWorkout(workoutId, exerciseId)}
+          onClick={() => {
+            // One stray tap shouldn't silently throw away logged sets — confirm only when there are some.
+            if (sets.some((s) => isSetComplete(s, exercise))) setConfirmRemove(true);
+            else void removeExerciseFromWorkout(workoutId, exerciseId);
+          }}
           className="relative flex size-7 shrink-0 items-center justify-center rounded-full text-muted-foreground hit-slop-44 hover:bg-secondary hover:text-destructive"
         >
           <X size={14} />
         </button>
+        <AlertDialog open={confirmRemove} onOpenChange={setConfirmRemove}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Remove {exercise?.name ?? "this exercise"}?</AlertDialogTitle>
+              <AlertDialogDescription>The sets you&apos;ve logged for it in this workout will be deleted.</AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Keep it</AlertDialogCancel>
+              <AlertDialogAction
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                onClick={() => void removeExerciseFromWorkout(workoutId, exerciseId)}
+              >
+                Remove
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
 
       {recommendedWarmup && (
