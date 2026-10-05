@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import { LegalLink, LegalList, LegalPage, LegalSection } from "@/components/legal/legal-page";
+import { APP_NAME, CONTACT_EMAIL, LEGAL_EFFECTIVE_DATE, PUBLISHER_NAME } from "@/lib/legal";
 
 export const metadata: Metadata = {
   title: "Privacy Policy — Fits",
@@ -6,76 +8,191 @@ export const metadata: Metadata = {
 
 export default function PrivacyPage() {
   return (
-    <div className="mx-auto max-w-xl px-4 py-10 text-sm leading-relaxed">
-      <div className="mb-6 rounded-xl border border-highlight/40 bg-highlight/10 p-4 text-xs text-highlight">
-        <strong>Draft — not final.</strong> This page was generated from a code-level audit of what
-        Fits actually collects and stores. It has not been reviewed by a lawyer and should not be
-        published or relied on for App Store submission until it has been.
-      </div>
+    <LegalPage
+      title="Privacy Policy"
+      updated={LEGAL_EFFECTIVE_DATE}
+      intro={
+        <p>
+          {APP_NAME} is a strength-training log published by {PUBLISHER_NAME} (&quot;we&quot;, &quot;us&quot;). This
+          policy explains what information {APP_NAME} collects, why, where it&apos;s stored, who can access it, and the
+          choices you have. The short version: we collect only what&apos;s needed to run the app, we never sell your
+          data, we don&apos;t use advertising or analytics trackers, and you can export or delete everything at any
+          time from inside the app.
+        </p>
+      }
+    >
+      <LegalSection title="1. Information we collect">
+        <p>
+          <strong>If you use {APP_NAME} without an account</strong>, everything you enter stays in your device&apos;s
+          storage. It is never sent to us.
+        </p>
+        <p>
+          <strong>If you create an account</strong>, we collect:
+        </p>
+        <LegalList>
+          <li>
+            <strong>Account information:</strong> your email address, your password (stored only as a salted hash by our
+            authentication provider — we can&apos;t see it), an account ID, and a record of which version of our Terms
+            and this policy you agreed to and when.
+          </li>
+          <li>
+            <strong>Training data you enter:</strong> exercises, custom programs and schedules, workouts (titles, start
+            and finish times, notes), sets (weight, reps, RPE, warm-up/failure/drop-set flags), and strength percentile
+            snapshots that {APP_NAME} calculates from your lifts.
+          </li>
+          <li>
+            <strong>Body and profile data you enter:</strong> bodyweight, body-fat percentage, body measurements, the sex
+            you select for strength-standard comparisons, and app preferences (units, rest timer, plates, active
+            program, streak).
+          </li>
+        </LegalList>
+        <p>
+          Some of this — workouts, bodyweight, body measurements, and anything derived from them — may count as
+          &quot;health data&quot; or &quot;consumer health data&quot; under some laws. Our{" "}
+          <LegalLink href="/health-data">Consumer Health Data Policy</LegalLink> covers it in more detail.
+        </p>
+        <p>
+          <strong>Technical information:</strong> like any online service, the servers that deliver {APP_NAME} and our
+          authentication provider automatically record basic request information — IP address, device and browser type,
+          and timestamps — in short-lived logs used for security, abuse prevention, and keeping the service running.
+        </p>
+        <p>
+          <strong>What we don&apos;t collect:</strong> your name, location, contacts, photos, advertising identifiers,
+          or anything from Apple Health. {APP_NAME} contains no analytics, advertising, crash-reporting, or tracking
+          SDKs, and we don&apos;t track you across other apps or websites.
+        </p>
+      </LegalSection>
 
-      <h1 className="font-display text-2xl font-bold">Privacy Policy</h1>
-      <p className="mt-1 text-xs text-muted-foreground">Last updated: draft, not yet published</p>
+      <LegalSection title="2. How we use it">
+        <LegalList>
+          <li>To provide the app: storing your training log, calculating statistics and estimates, and syncing your data between your devices.</li>
+          <li>To run your account: signing you in, password resets, and account deletion.</li>
+          <li>To keep the service secure and working, and to respond to you when you contact us.</li>
+          <li>To comply with the law.</li>
+        </LegalList>
+        <p>
+          We do not sell or rent your personal information, share it for cross-context behavioral advertising, use it to
+          build advertising profiles, or use your health and fitness data for marketing or data mining.
+        </p>
+      </LegalSection>
 
-      <p className="mt-6">
-        Fits is a strength-training tracker. This page describes what information Fits collects,
-        how it&apos;s used, and how it&apos;s stored.
-      </p>
+      <LegalSection title="3. Where your data is stored and who can access it">
+        <p>
+          {APP_NAME} is local-first: your data is stored on your device and the app works from that copy. With an
+          account, it is also stored with these service providers, who process it only on our instructions and only to
+          run {APP_NAME}:
+        </p>
+        <LegalList>
+          <li>
+            <strong>Supabase</strong> — our database and authentication provider (account and synced training data,
+            sign-in emails).
+          </li>
+          <li>
+            <strong>Vercel</strong> — hosts the {APP_NAME} app and its server code (request logs only; your training
+            data isn&apos;t stored there).
+          </li>
+        </LegalList>
+        <p>
+          We require these providers to protect your data at least as well as this policy does. Beyond them, we only
+          disclose information if required by law (for example, a valid court order), to protect someone&apos;s safety,
+          or as part of a transfer of the app to a new owner — in which case this policy would continue to apply to
+          your data, and we&apos;d tell you first. If you download {APP_NAME} from the App Store, Apple handles that
+          transaction under its own privacy policy.
+        </p>
+        <p>
+          These providers may store data in the United States or other countries. Where the law requires it (for
+          example, for users in the EEA, UK, or Switzerland), transfers rely on safeguards such as the European
+          Commission&apos;s Standard Contractual Clauses.
+        </p>
+      </LegalSection>
 
-      <h2 className="mt-6 font-display text-lg font-bold">Information we collect</h2>
-      <p className="mt-2">
-        Creating an account currently requires an email address and password. Once signed in, the
-        training data you enter — exercises, programs, workouts, sets, body measurements, and the
-        strength-percentile calculations Fits derives from them — is associated with your account
-        so it can sync across your devices.
-      </p>
-      <p className="mt-2">
-        We don&apos;t collect your name, location, contacts, photos, or any device identifiers
-        beyond what&apos;s strictly needed to keep you signed in. We don&apos;t use analytics,
-        advertising, or crash-reporting SDKs of any kind — nothing in Fits tracks how you use the
-        app for our own purposes.
-      </p>
+      <LegalSection title="4. How long we keep it">
+        <LegalList>
+          <li>Your account and synced data are kept for as long as you have an account.</li>
+          <li>
+            When you delete an item (a workout, a set, a measurement), it&apos;s removed from your devices immediately and
+            permanently purged from our servers within 30 days.
+          </li>
+          <li>
+            When you delete your account, your account and all synced data are deleted from our live database
+            immediately. Copies may remain in our provider&apos;s encrypted backups for a limited time (generally no more
+            than 30 days) until they are overwritten.
+          </li>
+          <li>Server request logs are kept only briefly, generally no more than 30 days.</li>
+        </LegalList>
+      </LegalSection>
 
-      <h2 className="mt-6 font-display text-lg font-bold">Where your data lives</h2>
-      <p className="mt-2">
-        Fits is local-first: your training data is stored on your device first, and the app is
-        designed to work from that local copy. If you&apos;re signed in, that data also syncs to
-        our backend, hosted on{" "}
-        <a href="https://supabase.com" className="text-primary underline-offset-4 hover:underline">
-          Supabase
-        </a>
-        , so it&apos;s available on your other devices. Supabase acts purely as our infrastructure
-        provider — we don&apos;t sell, share, or otherwise make your data available to any other
-        third party.
-      </p>
+      <LegalSection title="5. Your choices and rights">
+        <p>Everything below is available to everyone, wherever you live:</p>
+        <LegalList>
+          <li>
+            <strong>Access and portability:</strong> Profile &gt; Your data &gt; Export as JSON downloads a full copy of
+            your data.
+          </li>
+          <li>
+            <strong>Correction:</strong> edit any workout, set, program, or setting directly in the app.
+          </li>
+          <li>
+            <strong>Deletion:</strong> delete individual items in the app; Profile &gt; Reset all data erases all of your
+            training data; Profile &gt; Delete account permanently deletes your account and all associated data.
+          </li>
+          <li>
+            <strong>Withdrawing consent:</strong> you can withdraw your consent to us processing your health and fitness
+            data at any time by deleting that data or your account. Withdrawing consent doesn&apos;t affect processing
+            that happened before.
+          </li>
+          <li>
+            <strong>Anything else</strong> — including a list of the service providers that received your data, or help
+            with any request above — email us at <LegalLink href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</LegalLink>.
+            We&apos;ll respond within 30 days (or sooner if your local law requires), and won&apos;t treat you
+            differently for exercising your rights. We may need to verify that a request comes from the account owner.
+          </li>
+        </LegalList>
+        <p>
+          <strong>EEA, UK, and Switzerland:</strong> we process account and training data to perform our contract with
+          you (providing the app), health data on the basis of your explicit consent, and technical logs on the basis of
+          our legitimate interest in keeping the service secure. You also have the right to object to or restrict
+          processing, and to complain to your local data protection authority.
+        </p>
+        <p>
+          <strong>U.S. state privacy laws</strong> (such as California&apos;s CCPA/CPRA): we don&apos;t sell or
+          &quot;share&quot; personal information as those laws define it, and we use sensitive personal information only
+          to provide the service you asked for. You have the right to know, access, correct, and delete your
+          information, which you can exercise as described above. Washington and Nevada residents: see our{" "}
+          <LegalLink href="/health-data">Consumer Health Data Policy</LegalLink>.
+        </p>
+      </LegalSection>
 
-      <h2 className="mt-6 font-display text-lg font-bold">Your choices</h2>
-      <p className="mt-2">
-        You can permanently delete just your training data — locally and from your synced account —
-        at any time from Settings &gt; Reset all data. You can sign out at any time from Profile.
-      </p>
-      <p className="mt-2">
-        You can also permanently delete your account itself — your email/password credential and
-        all associated training data — from Settings &gt; Delete account. This immediately and
-        irreversibly removes your account from our systems; there is no recovery period or backup
-        retention after deletion.
-      </p>
+      <LegalSection title="6. Security">
+        <p>
+          Data is encrypted in transit (HTTPS) and at rest by our database provider, passwords are hashed, and
+          database access rules ensure each account can only read and write its own rows. No system is perfectly
+          secure, though, so please use a strong, unique password. If a breach affecting your data ever occurs,
+          we&apos;ll notify you as required by law.
+        </p>
+      </LegalSection>
 
-      <h2 className="mt-6 font-display text-lg font-bold">Children</h2>
-      <p className="mt-2">
-        Fits is not directed at children and we don&apos;t knowingly collect data from anyone
-        under 13.
-      </p>
+      <LegalSection title="7. Children">
+        <p>
+          {APP_NAME} isn&apos;t directed at children and you must be at least 13 (or the minimum age required in your
+          country) to use it. We don&apos;t knowingly collect personal information from children under 13. If you believe
+          a child has given us personal information, contact us and we&apos;ll delete it.
+        </p>
+      </LegalSection>
 
-      <h2 className="mt-6 font-display text-lg font-bold">Changes to this policy</h2>
-      <p className="mt-2">
-        If this policy changes in a way that affects how your data is handled, we&apos;ll update
-        this page.
-      </p>
+      <LegalSection title="8. Changes to this policy">
+        <p>
+          If we make a material change, we&apos;ll update the effective date above and ask you to review and agree to
+          the new version in the app before you continue using it.
+        </p>
+      </LegalSection>
 
-      <h2 className="mt-6 font-display text-lg font-bold">Contact</h2>
-      <p className="mt-2 rounded-lg bg-secondary p-3 text-xs text-muted-foreground">
-        Draft-stage note: add a real contact email here before publishing.
-      </p>
-    </div>
+      <LegalSection title="9. Contact">
+        <p>
+          Questions or requests: <LegalLink href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</LegalLink> ({PUBLISHER_NAME},
+          publisher of {APP_NAME}).
+        </p>
+      </LegalSection>
+    </LegalPage>
   );
 }

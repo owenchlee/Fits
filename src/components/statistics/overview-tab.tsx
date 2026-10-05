@@ -6,7 +6,8 @@ import { toast } from "sonner";
 import { Download, Info } from "@phosphor-icons/react/dist/ssr";
 import { db } from "@/lib/db/db";
 import { useSettings } from "@/lib/db/hooks";
-import { updateSettings, exportAllData, getCompletedSets, getCompletedWorkouts } from "@/lib/db/repo";
+import { updateSettings, getCompletedSets, getCompletedWorkouts } from "@/lib/db/repo";
+import { exportBackup } from "@/lib/export";
 import { estimateOneRepMax } from "@/lib/calc/one-rep-max";
 import { toTotalLoadKg } from "@/lib/calc/load";
 import { fromDisplayWeight, toDisplayWeight, formatWeight } from "@/lib/calc/units";
@@ -147,17 +148,13 @@ export function OverviewTab() {
 
   const allRatedLifts = useAllRatedLifts(sex, bodyweightKg);
 
-  function handleExport() {
-    exportAllData().then((data) => {
-      const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `fits-export-${new Date().toISOString().slice(0, 10)}.json`;
-      a.click();
-      URL.revokeObjectURL(url);
-      toast.success("Export downloaded");
-    });
+  async function handleExport() {
+    try {
+      const result = await exportBackup();
+      if (result === "saved") toast.success("Backup downloaded");
+    } catch {
+      toast.error("Couldn't export your data. Please try again.");
+    }
   }
 
   return (
@@ -223,11 +220,11 @@ export function OverviewTab() {
           <div className="flex items-start gap-2 rounded-xl bg-secondary/60 p-3 text-xs text-muted-foreground">
             <Info size={14} className="mt-0.5 shrink-0" />
             <p>
-              Estimates are based on aggregated community strength-standards data (bodyweight-relative multipliers
-              and total-vs-bodyweight tables from strengthlevel.com), not a scientific census. Lifts marked
-              &quot;est.&quot; are extrapolated from a
-              typical ratio to the nearest main lift rather than their own standards table (tap the (est.) icon on a
-              lift to see the ratio used). Use them as a rough compass, not gospel.
+              Estimates compare your lifts with approximations of publicly available, community-sourced strength
+              standards (bodyweight multipliers and total-vs-bodyweight tables, including data published by
+              strengthlevel.com — Fits isn&apos;t affiliated with it). They&apos;re not a scientific census or a health
+              assessment. Lifts marked &quot;est.&quot; are extrapolated from a typical ratio to the nearest main lift
+              (tap &quot;(est.)&quot; to see the ratio). Use them as a rough compass, not gospel.
             </p>
           </div>
         </div>
@@ -294,7 +291,7 @@ export function OverviewTab() {
               />
               <StatRow label="Number of workouts" value={overallStats ? String(overallStats.totalWorkouts) : "—"} />
             </div>
-            <Button variant="outline" onClick={handleExport} className="mt-3 w-full justify-center">
+            <Button variant="outline" onClick={() => void handleExport()} className="mt-3 w-full justify-center">
               <Download size={15} /> Export data (.json)
             </Button>
           </div>

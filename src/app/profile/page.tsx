@@ -4,16 +4,15 @@ import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { CalendarBlank, BookOpenText, CaretRight, Download, Moon, Sun, Trash, Monitor, SignOut } from "@phosphor-icons/react/dist/ssr";
+import { CalendarBlank, BookOpenText, CaretRight, Download, Moon, Sun, Trash, Monitor } from "@phosphor-icons/react/dist/ssr";
 import { useTheme } from "next-themes";
-import { db } from "@/lib/db/db";
 import { useSettings } from "@/lib/db/hooks";
-import { updateSettings, exportAllData, resetAllData } from "@/lib/db/repo";
-import { ensureSeeded, resetSeedState } from "@/lib/db/bootstrap";
+import { updateSettings } from "@/lib/db/repo";
 import { useAuth } from "@/lib/auth/auth-provider";
-import { enqueueSync } from "@/lib/sync/outbox";
-import { flushOutbox } from "@/lib/sync/engine";
-import { shouldSyncExercise, shouldSyncProgram } from "@/lib/sync/tables";
+import { resetEverything } from "@/lib/account";
+import { exportBackup } from "@/lib/export";
+import { APP_NAME, APP_VERSION, LEGAL_LINKS } from "@/lib/legal";
+import { AccountSection } from "@/components/profile/account-section";
 import { sanitizeIntegerInput } from "@/lib/format";
 import type { Sex, UnitSystem } from "@/lib/db/types";
 import { PageHeader } from "@/components/shared/page-header";
@@ -116,64 +115,28 @@ export default function ProfilePage() {
   const router = useRouter();
   const settings = useSettings();
   const { theme, setTheme } = useTheme();
-  const { user, signOut, supabase } = useAuth();
-  const [deletingAccount, setDeletingAccount] = React.useState(false);
+  const { user, isGuest, supabase } = useAuth();
+  const [resetting, setResetting] = React.useState(false);
 
-  function handleExport() {
-    exportAllData().then((data) => {
-      const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `fits-export-${new Date().toISOString().slice(0, 10)}.json`;
-      a.click();
-      URL.revokeObjectURL(url);
-      toast.success("Export downloaded");
-    });
+  async function handleExport() {
+    try {
+      const result = await exportBackup();
+      if (result === "saved") toast.success("Backup downloaded");
+    } catch {
+      toast.error("Couldn't export your data. Please try again.");
+    }
   }
 
   async function handleReset() {
-    if (user) {
-      // Reset should really mean reset — also queue deletes for the cloud copy, otherwise the
-      // next sync would just pull everything back down again.
-      const [exercises, programs, workouts, sets, bodyMetrics] = await Promise.all([
-        db.exercises.filter(shouldSyncExercise).toArray(),
-        db.programs.filter(shouldSyncProgram).toArray(),
-        db.workouts.toArray(),
-        db.sets.toArray(),
-        db.bodyMetrics.toArray(),
-      ]);
-      for (const e of exercises) await enqueueSync("exercises", "delete", e.id);
-      for (const p of programs) await enqueueSync("programs", "delete", p.id);
-      for (const w of workouts) await enqueueSync("workouts", "delete", w.id);
-      for (const s of sets) await enqueueSync("sets", "delete", s.id);
-      for (const b of bodyMetrics) await enqueueSync("bodyMetrics", "delete", b.id);
-      await flushOutbox(supabase, user.id);
-    }
-    await resetAllData();
-    resetSeedState();
-    await ensureSeeded();
-    toast.success("All data reset");
-    router.push("/");
-  }
-
-  async function handleDeleteAccount() {
-    setDeletingAccount(true);
+    setResetting(true);
     try {
-      const res = await fetch("/api/account/delete", { method: "POST" });
-      if (!res.ok) {
-        const body = (await res.json().catch(() => ({}))) as { error?: string };
-        throw new Error(body.error ?? "Failed to delete account");
-      }
-      await resetAllData();
-      resetSeedState();
-      await supabase.auth.signOut();
-      toast.success("Account deleted");
-      router.push("/login");
-    } catch (err) {
-      const message = err instanceof Error ? err.message : "Failed to delete account";
-      toast.error(message.toLowerCase().includes("fetch") ? "Check your internet connection and try again." : message);
-      setDeletingAccount(false);
+      await resetEverything(supabase, user?.id ?? null);
+      toast.success("All data reset");
+      router.push("/");
+    } catch {
+      toast.error("Couldn't reset everything. Check your connection and try again.");
+    } finally {
+      setResetting(false);
     }
   }
 
@@ -182,41 +145,7 @@ export default function ProfilePage() {
       <PageHeader title="Profile" />
 
       <SettingsSection title="Account">
-        <p className="mb-3 text-sm text-muted-foreground">
-          Signed in as <span className="text-foreground">{user?.email}</span>. Your data syncs automatically across
-          every device you log in on.
-        </p>
-        <div className="flex flex-wrap gap-2">
-          <Button variant="outline" onClick={() => void signOut()}>
-            <SignOut size={15} /> Log out
-          </Button>
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button variant="outline" className="text-destructive hover:text-destructive">
-                <Trash size={15} /> Delete account
-              </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Delete your account?</AlertDialogTitle>
-                <AlertDialogDescription>
-                  This permanently deletes your account and every workout, program, and measurement on this device and
-                  in your synced account. This can&apos;t be undone — export a backup first if you want to keep it.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction
-                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                  disabled={deletingAccount}
-                  onClick={() => void handleDeleteAccount()}
-                >
-                  {deletingAccount ? "Deleting…" : "Delete account"}
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-        </div>
+        <AccountSection />
       </SettingsSection>
 
       <section className="overflow-hidden rounded-2xl border border-border bg-card">
@@ -322,15 +251,17 @@ export default function ProfilePage() {
 
       <SettingsSection title="Your data">
         <p className="mb-3 text-sm text-muted-foreground">
-          Fits keeps a local copy on this device for offline use, synced to your account in the background.
+          {isGuest
+            ? "Everything you log is stored only on this device. Export a backup regularly to keep it safe."
+            : "Fits keeps a local copy on this device for offline use, synced to your account in the background."}
         </p>
         <div className="flex flex-wrap gap-2">
-          <Button variant="outline" onClick={handleExport}>
+          <Button variant="outline" onClick={() => void handleExport()}>
             <Download size={15} /> Export as JSON
           </Button>
           <AlertDialog>
             <AlertDialogTrigger asChild>
-              <Button variant="outline" className="text-destructive hover:text-destructive">
+              <Button variant="outline" className="text-destructive hover:text-destructive" disabled={resetting}>
                 <Trash size={15} /> Reset all data
               </Button>
             </AlertDialogTrigger>
@@ -338,13 +269,17 @@ export default function ProfilePage() {
               <AlertDialogHeader>
                 <AlertDialogTitle>Reset all data?</AlertDialogTitle>
                 <AlertDialogDescription>
-                  This permanently deletes every workout, program, and measurement{user ? " on this device and in your synced account" : " stored on this device"}. Export a
-                  backup first if you want to keep it.
+                  This permanently deletes every workout, program, and measurement
+                  {user ? " on this device and in your account" : " stored on this device"}. Export a backup first if
+                  you want to keep it.
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
                 <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={handleReset}>
+                <AlertDialogAction
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  onClick={() => void handleReset()}
+                >
                   Reset everything
                 </AlertDialogAction>
               </AlertDialogFooter>
@@ -352,6 +287,22 @@ export default function ProfilePage() {
           </AlertDialog>
         </div>
       </SettingsSection>
+
+      <section className="overflow-hidden rounded-2xl border border-border bg-card">
+        <h2 className="px-4 pb-1 pt-4 font-display text-lg font-bold">About</h2>
+        {LEGAL_LINKS.map((link, i) => (
+          <React.Fragment key={link.href}>
+            {i > 0 && <div className="mx-4 h-px bg-border" />}
+            <Link href={link.href} className="flex items-center justify-between gap-2 px-4 py-3.5 hover:bg-secondary/60">
+              <span className="text-sm font-medium">{link.label}</span>
+              <CaretRight size={14} className="text-muted-foreground" />
+            </Link>
+          </React.Fragment>
+        ))}
+        <p className="border-t border-border px-4 py-3 text-xs text-muted-foreground">
+          {APP_NAME} {APP_VERSION} · Not medical advice — check with a doctor before starting a new training program.
+        </p>
+      </section>
     </div>
   );
 }

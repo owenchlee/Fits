@@ -7,13 +7,14 @@ import { toast } from "sonner";
 import { CircleNotch } from "@phosphor-icons/react/dist/ssr";
 import { useAuth } from "@/lib/auth/auth-provider";
 import { authErrorMessage } from "@/lib/auth/friendly-error";
+import { hasLocalDataToMigrate, migrateLocalDataToAccount } from "@/lib/sync/migrate-local-data";
 import { AuthCard } from "@/components/auth/auth-card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 
 export default function LoginPage() {
-  const { supabase } = useAuth();
+  const { supabase, isGuest, continueAsGuest } = useAuth();
   const router = useRouter();
   const [email, setEmail] = React.useState("");
   const [password, setPassword] = React.useState("");
@@ -24,24 +25,50 @@ export default function LoginPage() {
     e.preventDefault();
     setError(null);
     setSubmitting(true);
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    setSubmitting(false);
+    const wasGuest = isGuest;
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) {
+      setSubmitting(false);
       setError(authErrorMessage(error));
       return;
     }
+    // Workouts logged as a guest on this device join the account rather than being stranded.
+    if (wasGuest && data.user && (await hasLocalDataToMigrate())) {
+      await migrateLocalDataToAccount(supabase, data.user.id).catch(() => {});
+    }
+    setSubmitting(false);
     toast.success("Welcome back");
+    router.replace("/");
+  }
+
+  function handleContinueAsGuest() {
+    continueAsGuest();
     router.replace("/");
   }
 
   return (
     <AuthCard
       title="Log in"
-      description="Sync your training log across every device."
+      description={
+        isGuest
+          ? "Log in to back up and sync the workouts on this device."
+          : "Sync your training log across every device."
+      }
       footer={
         <>
           Don&apos;t have an account? <Link href="/signup" className="font-medium text-primary hover:underline">Sign up</Link>
         </>
+      }
+      secondaryAction={
+        isGuest ? (
+          <Button variant="ghost" className="w-full text-muted-foreground" onClick={() => router.replace("/")}>
+            Back to Fits
+          </Button>
+        ) : (
+          <Button variant="outline" size="lg" className="h-11 w-full" onClick={handleContinueAsGuest}>
+            Continue without an account
+          </Button>
+        )
       }
     >
       <form onSubmit={handleSubmit} className="space-y-4">
@@ -77,7 +104,7 @@ export default function LoginPage() {
           />
         </div>
         {error && <p className="text-sm text-destructive">{error}</p>}
-        <Button type="submit" className="w-full" disabled={submitting}>
+        <Button type="submit" size="lg" className="h-11 w-full" disabled={submitting}>
           {submitting && <CircleNotch className="animate-spin" size={15} />}
           Log in
         </Button>
