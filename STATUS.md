@@ -231,3 +231,30 @@ All six phases from the original task brief are complete. Branch `ios-app-store-
 8. Set up an actual Apple Developer account / App Store Connect listing, screenshots, App Privacy questionnaire (must match `PrivacyInfo.xcprivacy`'s declarations), and TestFlight testing — none of this was started.
 9. Decide what to do with the three unreferenced leftover splash source files noted in Phase 4 (harmless but worth a cleanup pass).
 10. Merge `ios-app-store-prep` into `main` once the above is resolved and the branch has been reviewed — not done automatically by this session.
+
+## Launch-readiness pass (2026-10-04, overnight session)
+
+**Read `docs/APP_STORE_SUBMISSION.md` first** — it has the remaining human steps, App Store Connect answers,
+and the decisions flagged below. Summary of what changed (7 commits, `bec1f4f`..HEAD, nothing pushed/deployed):
+
+- **Reverses open concern #2:** added guest mode ("Continue without an account"). New information: forced
+  sign-up for a non-account feature is a common Guideline 5.1.1 rejection. Self-contained in `06a9011`.
+- **Legal:** final Privacy Policy, Terms of Use, Consumer Health Data Policy (Washington MHMDA / Nevada SB 370 —
+  workout and body data counts as consumer health data there, no size threshold, private right of action),
+  Support page, open-source licenses. Clickwrap consent at sign-up and a one-time ConsentGate for guests and
+  existing accounts. **Placeholders in `src/lib/legal.ts` (contact email, governing law) must be filled in.**
+- **Trademarks:** built-in programs renamed (StrongLifts 5x5, 5/3/1, GZCLP), ids unchanged.
+- **Real bugs fixed:** account deletion 401'd on iOS (session not in cookies); JSON export did nothing in
+  WKWebView; logout left the previous user's data on the device (and uploaded it into the next account);
+  Reset left percentile history behind; bodyweight sets never counted as complete; empty placeholder sets were
+  saved into history; streak used UTC dates and never lapsed; program edits lost when leaving within 500ms;
+  removing an exercise deleted logged sets with no confirmation; the 2 pre-existing lint errors.
+- **iOS:** privacy manifest corrected (the `FitnessAndHealth` key wasn't a valid type) and added to the app
+  target (resolves final-summary item 2); export-compliance key; iPhone portrait-only; Filesystem + Share plugins.
+- **Supabase:** migration 0004 purges soft-deleted rows after 30 days — not yet applied.
+- **New open concern:** Texas SB 2420 age-assurance APIs — see the submission doc.
+
+Verified: `npm run lint` and `tsc` clean, `npm run build` succeeds, and the guest → consent → workout →
+finish → profile → legal pages flow was clicked through in Chrome against a production build. Not verified:
+anything native (no Mac), sign-up/log-in/delete against real Supabase (didn't create accounts on the
+developer's project).
