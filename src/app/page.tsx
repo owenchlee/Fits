@@ -8,6 +8,7 @@ import { db } from "@/lib/db/db";
 import { useActiveWorkout, useProgram, useSettings } from "@/lib/db/hooks";
 import { startWorkout, getCompletedSets, getCompletedWorkouts } from "@/lib/db/repo";
 import { scheduledDayIndexFor } from "@/lib/schedule";
+import { currentStreak } from "@/lib/streak";
 import { estimateOneRepMax } from "@/lib/calc/one-rep-max";
 import { toTotalLoadKg } from "@/lib/calc/load";
 import { formatWeight } from "@/lib/calc/units";
@@ -51,6 +52,7 @@ export default function DashboardPage() {
   const activeProgram = useProgram(settings.activeProgramId);
   const weekly = useWeeklyStats();
   const prs = useMainLiftPRs();
+  const streak = currentStreak(settings);
 
   const usingSchedule = !!activeProgram?.schedule;
   const scheduledDayIndex = usingSchedule ? scheduledDayIndexFor(activeProgram!, new Date()) : undefined;
@@ -102,7 +104,7 @@ export default function DashboardPage() {
       />
 
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-        <StatCard label="Streak" value={String(settings.streak)} unit="days" icon={Flame} accent />
+        <StatCard label="Streak" value={String(streak)} unit={streak === 1 ? "day" : "days"} icon={Flame} accent />
         <StatCard
           label="Week Volume"
           value={weekly ? formatWeight(weekly.volumeKg, settings.unitSystem, { decimals: 0 }).split(" ")[0] : "—"}

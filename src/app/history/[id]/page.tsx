@@ -133,13 +133,15 @@ function EditableSetRow({ set, index, unit }: { set: SetEntry; index: number; un
   const [weightStr, setWeightStr] = React.useState(() => String(round1(toDisplayWeight(set.weightKg, unit))));
   const [repsStr, setRepsStr] = React.useState(() => String(set.reps));
 
-  React.useEffect(() => {
-    setWeightStr(String(round1(toDisplayWeight(set.weightKg, unit))));
-  }, [set.weightKg, unit]);
-
-  React.useEffect(() => {
-    setRepsStr(String(set.reps));
-  }, [set.reps]);
+  // Adopt changes that came from elsewhere (a sync from another device, a unit switch), but not
+  // the echo of our own keystrokes — re-formatting those would eat a trailing "." mid-typing.
+  const storedWeight = round1(toDisplayWeight(set.weightKg, unit));
+  const [prevStored, setPrevStored] = React.useState({ weight: storedWeight, reps: set.reps });
+  if (storedWeight !== prevStored.weight || set.reps !== prevStored.reps) {
+    setPrevStored({ weight: storedWeight, reps: set.reps });
+    if (storedWeight !== round1(parseFloat(weightStr) || 0)) setWeightStr(String(storedWeight));
+    if (set.reps !== (parseInt(repsStr, 10) || 0)) setRepsStr(String(set.reps));
+  }
 
   function commitWeight(value: string) {
     const cleaned = sanitizeDecimalInput(value);

@@ -24,6 +24,8 @@ export function SetRow({
   index,
   unit,
   set,
+  complete,
+  showPlateCalculator = true,
   previous,
   onChange,
   onDelete,
@@ -31,6 +33,10 @@ export function SetRow({
   index: number;
   unit: UnitSystem;
   set: SetEntry;
+  /** Whether this set counts as logged (see isSetComplete) — drives the completion flash + haptic. */
+  complete: boolean;
+  /** Plate breakdown only makes sense for barbell lifts. */
+  showPlateCalculator?: boolean;
   previous?: { weightKg: number; reps: number };
   onChange: (patch: Partial<SetEntry>) => void;
   onDelete: () => void;
@@ -40,7 +46,7 @@ export function SetRow({
   );
   const [repsStr, setRepsStr] = React.useState(() => (set.reps ? String(set.reps) : ""));
 
-  const isComplete = !set.isWarmup && set.weightKg > 0 && set.reps > 0;
+  const isComplete = !set.isWarmup && complete;
   const wasComplete = React.useRef(isComplete);
   const [justCompleted, setJustCompleted] = React.useState(false);
 
@@ -109,7 +115,11 @@ export function SetRow({
         className="h-9 w-12 rounded-lg border border-transparent bg-secondary px-2 text-center text-sm font-medium tabular-nums placeholder:font-normal placeholder:text-muted-foreground focus:border-ring focus:bg-background focus:outline-none"
       />
 
-      <PlateCalculatorPopover weight={toDisplayWeight(set.weightKg, unit)} unit={unit} />
+      {showPlateCalculator ? (
+        <PlateCalculatorPopover weight={toDisplayWeight(set.weightKg, unit)} unit={unit} />
+      ) : (
+        <span className="size-8 shrink-0" aria-hidden />
+      )}
 
       <DropdownMenu>
         <DropdownMenuTrigger asChild>

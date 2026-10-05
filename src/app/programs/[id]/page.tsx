@@ -173,11 +173,16 @@ export default function ProgramDetailPage() {
     }
   }, [program]);
 
+  // Leaving the page within the debounce window must still save the last edit, not drop it.
+  const programId = program?.id;
   React.useEffect(() => {
     return () => {
       if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+      const pending = pendingPatchRef.current;
+      pendingPatchRef.current = {};
+      if (programId && Object.keys(pending).length > 0) void updateProgram(programId, pending);
     };
-  }, []);
+  }, [programId]);
 
   if (!program) {
     return <div className="py-16 text-center text-sm text-muted-foreground">Loading…</div>;
@@ -201,7 +206,10 @@ export default function ProgramDetailPage() {
   function handleDayChange(dayIndex: number, updatedDay: ProgramDay) {
     const next = days.map((d, i) => (i === dayIndex ? updatedDay : d));
     setLocalDays(next);
-    schedulePatch({ days: next });
+    // An emptied sets field is 0 while typing; never persist a 0-set target.
+    schedulePatch({
+      days: next.map((d) => ({ ...d, exercises: d.exercises.map((e) => ({ ...e, targetSets: Math.max(1, e.targetSets) })) })),
+    });
   }
 
   function handleNameChange(value: string) {
@@ -274,6 +282,12 @@ export default function ProgramDetailPage() {
           <p className="mt-2 text-xs text-muted-foreground">
             {days.length} day split · by {program.author}
           </p>
+          {!program.isCustom && (
+            <p className="mt-1 text-xs text-muted-foreground">
+              A general template, not personalized coaching. Choose loads you can lift with good form, and check with a
+              doctor before starting a new program.
+            </p>
+          )}
         </div>
         {program.isCustom ? (
           <AlertDialog>

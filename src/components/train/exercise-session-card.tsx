@@ -9,6 +9,7 @@ import { addSet, deleteSet, getLastPerformance, updateSet, removeExerciseFromWor
 import { useRestTimer } from "@/lib/timer/rest-timer-context";
 import { estimateOneRepMax } from "@/lib/calc/one-rep-max";
 import { calculateWarmupSet } from "@/lib/calc/warmup";
+import { isSetComplete } from "@/lib/calc/set-status";
 import { formatWeight } from "@/lib/calc/units";
 import type { SetEntry, UnitSystem } from "@/lib/db/types";
 import { SetRow } from "@/components/train/set-row";
@@ -104,7 +105,7 @@ export function ExerciseSessionCard({
    * "Next: Row" once this exercise is done — never the set that was just finished. */
   function restLabel(completedSetId: string) {
     const working = sets.filter((s) => !s.isWarmup);
-    const done = working.filter((s) => s.id !== completedSetId && s.weightKg > 0 && s.reps > 0).length + 1;
+    const done = working.filter((s) => s.id !== completedSetId && isSetComplete(s, exercise)).length + 1;
     if (done < working.length) {
       const nextSet = `Set ${done + 1} of ${working.length}`;
       return exercise?.name ? `Next: ${exercise.name} · ${nextSet}` : `Next: ${nextSet}`;
@@ -178,10 +179,12 @@ export function ExerciseSessionCard({
               index={s.isWarmup ? 0 : workingSets.indexOf(s) + 1}
               unit={unit}
               set={s}
+              complete={isSetComplete(s, exercise)}
+              showPlateCalculator={!exercise || exercise.equipment === "barbell"}
               previous={previousSets?.[i]}
               onChange={(patch) => {
-                const willBeComplete = (patch.weightKg ?? s.weightKg) > 0 && (patch.reps ?? s.reps) > 0;
-                const wasComplete = s.weightKg > 0 && s.reps > 0;
+                const willBeComplete = isSetComplete({ ...s, ...patch }, exercise);
+                const wasComplete = isSetComplete(s, exercise);
                 handleSetChange(s.id, patch, willBeComplete && !wasComplete && !s.isWarmup);
               }}
               onDelete={() => deleteSet(s.id)}

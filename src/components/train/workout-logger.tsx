@@ -8,6 +8,7 @@ import { ElapsedTimer } from "@/components/train/elapsed-timer";
 import { ExerciseSessionCard } from "@/components/train/exercise-session-card";
 import { ExercisePicker } from "@/components/shared/exercise-picker";
 import { addExerciseToWorkout } from "@/lib/db/repo";
+import { isSetComplete } from "@/lib/calc/set-status";
 import { FinishWorkoutDialog } from "@/components/train/finish-workout-dialog";
 import { DiscardWorkoutButton } from "@/components/train/discard-workout-button";
 import { ManualTimerButton } from "@/components/train/manual-timer-button";
@@ -21,6 +22,7 @@ export function WorkoutLogger({ workoutId }: { workoutId: string }) {
     [workout?.programId]
   );
   const sets = useWorkoutSets(workoutId);
+  const exercises = useLiveQuery(() => db.exercises.bulkGet(workout?.exerciseOrder ?? []), [workout?.exerciseOrder]);
 
   if (!workout) {
     return (
@@ -39,7 +41,7 @@ export function WorkoutLogger({ workoutId }: { workoutId: string }) {
     for (let step = 1; step < order.length; step++) {
       const id = order[(index + step) % order.length];
       const working = sets.filter((s) => s.exerciseId === id && !s.isWarmup);
-      if (working.length === 0 || working.some((s) => !(s.weightKg > 0 && s.reps > 0))) return id;
+      if (working.length === 0 || working.some((s) => !isSetComplete(s, exercises?.[(index + step) % order.length]))) return id;
     }
     return undefined;
   }

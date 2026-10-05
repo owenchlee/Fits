@@ -160,10 +160,10 @@ export function ProgramBuilderDialog() {
       days: days
         .filter((d) => d.exercises.length > 0)
         .map((d) => ({
-          name: d.name,
+          name: d.name.trim() || "Day",
           exercises: d.exercises.map((ex) => ({
             exerciseId: ex.exerciseId,
-            targetSets: ex.targetSets,
+            targetSets: Math.max(1, ex.targetSets),
             targetReps: ex.targetReps,
           })),
         })),

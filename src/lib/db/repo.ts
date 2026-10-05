@@ -2,6 +2,7 @@ import { db } from "@/lib/db/db";
 import { generateId } from "@/lib/id";
 import { recordPercentileSnapshot } from "@/lib/calc/percentile-snapshot";
 import { enqueueSync } from "@/lib/sync/outbox";
+import { addDays, dateKey } from "@/lib/date";
 import type { AppSettings, BodyMetric, Equipment, Exercise, MuscleGroup, Program, ProgramExercise, SetEntry, Workout } from "@/lib/db/types";
 
 export async function createExercise(data: {
@@ -97,9 +98,6 @@ export async function updateSettings(patch: Partial<AppSettings>) {
   await enqueueSync("settings", "upsert", "singleton");
 }
 
-function todayKey(date = new Date()): string {
-  return date.toISOString().slice(0, 10);
-}
 
 export async function startWorkout(opts: {
   programId?: string;
@@ -180,9 +178,32 @@ export async function discardWorkout(workoutId: string) {
   await enqueueSync("workouts", "delete", workoutId);
 }
 
+/**
+ * Sets that were pre-filled as blanks (see ExerciseSessionCard) but never logged — no reps
+ * entered. Dropped when a workout is finished so history and stats only show what was done.
+ */
+export async function getUnloggedSets(workoutId: string): Promise<SetEntry[]> {
+  return db.sets
+    .where("workoutId")
+    .equals(workoutId)
+    .filter((s) => s.reps <= 0)
+    .toArray();
+}
+
 export async function completeWorkout(workoutId: string) {
   const workout = await db.workouts.get(workoutId);
-  await db.workouts.update(workoutId, { completedAt: Date.now(), updatedAt: Date.now() });
+  if (!workout) return;
+
+  const unlogged = await getUnloggedSets(workoutId);
+  await db.sets.bulkDelete(unlogged.map((s) => s.id));
+  for (const s of unlogged) await enqueueSync("sets", "delete", s.id);
+  // Exercises added but never logged would otherwise show up in history as empty cards.
+  const loggedExerciseIds = new Set(
+    (await db.sets.where("workoutId").equals(workoutId).toArray()).map((s) => s.exerciseId)
+  );
+  const exerciseOrder = workout.exerciseOrder.filter((id) => loggedExerciseIds.has(id));
+
+  await db.workouts.update(workoutId, { completedAt: Date.now(), exerciseOrder, updatedAt: Date.now() });
   await enqueueSync("workouts", "upsert", workoutId);
   await recordPercentileSnapshot();
 
@@ -190,15 +211,16 @@ export async function completeWorkout(workoutId: string) {
 
   // Sequential programs (no cycle schedule) advance to the next day automatically.
   // Scheduled programs derive "today's day" from the cycle instead, so no index to advance.
-  if (workout?.programId && settings.activeProgramId === workout.programId) {
+  if (workout.programId && settings.activeProgramId === workout.programId) {
     const program = await db.programs.get(workout.programId);
     if (program && !program.schedule) {
       await advanceProgramDay(program.days.length);
     }
   }
 
-  const today = todayKey();
-  const yesterday = todayKey(new Date(Date.now() - 86400000));
+  // Local calendar days — a 9pm workout in New York belongs to today, not tomorrow's UTC date.
+  const today = dateKey(new Date());
+  const yesterday = dateKey(addDays(new Date(), -1));
 
   if (settings.lastWorkoutDate === today) {
     // already counted today
@@ -302,21 +324,27 @@ export async function getCompletedSets(): Promise<SetEntry[]> {
 }
 
 export async function exportAllData() {
-  const [exercises, programs, workouts, sets, bodyMetrics, settings] = await Promise.all([
+  const [exercises, programs, workouts, sets, bodyMetrics, percentileSnapshots, settings] = await Promise.all([
     db.exercises.toArray(),
     db.programs.toArray(),
     db.workouts.toArray(),
     db.sets.toArray(),
     db.bodyMetrics.toArray(),
+    db.percentileSnapshots.toArray(),
     getSettings(),
   ]);
   return {
+    app: "Fits",
+    exportVersion: 1,
     exportedAt: new Date().toISOString(),
+    /** Weights are always stored in kilograms, regardless of the display unit in settings. */
+    weightUnit: "kg",
     exercises,
     programs,
     workouts,
     sets,
     bodyMetrics,
+    percentileSnapshots,
     settings,
   };
 }
@@ -324,7 +352,7 @@ export async function exportAllData() {
 export async function resetAllData() {
   await db.transaction(
     "rw",
-    [db.exercises, db.programs, db.workouts, db.sets, db.bodyMetrics, db.settings, db.syncOutbox],
+    [db.exercises, db.programs, db.workouts, db.sets, db.bodyMetrics, db.settings, db.percentileSnapshots, db.syncOutbox],
     async () => {
       await Promise.all([
         db.exercises.clear(),
@@ -333,6 +361,7 @@ export async function resetAllData() {
         db.sets.clear(),
         db.bodyMetrics.clear(),
         db.settings.clear(),
+        db.percentileSnapshots.clear(),
         db.syncOutbox.clear(),
       ]);
     }
