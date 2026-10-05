@@ -100,15 +100,17 @@ export function ExerciseSessionCard({
     await addSet({ workoutId, exerciseId, weightKg, reps });
   }
 
-  /** e.g. "Bench Press · Set 3 of 4 done", or "Next up: Row" once this is the last set, so the
-   * rest timer says where you are in the workout rather than just naming the exercise. */
+  /** Always describes what comes *after* the rest — "Next: Bench Press · Set 3 of 4", then
+   * "Next: Row" once this exercise is done — never the set that was just finished. */
   function restLabel(completedSetId: string) {
     const working = sets.filter((s) => !s.isWarmup);
     const done = working.filter((s) => s.id !== completedSetId && s.weightKg > 0 && s.reps > 0).length + 1;
-    if (done >= working.length && nextExercise) return `Next up: ${nextExercise.name}`;
-    const name = exercise?.name;
-    const progress = `Set ${done} of ${working.length} done`;
-    return name ? `${name} · ${progress}` : progress;
+    if (done < working.length) {
+      const nextSet = `Set ${done + 1} of ${working.length}`;
+      return exercise?.name ? `Next: ${exercise.name} · ${nextSet}` : `Next: ${nextSet}`;
+    }
+    if (nextExercise) return `Next: ${nextExercise.name}`;
+    return "All sets done · Finish workout";
   }
 
   function handleSetChange(setId: string, patch: Partial<SetEntry>, isNewlyCompleted: boolean) {

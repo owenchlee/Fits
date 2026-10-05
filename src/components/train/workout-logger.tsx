@@ -32,6 +32,18 @@ export function WorkoutLogger({ workoutId }: { workoutId: string }) {
 
   const programDay = program?.days.find((d) => d.name === workout.programDayName);
 
+  /** The next exercise (after `index`, wrapping around) that still has unfinished working sets,
+   * so the rest timer's "Next:" skips exercises that were already done out of order. */
+  function nextUnfinishedExercise(index: number) {
+    const order = workout!.exerciseOrder;
+    for (let step = 1; step < order.length; step++) {
+      const id = order[(index + step) % order.length];
+      const working = sets.filter((s) => s.exerciseId === id && !s.isWarmup);
+      if (working.length === 0 || working.some((s) => !(s.weightKg > 0 && s.reps > 0))) return id;
+    }
+    return undefined;
+  }
+
   return (
     <div className="pb-24">
       <div className="mb-5 flex items-start justify-between gap-3">
@@ -73,7 +85,7 @@ export function WorkoutLogger({ workoutId }: { workoutId: string }) {
                 key={exerciseId}
                 workoutId={workoutId}
                 exerciseId={exerciseId}
-                nextExerciseId={workout.exerciseOrder[i + 1]}
+                nextExerciseId={nextUnfinishedExercise(i)}
                 targetSets={target?.targetSets}
                 targetReps={target?.targetReps}
                 restSeconds={target?.restSeconds ?? settings.defaultRestSeconds}

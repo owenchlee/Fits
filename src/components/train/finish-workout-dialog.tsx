@@ -9,6 +9,7 @@ import { db } from "@/lib/db/db";
 import { completeWorkout } from "@/lib/db/repo";
 import { toTotalLoadKg } from "@/lib/calc/load";
 import { formatWeight } from "@/lib/calc/units";
+import { useRestTimer } from "@/lib/timer/rest-timer-context";
 import type { SetEntry, UnitSystem } from "@/lib/db/types";
 import {
   AlertDialog,
@@ -37,6 +38,7 @@ export function FinishWorkoutDialog({
   disabled?: boolean;
 }) {
   const router = useRouter();
+  const restTimer = useRestTimer();
   const [durationMin, setDurationMin] = React.useState(1);
   const workingSets = sets.filter((s) => !s.isWarmup);
   const exerciseIds = React.useMemo(() => Array.from(new Set(workingSets.map((s) => s.exerciseId))), [workingSets]);
@@ -46,6 +48,7 @@ export function FinishWorkoutDialog({
 
   async function handleFinish() {
     await completeWorkout(workoutId);
+    restTimer.stop();
     toast.success("Workout logged", {
       description: `${workingSets.length} sets · ${formatWeight(volumeKg, unit, { decimals: 0 })} volume`,
       icon: <CheckCircle weight="fill" />,
