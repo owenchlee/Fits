@@ -12,6 +12,12 @@ export interface SeedProgramDay {
 }
 
 export interface SeedProgram {
+  /**
+   * Stable identity for slugId(): the name this program shipped under first. Built-in programs
+   * are matched across devices and in users' settings (activeProgramId) by that id, so renaming a
+   * program must never change it.
+   */
+  idName?: string;
   name: string;
   description: string;
   author: string;
@@ -21,9 +27,10 @@ export interface SeedProgram {
 
 export const seedPrograms: SeedProgram[] = [
   {
-    name: "StrongLifts 5x5",
+    idName: "StrongLifts 5x5",
+    name: "Linear 5×5",
     description:
-      "The classic beginner barbell program. Two alternating workouts, three lifts each, straight sets of 5. Add weight every session while you can.",
+      "A classic beginner barbell template. Two alternating workouts, three lifts each, straight sets of 5. Add a little weight every session while you can.",
     author: "Built-in",
     daysPerWeek: 3,
     days: [
@@ -85,9 +92,10 @@ export const seedPrograms: SeedProgram[] = [
     ],
   },
   {
-    name: "5/3/1 for Beginners",
+    idName: "5/3/1 for Beginners",
+    name: "4-Day Wave Strength",
     description:
-      "Jim Wendler's percentage-based strength program. Main lift works up to a heavy top set off your training max, then light accessory volume.",
+      "A percentage-based strength template. Each day's main lift waves up to a heavy top set off a conservative training max, followed by lighter accessory volume.",
     author: "Built-in",
     daysPerWeek: 4,
     days: [
@@ -125,9 +133,10 @@ export const seedPrograms: SeedProgram[] = [
     ],
   },
   {
-    name: "GZCLP",
+    idName: "GZCLP",
+    name: "3-Tier Linear Progression",
     description:
-      "A linear progression built on GZCL tiers: a heavy T1 main lift, a moderate T2 secondary lift, and high-rep T3 accessory work each day.",
+      "A linear progression in three tiers each day: a heavy, low-rep main lift, a moderate-rep secondary lift, and high-rep accessory work.",
     author: "Built-in",
     daysPerWeek: 4,
     days: [

@@ -44,7 +44,7 @@ async function seed() {
   if (programCount === 0) {
     const now = Date.now();
     const programs: Program[] = seedPrograms.map((p) => ({
-      id: slugId("prog", p.name),
+      id: slugId("prog", p.idName ?? p.name),
       name: p.name,
       description: p.description,
       author: p.author,
@@ -52,7 +52,7 @@ async function seed() {
       isCustom: false,
       updatedAt: now,
       days: p.days.map((day) => ({
-        id: slugId("day", `${p.name}-${day.name}`),
+        id: slugId("day", `${p.idName ?? p.name}-${day.name}`),
         name: day.name,
         exercises: day.exercises
           .map((ex) => {
@@ -70,6 +70,8 @@ async function seed() {
       })),
     }));
     await db.programs.bulkAdd(programs);
+  } else {
+    await backfillBuiltInProgramText();
   }
 
   const settings = await db.settings.get("singleton");
@@ -154,4 +156,21 @@ async function backfillBuiltInExercises(exercisesByName: Map<string, Exercise>) 
     }
   }
   if (updates.length > 0) await db.exercises.bulkPut(updates);
+}
+
+/**
+ * Programs, like exercises, only bulkAdd once — so a built-in that was later renamed (e.g. to drop
+ * a third-party trademark) would keep its old name forever on already-seeded devices. Refresh the
+ * display text of built-ins by their stable id. Their days aren't touched: only the text changes,
+ * and the user's schedule/cycle settings live on the same row.
+ */
+async function backfillBuiltInProgramText() {
+  for (const seedProgram of seedPrograms) {
+    const id = slugId("prog", seedProgram.idName ?? seedProgram.name);
+    const current = await db.programs.get(id);
+    if (!current || current.isCustom) continue;
+    const { name, description, author } = seedProgram;
+    if (current.name === name && current.description === description && current.author === author) continue;
+    await db.programs.update(id, { name, description, author, updatedAt: Date.now() });
+  }
 }
