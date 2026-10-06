@@ -169,9 +169,9 @@ export default function TermsPage() {
       <LegalSection title="12. Governing law and disputes">
         <p>
           These Terms are governed by the laws of {GOVERNING_LAW}, without regard to conflict-of-laws rules, and any
-          dispute will be resolved in the state or federal courts located there, except that if you&apos;re a consumer
-          living in another country, you also keep the protection of your local mandatory laws and may bring claims in
-          your local courts. Before filing a claim, please contact us so we can try to resolve it informally.
+          dispute will be resolved in the courts of Ontario, Canada, except that if you&apos;re a consumer living in
+          another province, state, or country, you also keep the protection of your local mandatory laws and may bring
+          claims in your local courts. Before filing a claim, please contact us so we can try to resolve it informally.
         </p>
       </LegalSection>
 

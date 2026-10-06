@@ -5,8 +5,8 @@
  * Bump LEGAL_VERSION whenever the Terms or Privacy Policy change materially: everyone who accepted
  * an older version is asked to accept again on their next launch (see ConsentGate).
  */
-export const LEGAL_VERSION = "2026-10-04";
-export const LEGAL_EFFECTIVE_DATE = "October 4, 2026";
+export const LEGAL_VERSION = "2026-10-05";
+export const LEGAL_EFFECTIVE_DATE = "October 5, 2026";
 
 /** Who publishes Fits — must match the seller name shown on the App Store listing. */
 export const PUBLISHER_NAME = "Owen Lee";
@@ -14,8 +14,8 @@ export const PUBLISHER_NAME = "Owen Lee";
 /** Where users send privacy requests and support questions. TODO before launch: replace with a real, monitored inbox. */
 export const CONTACT_EMAIL = "support@fits-app.example";
 
-/** Law that governs the Terms of Use. TODO before launch: name the specific state you live in / your business is registered in. */
-export const GOVERNING_LAW = "the U.S. state in which the publisher resides";
+/** Law that governs the Terms of Use: where the publisher lives (an individual developer in Ontario). */
+export const GOVERNING_LAW = "the Province of Ontario and the federal laws of Canada applicable there";
 
 export const APP_NAME = "Fits";
 

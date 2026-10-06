@@ -100,9 +100,11 @@ export default function PrivacyPage() {
           transaction under its own privacy policy.
         </p>
         <p>
-          These providers may store data in the United States or other countries. Where the law requires it (for
-          example, for users in the EEA, UK, or Switzerland), transfers rely on safeguards such as the European
-          Commission&apos;s Standard Contractual Clauses.
+          {APP_NAME} is published from Canada, but these providers may store and process data in the United States or
+          other countries, where it may be accessible to courts, law enforcement, and national security authorities
+          under those countries&apos; laws. Where the law requires it (for example, for users in the EEA, UK, or
+          Switzerland), transfers rely on safeguards such as the European Commission&apos;s Standard Contractual
+          Clauses.
         </p>
       </LegalSection>
 
@@ -148,6 +150,14 @@ export default function PrivacyPage() {
             differently for exercising your rights. We may need to verify that a request comes from the account owner.
           </li>
         </LegalList>
+        <p>
+          <strong>Canada:</strong> we handle personal information in line with the Personal Information Protection and
+          Electronic Documents Act (PIPEDA) and, for Quebec residents, Quebec&apos;s private-sector privacy law. You can
+          access, correct, and delete your information as described above, and withdraw consent at any time. If
+          you&apos;re not satisfied with how we handle a request, you can complain to the{" "}
+          <LegalLink href="https://www.priv.gc.ca/">Office of the Privacy Commissioner of Canada</LegalLink> (or, in
+          Quebec, the Commission d&apos;accès à l&apos;information).
+        </p>
         <p>
           <strong>EEA, UK, and Switzerland:</strong> we process account and training data to perform our contract with
           you (providing the app), health data on the basis of your explicit consent, and technical logs on the basis of

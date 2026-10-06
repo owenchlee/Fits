@@ -10,9 +10,7 @@ answers for App Store Connect. Not legal advice — the legal pages were drafted
   - `CONTACT_EMAIL` — currently a placeholder (`support@fits-app.example`). Use a real inbox you check; it's
     printed in the Privacy Policy, Terms, Health Data Policy and Support page, and privacy laws require you to
     answer requests sent there (30–45 days).
-  - `GOVERNING_LAW` — name your actual state (e.g. "the State of Washington, USA").
-  - `PUBLISHER_NAME` — must match the seller name on your App Store listing (your legal name for an individual
-    developer account, or your LLC).
+  - `GOVERNING_LAW` / `PUBLISHER_NAME` — done (Ontario, Canada; Owen Lee). Update both if you later incorporate.
 - [ ] **Deploy to Vercel.** The iOS app loads the live site (`server.url` in `capacitor.config.ts`), so none of
   the web changes reach the app until the branch is deployed to production.
 - [ ] **Apply Supabase migration `supabase/migrations/0004_purge_deleted_rows.sql`** (SQL editor). Enable the
