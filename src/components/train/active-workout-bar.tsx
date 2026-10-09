@@ -167,7 +167,7 @@ export function ActiveWorkoutBar() {
           animate={{ y: 0, opacity: 1 }}
           exit={{ y: 96, opacity: 0 }}
           transition={{ type: "spring", damping: 26, stiffness: 260 }}
-          className="fixed inset-x-4 bottom-[calc(5.5rem+env(safe-area-inset-bottom))] z-40 flex justify-center md:inset-x-auto md:bottom-4 md:left-[calc(15rem+0.75rem)] md:right-3 md:justify-end"
+          className="fixed inset-x-4 bottom-[calc(6.5rem+env(safe-area-inset-bottom))] z-40 flex justify-center md:inset-x-auto md:bottom-4 md:left-[calc(15rem+0.75rem)] md:right-3 md:justify-end"
         >
           {asLink && activeWorkout ? (
             <Link href={`/train?workoutId=${activeWorkout.id}`} className="w-full max-w-sm md:max-w-xs">

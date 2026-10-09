@@ -70,10 +70,12 @@ export function ExerciseSessionCard({
   const recommendedWarmup = previousSets ? calculateWarmupSet(previousSets, unit) : null;
   const hasWarmupSet = sets.some((s) => s.isWarmup);
 
+  // The warm-up starts blank like the working sets, with the recommendation shown as its
+  // placeholder — typing the reps fills in the weight and starts the rest timer.
   async function initializeSets() {
     const warmup = previousSets ? calculateWarmupSet(previousSets, unit) : null;
     if (warmup) {
-      await addSet({ workoutId, exerciseId, weightKg: warmup.weightKg, reps: warmup.reps, isWarmup: true });
+      await addSet({ workoutId, exerciseId, weightKg: 0, reps: 0, isWarmup: true });
     }
     for (let i = 0; i < (targetSets ?? 0); i++) {
       await addSet({ workoutId, exerciseId, weightKg: 0, reps: 0 });
@@ -96,7 +98,7 @@ export function ExerciseSessionCard({
   async function toggleWarmup(enabled: boolean) {
     if (enabled) {
       if (!recommendedWarmup) return;
-      await addSet({ workoutId, exerciseId, weightKg: recommendedWarmup.weightKg, reps: recommendedWarmup.reps, isWarmup: true });
+      await addSet({ workoutId, exerciseId, weightKg: 0, reps: 0, isWarmup: true });
     } else {
       const existing = sets.find((s) => s.isWarmup);
       if (existing) await deleteSet(existing.id);
@@ -116,7 +118,7 @@ export function ExerciseSessionCard({
    * "Next: Row" once this exercise is done — never the set that was just finished. */
   function restLabel(completedSetId: string) {
     const working = sets.filter((s) => !s.isWarmup);
-    const done = working.filter((s) => s.id !== completedSetId && isSetComplete(s, exercise)).length + 1;
+    const done = working.filter((s) => s.id === completedSetId || isSetComplete(s, exercise)).length;
     if (done < working.length) {
       const nextSet = `Set ${done + 1} of ${working.length}`;
       return exercise?.name ? `Next: ${exercise.name} · ${nextSet}` : `Next: ${nextSet}`;
@@ -133,6 +135,16 @@ export function ExerciseSessionCard({
   }
 
   const workingSets = orderedSets.filter((s) => !s.isWarmup);
+  const previousWorking = previousSets?.filter((s) => !s.isWarmup) ?? [];
+
+  /** What a row is compared against (placeholder + weight auto-fill): the recommended warm-up for
+   * the warm-up row, otherwise the same-numbered working set from last session — or its last one
+   * when this session runs longer. */
+  function previousFor(s: SetEntry): { weightKg: number; reps: number } | undefined {
+    if (s.isWarmup) return recommendedWarmup ?? undefined;
+    const n = workingSets.indexOf(s);
+    return previousWorking[n] ?? previousWorking[previousWorking.length - 1];
+  }
 
   const weightColumnLabel = exercise?.equipment === "bodyweight" ? "Added" : "Weight";
 
@@ -204,7 +216,7 @@ export function ExerciseSessionCard({
       )}
 
       <div className="space-y-1">
-        {orderedSets.map((s, i) => {
+        {orderedSets.map((s) => {
           return (
             <SetRow
               key={s.id}
@@ -213,11 +225,11 @@ export function ExerciseSessionCard({
               set={s}
               complete={isSetComplete(s, exercise)}
               showPlateCalculator={!exercise || exercise.equipment === "barbell"}
-              previous={previousSets?.[i]}
+              previous={previousFor(s)}
               onChange={(patch) => {
                 const willBeComplete = isSetComplete({ ...s, ...patch }, exercise);
                 const wasComplete = isSetComplete(s, exercise);
-                handleSetChange(s.id, patch, willBeComplete && !wasComplete && !s.isWarmup);
+                handleSetChange(s.id, patch, willBeComplete && !wasComplete);
               }}
               onDelete={() => deleteSet(s.id)}
             />

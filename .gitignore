@@ -45,3 +45,7 @@ next-env.d.ts
 
 # scratch build/lint logs from iOS-prep work
 /.logs/
+
+# promo build deps and rendered videos (large binaries)
+/promo/node_modules/
+/promo/out/

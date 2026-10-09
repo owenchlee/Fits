@@ -46,7 +46,7 @@ export function SetRow({
   );
   const [repsStr, setRepsStr] = React.useState(() => (set.reps ? String(set.reps) : ""));
 
-  const isComplete = !set.isWarmup && complete;
+  const isComplete = complete;
   const wasComplete = React.useRef(isComplete);
   const [justCompleted, setJustCompleted] = React.useState(false);
 
@@ -72,7 +72,15 @@ export function SetRow({
     const cleaned = sanitizeIntegerInput(value);
     setRepsStr(cleaned);
     const n = parseInt(cleaned, 10);
-    if (!Number.isNaN(n) && n >= 0) onChange({ reps: n });
+    if (Number.isNaN(n) || n < 0) return;
+    // Most sessions only the reps change, so typing reps into a row with no weight yet carries
+    // last session's weight over — one number per set instead of two.
+    if (n > 0 && weightStr === "" && previous && previous.weightKg > 0) {
+      setWeightStr(String(round1(toDisplayWeight(previous.weightKg, unit))));
+      onChange({ reps: n, weightKg: previous.weightKg });
+      return;
+    }
+    onChange({ reps: n });
   }
 
   return (
