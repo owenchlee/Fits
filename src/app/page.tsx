@@ -105,7 +105,7 @@ export default function DashboardPage() {
         <StatCard label="Streak" value={String(settings.streak)} unit="days" icon={Flame} accent />
         <StatCard
           label="Week Volume"
-          value={weekly ? formatWeight(weekly.volumeKg, settings.unitSystem, { decimals: 0 }).split(" ")[0] : "—"}
+          value={weekly ? formatWeight(weekly.volumeKg, settings.unitSystem, { decimals: 0 }).split(" ")[0] ?? "" : "—"}
           unit={settings.unitSystem}
           icon={Barbell}
         />

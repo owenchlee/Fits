@@ -67,7 +67,7 @@ export default function ExerciseDetailPage() {
       </p>
 
       <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3">
-        <StatCard label="Best est. 1RM" value={bestE1rm ? formatWeight(bestE1rm, settings.unitSystem, { decimals: 0 }).split(" ")[0] : "—"} unit={settings.unitSystem} icon={Trophy} accent />
+        <StatCard label="Best est. 1RM" value={bestE1rm ? formatWeight(bestE1rm, settings.unitSystem, { decimals: 0 }).split(" ")[0] ?? "" : "—"} unit={settings.unitSystem} icon={Trophy} accent />
         <StatCard label="Sessions logged" value={String(byWorkout.size)} icon={ChartLineUp} />
         <StatCard label="Total sets" value={String(totalSets)} icon={Barbell} />
       </div>
