@@ -51,6 +51,7 @@ export function SetRow({
       return () => clearTimeout(t);
     }
     wasComplete.current = isComplete;
+    return undefined;
   }, [isComplete]);
 
   function commitWeight(value: string) {
