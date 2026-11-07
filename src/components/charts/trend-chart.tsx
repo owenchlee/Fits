@@ -27,8 +27,8 @@ function ChartTooltip({
   payload?: Array<{ payload: TrendPoint }>;
   unitLabel: string;
 }) {
-  if (!active || !payload?.length) return null;
-  const point = payload[0].payload;
+  const point = payload?.[0]?.payload;
+  if (!active || !point) return null;
   return (
     <div className="rounded-lg border border-border bg-popover px-3 py-2 text-xs shadow-md">
       <p className="font-medium text-popover-foreground">{point.label}</p>
