@@ -53,7 +53,7 @@ export function ExercisePicker({
   const visibleExercises = searching
     ? exercises.filter((e) => e.name.toLowerCase().includes(normalizedQuery))
     : activeCategory
-      ? exercises.filter((e) => CATEGORY_GROUPS[activeCategory].includes(e.primaryMuscle))
+      ? exercises.filter((e) => (CATEGORY_GROUPS[activeCategory] ?? []).includes(e.primaryMuscle))
       : [];
 
   function selectExercise(ex: Exercise) {
@@ -151,7 +151,7 @@ function CategoryList({
   return (
     <div>
       {CATEGORIES.map((category) => {
-        const muscles = CATEGORY_GROUPS[category];
+        const muscles = CATEGORY_GROUPS[category] ?? [];
         const count = exercises.filter((e) => muscles.includes(e.primaryMuscle)).length;
         return (
           <button
