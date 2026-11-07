@@ -38,6 +38,7 @@ export function dateKey(date: Date): string {
 }
 
 export function parseDateKey(key: string): Date {
-  const [y, m, d] = key.split("-").map(Number);
+  // NaN defaults keep malformed keys producing Invalid Date, as before
+  const [y = NaN, m = NaN, d = NaN] = key.split("-").map(Number);
   return new Date(y, m - 1, d);
 }
