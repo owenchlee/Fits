@@ -93,8 +93,11 @@ export default function CalendarPage() {
   async function moveSlot(i: number, dir: -1 | 1) {
     const next = (schedule ?? []).slice();
     const j = i + dir;
-    if (j < 0 || j >= next.length) return;
-    [next[i], next[j]] = [next[j], next[i]];
+    const a = next[i];
+    const b = next[j];
+    if (a === undefined || b === undefined) return;
+    next[i] = b;
+    next[j] = a;
     await updateProgram(activeProgram!.id, { schedule: next });
   }
 
@@ -111,6 +114,7 @@ export default function CalendarPage() {
 
   async function handleStart(dayIndex: number) {
     const day = activeProgram!.days[dayIndex];
+    if (!day) return;
     const id = await startWorkout({
       programId: activeProgram!.id,
       programDayName: day.name,
