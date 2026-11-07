@@ -263,8 +263,9 @@ export async function getLastPerformance(
     .equals(exerciseId)
     .filter((s) => s.workoutId !== excludeWorkoutId)
     .toArray();
-  if (sets.length === 0) return [];
-  const lastWorkoutId = sets.sort((a, b) => b.completedAt - a.completedAt)[0].workoutId;
+  const latest = sets.sort((a, b) => b.completedAt - a.completedAt)[0];
+  if (!latest) return [];
+  const lastWorkoutId = latest.workoutId;
   return sets
     .filter((s) => s.workoutId === lastWorkoutId)
     .sort((a, b) => a.setIndex - b.setIndex);
