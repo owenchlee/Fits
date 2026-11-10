@@ -183,6 +183,7 @@ export async function discardWorkout(workoutId: string) {
 
 export async function completeWorkout(workoutId: string) {
   const workout = await db.workouts.get(workoutId);
+  if (workout?.completedAt) return;
   await db.workouts.update(workoutId, { completedAt: Date.now(), updatedAt: Date.now() });
   await enqueueSync("workouts", "upsert", workoutId);
   await recordPercentileSnapshot();
@@ -219,18 +220,19 @@ export async function addSet(entry: {
   isFailure?: boolean;
   isDropSet?: boolean;
 }): Promise<string> {
-  const existingCount = await db.sets
+  const existing = await db.sets
     .where("workoutId")
     .equals(entry.workoutId)
     .filter((s) => s.exerciseId === entry.exerciseId)
-    .count();
+    .toArray();
+  const nextIndex = existing.reduce((m, s) => Math.max(m, s.setIndex + 1), 0);
 
   const id = generateId();
   const set: SetEntry = {
     id,
     workoutId: entry.workoutId,
     exerciseId: entry.exerciseId,
-    setIndex: existingCount,
+    setIndex: nextIndex,
     weightKg: entry.weightKg,
     reps: entry.reps,
     rpe: entry.rpe,
@@ -325,7 +327,7 @@ export async function exportAllData() {
 export async function resetAllData() {
   await db.transaction(
     "rw",
-    [db.exercises, db.programs, db.workouts, db.sets, db.bodyMetrics, db.settings, db.syncOutbox],
+    [db.exercises, db.programs, db.workouts, db.sets, db.bodyMetrics, db.percentileSnapshots, db.settings, db.syncOutbox],
     async () => {
       await Promise.all([
         db.exercises.clear(),
@@ -333,6 +335,7 @@ export async function resetAllData() {
         db.workouts.clear(),
         db.sets.clear(),
         db.bodyMetrics.clear(),
+        db.percentileSnapshots.clear(),
         db.settings.clear(),
         db.syncOutbox.clear(),
       ]);
