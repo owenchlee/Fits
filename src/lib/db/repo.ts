@@ -258,16 +258,22 @@ export async function getLastPerformance(
   exerciseId: string,
   excludeWorkoutId?: string
 ): Promise<SetEntry[]> {
-  const sets = await db.sets
+  // Find the latest workout in one pass (strict > keeps the first of ties, like the old stable sort).
+  let last: SetEntry | undefined;
+  await db.sets
     .where("exerciseId")
     .equals(exerciseId)
-    .filter((s) => s.workoutId !== excludeWorkoutId)
+    .each((s) => {
+      if (s.workoutId !== excludeWorkoutId && (!last || s.completedAt > last.completedAt)) last = s;
+    });
+  if (!last) return [];
+  const lastWorkoutId = last.workoutId;
+  const sets = await db.sets
+    .where("workoutId")
+    .equals(lastWorkoutId)
+    .filter((s) => s.exerciseId === exerciseId)
     .toArray();
-  if (sets.length === 0) return [];
-  const lastWorkoutId = sets.sort((a, b) => b.completedAt - a.completedAt)[0].workoutId;
-  return sets
-    .filter((s) => s.workoutId === lastWorkoutId)
-    .sort((a, b) => a.setIndex - b.setIndex);
+  return sets.sort((a, b) => a.setIndex - b.setIndex);
 }
 
 export async function logBodyMetric(metric: Omit<BodyMetric, "id" | "updatedAt">): Promise<string> {
