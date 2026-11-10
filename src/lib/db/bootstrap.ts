@@ -8,7 +8,13 @@ import type { AppSettings, Exercise, Program } from "@/lib/db/types";
 let seedPromise: Promise<void> | null = null;
 
 export function ensureSeeded(): Promise<void> {
-  if (!seedPromise) seedPromise = seed();
+  if (!seedPromise) {
+    // Drop a rejected promise so a transient failure doesn't poison every later call.
+    seedPromise = seed().catch((err) => {
+      seedPromise = null;
+      throw err;
+    });
+  }
   return seedPromise;
 }
 
@@ -18,32 +24,23 @@ export function resetSeedState() {
 }
 
 async function seed() {
-  const exerciseCount = await db.exercises.count();
-  let exercisesByName = new Map<string, Exercise>();
+  // One rw transaction so two uncoordinated seeders (tabs, DbInit + another caller) run serially.
+  await db.transaction("rw", [db.exercises, db.programs, db.settings, db.syncOutbox], seedInTransaction);
+}
 
-  if (exerciseCount === 0) {
-    const now = Date.now();
-    const exercises: Exercise[] = seedExercises.map((e) => ({
-      ...e,
-      // Deterministic (not random) so built-ins line up across devices without needing to sync them.
-      id: slugId("ex", e.name),
-      isCustom: false,
-      updatedAt: now,
-    }));
-    await db.exercises.bulkAdd(exercises);
-    exercisesByName = new Map(exercises.map((e) => [e.name, e]));
-  } else {
-    const all = await db.exercises.toArray();
-    exercisesByName = new Map(all.map((e) => [e.name, e]));
-    await promoteMatchingCustomExercises(exercisesByName);
-    await addNewSeedExercises(exercisesByName);
-    await backfillBuiltInExercises(exercisesByName);
-  }
+async function seedInTransaction() {
+  const all = await db.exercises.toArray();
+  const exercisesByName = new Map(all.map((e) => [e.name, e]));
+  await promoteMatchingCustomExercises(exercisesByName);
+  await addNewSeedExercises(exercisesByName);
+  await backfillBuiltInExercises(exercisesByName);
 
-  const programCount = await db.programs.count();
-  if (programCount === 0) {
-    const now = Date.now();
-    const programs: Program[] = seedPrograms.map((p) => ({
+  // Add only built-in programs that are missing, so synced custom programs or user edits never block or get overwritten.
+  const existingProgramIds = new Set(await db.programs.toCollection().primaryKeys());
+  const now = Date.now();
+  const programs: Program[] = seedPrograms
+    .filter((p) => !existingProgramIds.has(slugId("prog", p.name)))
+    .map((p) => ({
       id: slugId("prog", p.name),
       name: p.name,
       description: p.description,
@@ -69,8 +66,7 @@ async function seed() {
           .filter((x): x is NonNullable<typeof x> => x !== null),
       })),
     }));
-    await db.programs.bulkAdd(programs);
-  }
+  if (programs.length > 0) await db.programs.bulkAdd(programs);
 
   const settings = await db.settings.get("singleton");
   if (!settings) {
@@ -146,7 +142,8 @@ async function backfillBuiltInExercises(exercisesByName: Map<string, Exercise>) 
   for (const seedExercise of seedExercises) {
     const current = exercisesByName.get(seedExercise.name);
     if (!current || current.isCustom) continue;
-    const candidate: Exercise = { ...current, ...seedExercise };
+    // Rebuild from the seed so fields removed from it disappear; keep id/isCustom/updatedAt.
+    const candidate: Exercise = { ...seedExercise, id: current.id, isCustom: false, updatedAt: current.updatedAt };
     if (JSON.stringify(candidate) !== JSON.stringify(current)) {
       const merged = { ...candidate, updatedAt: Date.now() };
       updates.push(merged);
