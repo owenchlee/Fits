@@ -17,9 +17,33 @@ import { sanitizeDecimalInput, sanitizeIntegerInput } from "@/lib/format";
 import type { SetEntry, UnitSystem } from "@/lib/db/types";
 import { cn } from "@/lib/utils";
 
+type SetRowProps = {
+  index: number;
+  unit: UnitSystem;
+  set: SetEntry;
+  previous?: { weightKg: number; reps: number };
+  onChange: (patch: Partial<SetEntry>) => void;
+  onDelete: () => void;
+};
+
 const RPE_OPTIONS = ["—", "6", "6.5", "7", "7.5", "8", "8.5", "9", "9.5", "10"];
 
-export function SetRow({
+export const SetRow = React.memo(SetRowImpl, sameRow);
+
+// Callbacks are intentionally ignored: they only close over this set's values, which are compared here.
+function sameRow(a: SetRowProps, b: SetRowProps) {
+  const ak = Object.keys(a.set) as (keyof SetEntry)[];
+  return (
+    a.index === b.index &&
+    a.unit === b.unit &&
+    a.previous?.weightKg === b.previous?.weightKg &&
+    a.previous?.reps === b.previous?.reps &&
+    ak.length === Object.keys(b.set).length &&
+    ak.every((k) => a.set[k] === b.set[k])
+  );
+}
+
+function SetRowImpl({
   index,
   unit,
   set,
