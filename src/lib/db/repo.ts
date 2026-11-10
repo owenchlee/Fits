@@ -1,4 +1,5 @@
 import { db } from "@/lib/db/db";
+import { addDays, dateKey } from "@/lib/date";
 import { generateId } from "@/lib/id";
 import { recordPercentileSnapshot } from "@/lib/calc/percentile-snapshot";
 import { enqueueSync } from "@/lib/sync/outbox";
@@ -98,7 +99,7 @@ export async function updateSettings(patch: Partial<AppSettings>) {
 }
 
 function todayKey(date = new Date()): string {
-  return date.toISOString().slice(0, 10);
+  return dateKey(date);
 }
 
 export async function startWorkout(opts: {
@@ -198,7 +199,7 @@ export async function completeWorkout(workoutId: string) {
   }
 
   const today = todayKey();
-  const yesterday = todayKey(new Date(Date.now() - 86400000));
+  const yesterday = todayKey(addDays(new Date(), -1));
 
   if (settings.lastWorkoutDate === today) {
     // already counted today
