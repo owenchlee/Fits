@@ -230,6 +230,7 @@ export function ProgramBuilderDialog() {
                 <div className="mb-2 flex items-center gap-2">
                   <Input
                     value={day.name}
+                    aria-label={`Day ${dayIndex + 1} name`}
                     onChange={(e) => updateDayName(dayIndex, e.target.value)}
                     className="h-8 max-w-[10rem] font-display font-semibold"
                   />
