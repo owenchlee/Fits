@@ -39,8 +39,9 @@ export function FinishWorkoutDialog({
   const router = useRouter();
   const [durationMin, setDurationMin] = React.useState(1);
   const workingSets = sets.filter((s) => !s.isWarmup);
-  const exerciseIds = React.useMemo(() => Array.from(new Set(workingSets.map((s) => s.exerciseId))), [workingSets]);
-  const exercises = useLiveQuery(() => db.exercises.bulkGet(exerciseIds), [exerciseIds]);
+  // Keyed by value: a fresh array each render would re-run the live query on every render.
+  const exerciseKey = JSON.stringify(Array.from(new Set(workingSets.map((s) => s.exerciseId))));
+  const exercises = useLiveQuery(() => db.exercises.bulkGet(JSON.parse(exerciseKey) as string[]), [exerciseKey]);
   const exerciseById = new Map((exercises ?? []).filter((e) => !!e).map((e) => [e!.id, e!]));
   const volumeKg = workingSets.reduce((sum, s) => sum + toTotalLoadKg(s.weightKg, exerciseById.get(s.exerciseId)) * s.reps, 0);
 
