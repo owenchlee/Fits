@@ -183,8 +183,8 @@ export async function discardWorkout(workoutId: string) {
 export async function completeWorkout(workoutId: string) {
   const workout = await db.workouts.get(workoutId);
   await db.workouts.update(workoutId, { completedAt: Date.now(), updatedAt: Date.now() });
-  await enqueueSync("workouts", "upsert", workoutId);
-  await recordPercentileSnapshot();
+  // The outbox write and the snapshot touch different tables, so run them together.
+  await Promise.all([enqueueSync("workouts", "upsert", workoutId), recordPercentileSnapshot()]);
 
   const settings = await getSettings();
 
