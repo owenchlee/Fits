@@ -5,10 +5,13 @@ import { ClockCounterClockwise } from "@phosphor-icons/react/dist/ssr";
 import { useCompletedWorkouts } from "@/lib/db/hooks";
 import { EmptyState } from "@/components/shared/empty-state";
 
+const monthFmt = new Intl.DateTimeFormat(undefined, { month: "long", year: "numeric" });
+const dayFmt = new Intl.DateTimeFormat(undefined, { weekday: "short", month: "short", day: "numeric" });
+
 function groupByMonth(workouts: ReturnType<typeof useCompletedWorkouts>) {
   const groups = new Map<string, typeof workouts>();
   for (const w of workouts) {
-    const key = new Date(w.completedAt!).toLocaleDateString(undefined, { month: "long", year: "numeric" });
+    const key = monthFmt.format(w.completedAt!);
     if (!groups.has(key)) groups.set(key, []);
     groups.get(key)!.push(w);
   }
@@ -46,7 +49,7 @@ export function HistoryTab() {
                       <div>
                         <p className="text-sm font-medium">{w.title}</p>
                         <p className="text-xs text-muted-foreground">
-                          {new Date(w.completedAt!).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })}
+                          {dayFmt.format(w.completedAt!)}
                         </p>
                       </div>
                       <span className="tabular-nums text-xs text-muted-foreground">{durationMin} min</span>
