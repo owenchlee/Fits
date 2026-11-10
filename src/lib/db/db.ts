@@ -61,6 +61,11 @@ class FitsDatabase extends Dexie {
             });
         }
       });
+
+    // Adds a compound index so the latest set of a lift is found without scanning its history.
+    this.version(3).stores({
+      sets: "id, workoutId, exerciseId, completedAt, updatedAt, [exerciseId+completedAt]",
+    });
   }
 }
 

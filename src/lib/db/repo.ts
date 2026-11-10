@@ -1,3 +1,4 @@
+import Dexie from "dexie";
 import { db } from "@/lib/db/db";
 import { generateId } from "@/lib/id";
 import { recordPercentileSnapshot } from "@/lib/calc/percentile-snapshot";
@@ -258,16 +259,19 @@ export async function getLastPerformance(
   exerciseId: string,
   excludeWorkoutId?: string
 ): Promise<SetEntry[]> {
-  const sets = await db.sets
-    .where("exerciseId")
-    .equals(exerciseId)
+  const latest = await db.sets
+    .where("[exerciseId+completedAt]")
+    .between([exerciseId, Dexie.minKey], [exerciseId, Dexie.maxKey])
+    .reverse()
     .filter((s) => s.workoutId !== excludeWorkoutId)
+    .first();
+  if (!latest) return [];
+  const sets = await db.sets
+    .where("workoutId")
+    .equals(latest.workoutId)
+    .filter((s) => s.exerciseId === exerciseId)
     .toArray();
-  if (sets.length === 0) return [];
-  const lastWorkoutId = sets.sort((a, b) => b.completedAt - a.completedAt)[0].workoutId;
-  return sets
-    .filter((s) => s.workoutId === lastWorkoutId)
-    .sort((a, b) => a.setIndex - b.setIndex);
+  return sets.sort((a, b) => a.setIndex - b.setIndex);
 }
 
 export async function logBodyMetric(metric: Omit<BodyMetric, "id" | "updatedAt">): Promise<string> {
