@@ -29,43 +29,51 @@ import { cn } from "@/lib/utils";
 
 const LIFTS: StandardLift[] = ["squat", "bench", "deadlift", "overhead-press"];
 
-function useBestLiftsKg() {
+// One scan of the sets table feeds both the anchor-lift and rated-lift views.
+function useBestOneRmByExercise() {
   return useLiveQuery(async () => {
-    const exercises = await db.exercises.filter((e) => e.standardLift !== null).toArray();
-    const results: Partial<Record<StandardLift, number>> = {};
+    const exercises = await db.exercises
+      .filter((e) => e.standardLift !== null || !!e.standardLiftRatio)
+      .toArray();
     const exIds = new Set(exercises.map((e) => e.id));
     const allSets = await db.sets.filter((s) => !s.isWarmup && exIds.has(s.exerciseId)).toArray();
     const setsByEx = Map.groupBy(allSets, (s) => s.exerciseId);
-    for (const ex of exercises) {
+    return exercises.map((ex) => {
       const sets = setsByEx.get(ex.id) ?? [];
       const best = sets.reduce((max, s) => Math.max(max, estimateOneRepMax(toTotalLoadKg(s.weightKg, ex), s.reps)), 0);
+      return { ex, best, count: sets.length };
+    });
+  }, []);
+}
+
+function useBestLiftsKg(bests: ReturnType<typeof useBestOneRmByExercise>) {
+  return React.useMemo(() => {
+    if (!bests) return undefined;
+    const results: Partial<Record<StandardLift, number>> = {};
+    for (const { ex, best } of bests) {
+      if (ex.standardLift === null) continue;
       const lift = ex.standardLift as StandardLift;
       results[lift] = Math.max(results[lift] ?? 0, best);
     }
     return results;
-  }, []);
+  }, [bests]);
 }
 
-function useAllRatedLifts(sex: Sex, bodyweightKg: number) {
-  return useLiveQuery(async () => {
-    // Anchor lifts (squat/bench/deadlift/OHP) already have their own editable row above —
+function useAllRatedLifts(bests: ReturnType<typeof useBestOneRmByExercise>, sex: Sex, bodyweightKg: number) {
+  return React.useMemo(() => {
+    if (!bests) return undefined;
+    // Anchor lifts (squat/bench/deadlift/OHP) already have their own editable row above -
     // only list the ratio-estimated ones here to avoid showing two (possibly different) numbers
     // for the same lift.
-    const exercises = await db.exercises.filter((e) => e.standardLift === null && !!e.standardLiftRatio).toArray();
     const results: ExercisePercentileResult[] = [];
-    const exIds = new Set(exercises.map((e) => e.id));
-    const allSets = await db.sets.filter((s) => !s.isWarmup && exIds.has(s.exerciseId)).toArray();
-    const setsByEx = Map.groupBy(allSets, (s) => s.exerciseId);
-    for (const ex of exercises) {
-      const sets = setsByEx.get(ex.id) ?? [];
-      if (sets.length === 0) continue;
-      const bestKg = sets.reduce((max, s) => Math.max(max, estimateOneRepMax(toTotalLoadKg(s.weightKg, ex), s.reps)), 0);
-      if (bestKg <= 0) continue;
-      const result = calculateExercisePercentile(ex, bestKg, bodyweightKg, sex);
+    for (const { ex, best, count } of bests) {
+      if (ex.standardLift !== null || !ex.standardLiftRatio) continue;
+      if (count === 0 || best <= 0) continue;
+      const result = calculateExercisePercentile(ex, best, bodyweightKg, sex);
       if (result) results.push(result);
     }
     return results.sort((a, b) => b.percentile - a.percentile);
-  }, [sex, bodyweightKg]);
+  }, [bests, sex, bodyweightKg]);
 }
 
 function useOverallStats() {
@@ -114,7 +122,8 @@ function formatDuration(minutes: number) {
 
 export function OverviewTab() {
   const settings = useSettings();
-  const bestLifts = useBestLiftsKg();
+  const bests = useBestOneRmByExercise();
+  const bestLifts = useBestLiftsKg(bests);
   const overallStats = useOverallStats();
 
   const [sex, setSex] = React.useState<Sex>(settings.sex);
@@ -152,7 +161,7 @@ export function OverviewTab() {
   const overallPercentile = hasTotal ? totalToPercentile(totalKg, bodyweightKg, sex) : 0;
   const overallTier = percentileToTier(overallPercentile);
 
-  const allRatedLifts = useAllRatedLifts(sex, bodyweightKg);
+  const allRatedLifts = useAllRatedLifts(bests, sex, bodyweightKg);
 
   function handleExport() {
     exportAllData().then((data) => {
