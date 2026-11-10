@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { Download, Info } from "@phosphor-icons/react/dist/ssr";
 import { db } from "@/lib/db/db";
 import { useSettings } from "@/lib/db/hooks";
-import { updateSettings, exportAllData, getCompletedSets, getCompletedWorkouts } from "@/lib/db/repo";
+import { updateSettings, exportAllData, getCompletedWorkouts } from "@/lib/db/repo";
 import { estimateOneRepMax } from "@/lib/calc/one-rep-max";
 import { toTotalLoadKg } from "@/lib/calc/load";
 import { fromDisplayWeight, toDisplayWeight, formatWeight } from "@/lib/calc/units";
@@ -33,8 +33,11 @@ function useBestLiftsKg() {
   return useLiveQuery(async () => {
     const exercises = await db.exercises.filter((e) => e.standardLift !== null).toArray();
     const results: Partial<Record<StandardLift, number>> = {};
+    const exIds = new Set(exercises.map((e) => e.id));
+    const allSets = await db.sets.filter((s) => !s.isWarmup && exIds.has(s.exerciseId)).toArray();
+    const setsByEx = Map.groupBy(allSets, (s) => s.exerciseId);
     for (const ex of exercises) {
-      const sets = await db.sets.where("exerciseId").equals(ex.id).filter((s) => !s.isWarmup).toArray();
+      const sets = setsByEx.get(ex.id) ?? [];
       const best = sets.reduce((max, s) => Math.max(max, estimateOneRepMax(toTotalLoadKg(s.weightKg, ex), s.reps)), 0);
       const lift = ex.standardLift as StandardLift;
       results[lift] = Math.max(results[lift] ?? 0, best);
@@ -50,8 +53,11 @@ function useAllRatedLifts(sex: Sex, bodyweightKg: number) {
     // for the same lift.
     const exercises = await db.exercises.filter((e) => e.standardLift === null && !!e.standardLiftRatio).toArray();
     const results: ExercisePercentileResult[] = [];
+    const exIds = new Set(exercises.map((e) => e.id));
+    const allSets = await db.sets.filter((s) => !s.isWarmup && exIds.has(s.exerciseId)).toArray();
+    const setsByEx = Map.groupBy(allSets, (s) => s.exerciseId);
     for (const ex of exercises) {
-      const sets = await db.sets.where("exerciseId").equals(ex.id).filter((s) => !s.isWarmup).toArray();
+      const sets = setsByEx.get(ex.id) ?? [];
       if (sets.length === 0) continue;
       const bestKg = sets.reduce((max, s) => Math.max(max, estimateOneRepMax(toTotalLoadKg(s.weightKg, ex), s.reps)), 0);
       if (bestKg <= 0) continue;
@@ -65,8 +71,9 @@ function useAllRatedLifts(sex: Sex, bodyweightKg: number) {
 function useOverallStats() {
   const settings = useSettings();
   return useLiveQuery(async () => {
-    const [workouts, completedSets] = await Promise.all([getCompletedWorkouts(), getCompletedSets()]);
-    const sets = completedSets.filter((s) => !s.isWarmup);
+    const workouts = await getCompletedWorkouts();
+    const completedIds = new Set(workouts.map((w) => w.id));
+    const sets = await db.sets.filter((s) => !s.isWarmup && completedIds.has(s.workoutId)).toArray();
     const exercises = await db.exercises.bulkGet(Array.from(new Set(sets.map((s) => s.exerciseId))));
     const exerciseById = new Map(exercises.filter((e) => !!e).map((e) => [e!.id, e!]));
     const totalDurationMin = workouts.reduce(
