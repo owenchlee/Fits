@@ -260,12 +260,9 @@ export async function getLastPerformance(
 ): Promise<SetEntry[]> {
   // Find the latest workout in one pass (strict > keeps the first of ties, like the old stable sort).
   let last: SetEntry | undefined;
-  await db.sets
-    .where("exerciseId")
-    .equals(exerciseId)
-    .each((s) => {
-      if (s.workoutId !== excludeWorkoutId && (!last || s.completedAt > last.completedAt)) last = s;
-    });
+  for (const s of await db.sets.where("exerciseId").equals(exerciseId).toArray()) {
+    if (s.workoutId !== excludeWorkoutId && (!last || s.completedAt > last.completedAt)) last = s;
+  }
   if (!last) return [];
   const lastWorkoutId = last.workoutId;
   const sets = await db.sets
@@ -302,10 +299,10 @@ export async function getCompletedWorkouts(): Promise<Workout[]> {
 
 /** Sets belonging only to completed workouts, so an in-progress session's sets don't inflate stats. */
 export async function getCompletedSets(): Promise<SetEntry[]> {
-  const completed = await getCompletedWorkouts();
+  // Bulk getAll + in-memory filter is much cheaper than a per-row cursor callback; both reads run concurrently.
+  const [completed, sets] = await Promise.all([getCompletedWorkouts(), db.sets.toArray()]);
   const completedIds = new Set(completed.map((w) => w.id));
-  // Bulk getAll + in-memory filter is much cheaper than a per-row cursor callback.
-  return (await db.sets.toArray()).filter((s) => completedIds.has(s.workoutId));
+  return sets.filter((s) => completedIds.has(s.workoutId));
 }
 
 export async function exportAllData() {
