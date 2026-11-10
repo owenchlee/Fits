@@ -22,12 +22,13 @@ export async function recordPercentileSnapshot() {
   // One pass over all sets instead of one query per exercise.
   const byId = new Map(exercises.map((e) => [e.id, e]));
   const bests = new Map<string, number>();
-  await db.sets.each((s) => {
+  // Bulk toArray is much cheaper than a per-row cursor callback.
+  for (const s of await db.sets.toArray()) {
     const ex = byId.get(s.exerciseId);
-    if (!ex || s.isWarmup) return;
+    if (!ex || s.isWarmup) continue;
     const e1rm = estimateOneRepMax(toTotalLoadKg(s.weightKg, ex), s.reps);
     bests.set(ex.id, Math.max(bests.get(ex.id) ?? 0, e1rm));
-  });
+  }
 
   for (const ex of exercises) {
     const bestKg = bests.get(ex.id);
