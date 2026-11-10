@@ -304,7 +304,8 @@ export async function getCompletedWorkouts(): Promise<Workout[]> {
 export async function getCompletedSets(): Promise<SetEntry[]> {
   const completed = await getCompletedWorkouts();
   const completedIds = new Set(completed.map((w) => w.id));
-  return db.sets.filter((s) => completedIds.has(s.workoutId)).toArray();
+  // Bulk getAll + in-memory filter is much cheaper than a per-row cursor callback.
+  return (await db.sets.toArray()).filter((s) => completedIds.has(s.workoutId));
 }
 
 export async function exportAllData() {
