@@ -133,13 +133,17 @@ function EditableSetRow({ set, index, unit }: { set: SetEntry; index: number; un
   const [weightStr, setWeightStr] = React.useState(() => String(round1(toDisplayWeight(set.weightKg, unit))));
   const [repsStr, setRepsStr] = React.useState(() => String(set.reps));
 
-  React.useEffect(() => {
+  // Resync the text boxes when the stored value changes (adjusting state during render, not in an effect).
+  const [seenWeight, setSeenWeight] = React.useState({ kg: set.weightKg, unit });
+  if (seenWeight.kg !== set.weightKg || seenWeight.unit !== unit) {
+    setSeenWeight({ kg: set.weightKg, unit });
     setWeightStr(String(round1(toDisplayWeight(set.weightKg, unit))));
-  }, [set.weightKg, unit]);
-
-  React.useEffect(() => {
+  }
+  const [seenReps, setSeenReps] = React.useState(set.reps);
+  if (seenReps !== set.reps) {
+    setSeenReps(set.reps);
     setRepsStr(String(set.reps));
-  }, [set.reps]);
+  }
 
   function commitWeight(value: string) {
     const cleaned = sanitizeDecimalInput(value);

@@ -56,8 +56,36 @@ const FROM_ROW: Record<SyncTable, (row: never) => { id: string; updatedAt: numbe
 };
 
 /** Pushes every queued local write to Supabase. Leaves failed entries in the outbox for the next try. */
-export async function flushOutbox(supabase: Client, userId: string) {
-  const pending = await db.syncOutbox.orderBy("createdAt").toArray();
+export function flushOutbox(supabase: Client, userId: string): Promise<void> {
+  // Single-flight: overlapping calls share one run, plus one re-run if more was queued meanwhile.
+  if (inFlight) {
+    rerun = true;
+    return inFlight;
+  }
+  inFlight = (async () => {
+    try {
+      do {
+        rerun = false;
+        await flushOnce(supabase, userId);
+      } while (rerun);
+    } finally {
+      inFlight = null;
+    }
+  })();
+  return inFlight;
+}
+
+let inFlight: Promise<void> | null = null;
+let rerun = false;
+
+async function flushOnce(supabase: Client, userId: string) {
+  const all = await db.syncOutbox.orderBy("createdAt").toArray();
+  // Coalesce: only the last entry per (table, record, op) matters, since upserts push current local state.
+  const key = (e: (typeof all)[number]) => `${e.table}|${e.recordId}|${e.op}`;
+  const last = new Map(all.map((e, i) => [key(e), i]));
+  const pending = all.filter((e, i) => last.get(key(e)) === i);
+  const dupIds = all.filter((e, i) => last.get(key(e)) !== i).flatMap((e) => (e.id === undefined ? [] : [e.id]));
+  if (dupIds.length) await db.syncOutbox.bulkDelete(dupIds);
   for (const entry of pending) {
     try {
       if (entry.table === "settings") {
