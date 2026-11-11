@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { Plus, Ruler, Trash } from "@phosphor-icons/react/dist/ssr";
 import { useBodyMetrics, useSettings } from "@/lib/db/hooks";
 import { logBodyMetric, deleteBodyMetric } from "@/lib/db/repo";
-import { fromDisplayWeight, formatWeight, toDisplayWeight } from "@/lib/calc/units";
+import { cmToDisplayLength, fromDisplayLength, fromDisplayWeight, formatWeight, toDisplayWeight } from "@/lib/calc/units";
 import { sanitizeDecimalInput } from "@/lib/format";
 import { EmptyState } from "@/components/shared/empty-state";
 import { TrendChart, type TrendPoint } from "@/components/charts/trend-chart";
@@ -39,17 +39,23 @@ export function BodyTab() {
       label: new Date(m.date).toLocaleDateString(undefined, { month: "short", day: "numeric" }),
     }));
 
+  const lengthUnit = settings.unitSystem === "kg" ? "cm" : "in";
+  const weightNum = parseFloat(weight);
+  const bodyFatNum = parseFloat(bodyFat);
+  const parsedMeasurements: Record<string, number> = {};
+  for (const [k, v] of Object.entries(measurements)) {
+    const n = parseFloat(v);
+    if (Number.isFinite(n)) parsedMeasurements[k] = fromDisplayLength(n, settings.unitSystem);
+  }
+  const canSave = Number.isFinite(weightNum) || Number.isFinite(bodyFatNum) || Object.keys(parsedMeasurements).length > 0;
+
   async function handleSave() {
-    const weightKg = weight ? fromDisplayWeight(parseFloat(weight), settings.unitSystem) : undefined;
-    const parsedMeasurements: Record<string, number> = {};
-    for (const [k, v] of Object.entries(measurements)) {
-      const n = parseFloat(v);
-      if (Number.isFinite(n)) parsedMeasurements[k] = n;
-    }
+    if (!canSave) return;
+    const weightKg = Number.isFinite(weightNum) ? fromDisplayWeight(weightNum, settings.unitSystem) : undefined;
     await logBodyMetric({
       date: Date.now(),
       weightKg,
-      bodyFatPct: bodyFat ? parseFloat(bodyFat) : undefined,
+      bodyFatPct: Number.isFinite(bodyFatNum) ? bodyFatNum : undefined,
       measurements: Object.keys(parsedMeasurements).length ? parsedMeasurements : undefined,
     });
     toast.success("Entry logged");
@@ -101,7 +107,7 @@ export function BodyTab() {
               {MEASUREMENT_FIELDS.map((field) => (
                 <div key={field}>
                   <Label htmlFor={field} className="mb-1.5 block text-xs capitalize text-muted-foreground">
-                    {field} ({settings.unitSystem === "kg" ? "cm" : "in"})
+                    {field} ({lengthUnit})
                   </Label>
                   <input
                     id={field}
@@ -116,7 +122,7 @@ export function BodyTab() {
               ))}
             </div>
             <DialogFooter>
-              <Button onClick={handleSave} disabled={!weight && Object.values(measurements).every((v) => !v)}>
+              <Button onClick={handleSave} disabled={!canSave}>
                 Save entry
               </Button>
             </DialogFooter>
@@ -144,11 +150,11 @@ export function BodyTab() {
                   {new Date(m.date).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  {m.weightKg && formatWeight(m.weightKg, settings.unitSystem)}
-                  {m.bodyFatPct && ` · ${m.bodyFatPct}% BF`}
+                  {!!m.weightKg && formatWeight(m.weightKg, settings.unitSystem)}
+                  {m.bodyFatPct != null && ` · ${m.bodyFatPct}% BF`}
                   {m.measurements &&
                     ` · ${Object.entries(m.measurements)
-                      .map(([k, v]) => `${k} ${v}`)
+                      .map(([k, v]) => `${k} ${Math.round(cmToDisplayLength(v, settings.unitSystem) * 10) / 10} ${lengthUnit}`)
                       .join(", ")}`}
                 </p>
               </div>
