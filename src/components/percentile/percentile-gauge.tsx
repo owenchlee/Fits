@@ -25,6 +25,7 @@ function pointOnArc(pct: number) {
 
 export function PercentileGauge({ percentile, tier }: { percentile: number; tier: StrengthTier }) {
   const clamped = Math.min(100, Math.max(0, percentile));
+  const shown = Math.min(99, Math.floor(clamped)); // floor so the number never outruns the tier
   const offset = ARC_LENGTH * (1 - clamped / 100);
   const needle = pointOnArc(clamped);
 
@@ -69,8 +70,8 @@ export function PercentileGauge({ percentile, tier }: { percentile: number; tier
       </svg>
       <div className="-mt-10 flex flex-col items-center">
         <span className="font-display text-5xl font-bold tabular-nums leading-none">
-          {clamped < 1 ? "<1" : Math.round(clamped)}
-          <span className="text-2xl text-muted-foreground">{clamped < 1 ? "st" : ordinalSuffix(clamped)}</span>
+          {clamped < 1 ? "<1" : shown}
+          <span className="text-2xl text-muted-foreground">{clamped < 1 ? "st" : ordinalSuffix(shown)}</span>
         </span>
         <span className="mt-1 text-sm text-muted-foreground">percentile</span>
         <AnimatePresence mode="wait">
