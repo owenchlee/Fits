@@ -86,8 +86,31 @@ async function flushOnce(supabase: Client, userId: string) {
   const pending = all.filter((e, i) => last.get(key(e)) === i);
   const dupIds = all.filter((e, i) => last.get(key(e)) !== i).flatMap((e) => (e.id === undefined ? [] : [e.id]));
   if (dupIds.length) await db.syncOutbox.bulkDelete(dupIds);
-  for (const entry of pending) {
+  for (let i = 0; i < pending.length; i++) {
+    const entry = pending[i];
     try {
+      if (entry.table !== "settings" && entry.op !== "delete") {
+        // Batch the consecutive upserts for one table into a single request (order vs deletes is kept).
+        const table = entry.table;
+        const run = [entry];
+        while (i + 1 < pending.length && pending[i + 1].table === table && pending[i + 1].op !== "delete") run.push(pending[++i]);
+        const rows: Record<string, unknown>[] = [];
+        for (const e of run) {
+          const record = await db.table(table).get(e.recordId);
+          // Skip records deleted locally before flush, and built-in exercises/programs (never synced).
+          if (!record) continue;
+          if (table === "exercises" && !shouldSyncExercise(record)) continue;
+          if (table === "programs" && !shouldSyncProgram(record)) continue;
+          rows.push(TO_ROW[table](record, userId));
+        }
+        if (rows.length) {
+          const { error } = await dynamicFrom(supabase, REMOTE_TABLE[table]).upsert(rows);
+          if (error) break;
+        }
+        const ids = run.flatMap((e) => (e.id === undefined ? [] : [e.id]));
+        if (ids.length) await db.syncOutbox.bulkDelete(ids);
+        continue;
+      }
       if (entry.table === "settings") {
         const settings = await db.settings.get("singleton");
         if (settings) await supabase.from("profiles").upsert(settingsToProfileRow(settings, userId));
