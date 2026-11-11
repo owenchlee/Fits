@@ -143,9 +143,16 @@ export async function pullAll(supabase: Client, userId: string) {
   }
 
   for (const table of SYNC_TABLES) {
-    const { data, error } = await dynamicFrom(supabase, REMOTE_TABLE[table]).select("*").eq("user_id", userId);
+    const cursorId = `${userId}|${table}`;
+    const since = (await db.syncCursors.get(cursorId))?.cursor;
+    let query = dynamicFrom(supabase, REMOTE_TABLE[table]).select("*").eq("user_id", userId);
+    // gte (not gt) so rows sharing the cursor's timestamp are never missed; merge is idempotent.
+    if (since) query = query.gte("updated_at", since);
+    const { data, error } = await query;
     if (error || !data) continue;
     for (const row of data) await mergeRow(table, row as never);
+    const newest = (data as { updated_at: string }[]).reduce((m, r) => (r.updated_at > m ? r.updated_at : m), since ?? "");
+    if (newest && newest !== since) await db.syncCursors.put({ id: cursorId, cursor: newest });
   }
 }
 

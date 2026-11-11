@@ -27,6 +27,8 @@ class FitsDatabase extends Dexie {
   settings!: EntityTable<AppSettings, "id">;
   percentileSnapshots!: EntityTable<PercentileSnapshot, "id">;
   syncOutbox!: EntityTable<SyncOutboxEntry, "id">;
+  /** Per user+table cursor: newest remote updated_at already pulled, so launches only fetch what changed. */
+  syncCursors!: EntityTable<{ id: string; cursor: string }, "id">;
 
   constructor() {
     super("fits-db");
@@ -61,6 +63,8 @@ class FitsDatabase extends Dexie {
             });
         }
       });
+
+    this.version(3).stores({ syncCursors: "id" });
   }
 }
 
