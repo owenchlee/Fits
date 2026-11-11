@@ -167,7 +167,12 @@ export async function pullAll(supabase: Client, userId: string) {
 
   for (const table of SYNC_TABLES) {
     const cursorId = `${userId}|${table}`;
-    const since = (await db.syncCursors.get(cursorId))?.cursor;
+    let since = (await db.syncCursors.get(cursorId))?.cursor;
+    if (!since) {
+      // No cursor yet but local history exists (first launch after upgrade): resume from the newest local row, minus a 1-day margin for clock skew.
+      const newestLocal = (await db.table(table).orderBy("updatedAt").last()) as { updatedAt: number } | undefined;
+      if (newestLocal) since = new Date(newestLocal.updatedAt - 86400000).toISOString();
+    }
     let query = dynamicFrom(supabase, REMOTE_TABLE[table]).select("*").eq("user_id", userId);
     // gte (not gt) so rows sharing the cursor's timestamp are never missed; merge is idempotent.
     if (since) query = query.gte("updated_at", since);
