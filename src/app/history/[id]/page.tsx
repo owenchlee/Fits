@@ -38,7 +38,7 @@ export default function WorkoutDetailPage() {
   if (!workout) return <div className="py-16 text-center text-sm text-muted-foreground">Loading…</div>;
 
   const exerciseById = new Map((exercises ?? []).filter((e) => !!e).map((e) => [e!.id, e!]));
-  const durationMin = workout.completedAt ? Math.round((workout.completedAt - workout.startedAt) / 60000) : 0;
+  const durationMin = workout.completedAt ? Math.max(0, Math.round((workout.completedAt - workout.startedAt) / 60000)) : 0;
   const volumeKg = sets
     .filter((s) => !s.isWarmup)
     .reduce((sum, s) => sum + toTotalLoadKg(s.weightKg, exerciseById.get(s.exerciseId)) * s.reps, 0);
