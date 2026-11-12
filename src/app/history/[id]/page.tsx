@@ -4,7 +4,8 @@ import * as React from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useLiveQuery } from "dexie-react-hooks";
-import { CaretLeft, Trash } from "@phosphor-icons/react/dist/ssr";
+import { Barbell, CaretLeft, Trash } from "@phosphor-icons/react/dist/ssr";
+import { EmptyState } from "@/components/shared/empty-state";
 import { db } from "@/lib/db/db";
 import { useSettings, useWorkoutSets } from "@/lib/db/hooks";
 import { deleteWorkout, updateSet } from "@/lib/db/repo";
@@ -28,13 +29,28 @@ export default function WorkoutDetailPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
   const settings = useSettings();
-  const workout = useLiveQuery(() => db.workouts.get(params.id), [params.id]);
+  // null = confirmed missing, undefined = still loading
+  const workout = useLiveQuery(async () => (await db.workouts.get(params.id)) ?? null, [params.id]);
   const sets = useWorkoutSets(params.id);
   const exercises = useLiveQuery(
     () => db.exercises.bulkGet(workout?.exerciseOrder ?? []),
     [workout]
   );
 
+  if (workout === null) {
+    return (
+      <EmptyState
+        icon={Barbell}
+        title="Workout not found"
+        description="This workout no longer exists. It may have been deleted."
+        action={
+          <Link href="/statistics?tab=history" className="text-sm font-medium text-primary">
+            Back to history
+          </Link>
+        }
+      />
+    );
+  }
   if (!workout) return <div className="py-16 text-center text-sm text-muted-foreground">Loading…</div>;
 
   const exerciseById = new Map((exercises ?? []).filter((e) => !!e).map((e) => [e!.id, e!]));
