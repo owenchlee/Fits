@@ -1,4 +1,4 @@
-export interface PlateBreakdown {
+interface PlateBreakdown {
   perSide: number[];
   reachable: boolean;
   actualWeight: number;

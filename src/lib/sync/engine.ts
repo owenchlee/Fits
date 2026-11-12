@@ -104,7 +104,7 @@ async function mergeRow(table: SyncTable, row: never) {
   await db.table(table).put(FROM_ROW[table](row));
 }
 
-export async function pullAll(supabase: Client, userId: string) {
+async function pullAll(supabase: Client, userId: string) {
   const { data: profile } = await supabase.from("profiles").select("*").eq("id", userId).single();
   if (profile) {
     const local = await db.settings.get("singleton");
