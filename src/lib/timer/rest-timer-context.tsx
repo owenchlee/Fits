@@ -58,6 +58,8 @@ export function RestTimerProvider({ children }: { children: React.ReactNode }) {
   // when `setInterval` is throttled or fully suspended while the tab/app is backgrounded —
   // a foreground tick or resume event just recomputes from this instead of losing time.
   const endAtRef = React.useRef<number | null>(null);
+  // Exact ms left while paused (null when not paused), so pause/resume and +/-15 never round.
+  const pausedMsRef = React.useRef<number | null>(null);
 
   const tick = React.useCallback(() => {
     setState((s) => {
@@ -78,7 +80,7 @@ export function RestTimerProvider({ children }: { children: React.ReactNode }) {
 
   React.useEffect(() => {
     if (!state.isRunning) return;
-    const id = setInterval(tick, 1000);
+    const id = setInterval(tick, 100); // sub-second so expiry lands on the deadline, not up to 1 s late
     return () => clearInterval(id);
   }, [state.isRunning, tick]);
 
@@ -107,6 +109,7 @@ export function RestTimerProvider({ children }: { children: React.ReactNode }) {
 
   const start = React.useCallback((seconds: number, label?: string) => {
     hasFiredRef.current = false;
+    pausedMsRef.current = null;
     endAtRef.current = Date.now() + seconds * 1000;
     setState({ label: label ?? null, totalSeconds: seconds, secondsLeft: seconds, isRunning: true });
   }, []);
@@ -114,17 +117,18 @@ export function RestTimerProvider({ children }: { children: React.ReactNode }) {
   const pause = React.useCallback(() => {
     setState((s) => {
       if (!s.isRunning) return s;
-      const remaining =
-        endAtRef.current !== null ? Math.max(0, Math.ceil((endAtRef.current - Date.now()) / 1000)) : s.secondsLeft;
+      const ms = endAtRef.current !== null ? Math.max(0, endAtRef.current - Date.now()) : s.secondsLeft * 1000;
       endAtRef.current = null;
-      return { ...s, secondsLeft: remaining, isRunning: false };
+      pausedMsRef.current = ms;
+      return { ...s, secondsLeft: Math.ceil(ms / 1000), isRunning: false };
     });
   }, []);
 
   const resume = React.useCallback(() => {
     setState((s) => {
       if (s.secondsLeft <= 0) return s;
-      endAtRef.current = Date.now() + s.secondsLeft * 1000;
+      endAtRef.current = Date.now() + (pausedMsRef.current ?? s.secondsLeft * 1000);
+      pausedMsRef.current = null;
       return { ...s, isRunning: true };
     });
   }, []);
@@ -133,6 +137,12 @@ export function RestTimerProvider({ children }: { children: React.ReactNode }) {
     setState((s) => {
       if (s.totalSeconds === 0) return s;
       hasFiredRef.current = false;
+      if (pausedMsRef.current !== null) {
+        const ms = Math.max(0, pausedMsRef.current + delta * 1000);
+        pausedMsRef.current = ms > 0 ? ms : null;
+        const left = Math.ceil(ms / 1000);
+        return { ...s, secondsLeft: left, totalSeconds: Math.max(s.totalSeconds, left) };
+      }
       const baseRemaining =
         s.isRunning && endAtRef.current !== null
           ? Math.max(0, Math.ceil((endAtRef.current - Date.now()) / 1000))
@@ -146,6 +156,7 @@ export function RestTimerProvider({ children }: { children: React.ReactNode }) {
 
   const stop = React.useCallback(() => {
     endAtRef.current = null;
+    pausedMsRef.current = null;
     setState({ label: null, totalSeconds: 0, secondsLeft: 0, isRunning: false });
   }, []);
 
