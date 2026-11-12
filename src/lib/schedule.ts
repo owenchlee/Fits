@@ -8,15 +8,20 @@ import type { Program } from "@/lib/db/types";
  * Schedules saved before cycles existed have no `cycleStartDate`; those fall back to the
  * original Monday-first weekly reading so they keep working unchanged.
  */
+// A slot naming a day that no longer exists is a rest day.
+function validSlot(p: Pick<Program, "days">, v: number | null | undefined): number | null {
+  return v != null && v >= 0 && v < (p.days.length) ? v : null;
+}
+
 export function scheduledDayIndexFor(
-  program: Pick<Program, "schedule" | "cycleStartDate">,
+  program: Pick<Program, "schedule" | "cycleStartDate" | "days">,
   date: Date
 ): number | null | undefined {
   const { schedule, cycleStartDate } = program;
   if (!schedule || schedule.length === 0) return undefined;
-  if (!cycleStartDate) return schedule[mondayIndex(date)] ?? null;
+  if (!cycleStartDate) return validSlot(program, schedule[mondayIndex(date)]);
 
   const offset = daysBetween(parseDateKey(cycleStartDate), date);
   const i = ((offset % schedule.length) + schedule.length) % schedule.length;
-  return schedule[i] ?? null;
+  return validSlot(program, schedule[i]);
 }

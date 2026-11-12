@@ -99,6 +99,7 @@ export default function CalendarPage() {
   }
 
   async function setCycleStart(value: string) {
+    if (!value) return; // cleared input: keep the existing cycle start
     await updateProgram(activeProgram!.id, { cycleStartDate: value });
   }
 
