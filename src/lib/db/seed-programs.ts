@@ -1,4 +1,4 @@
-export interface SeedProgramExercise {
+interface SeedProgramExercise {
   exerciseName: string;
   targetSets: number;
   targetReps: string;
@@ -6,12 +6,12 @@ export interface SeedProgramExercise {
   restSeconds: number;
 }
 
-export interface SeedProgramDay {
+interface SeedProgramDay {
   name: string;
   exercises: SeedProgramExercise[];
 }
 
-export interface SeedProgram {
+interface SeedProgram {
   name: string;
   description: string;
   author: string;
