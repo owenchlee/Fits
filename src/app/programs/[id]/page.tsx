@@ -7,11 +7,12 @@ import { useLiveQuery } from "dexie-react-hooks";
 import { Reorder, useDragControls } from "framer-motion";
 import { CaretLeft, DotsSixVertical, EyeSlash, PlayCircle, Plus, Trash, X } from "@phosphor-icons/react/dist/ssr";
 import { db } from "@/lib/db/db";
-import { useActiveWorkout, useProgram, useSettings } from "@/lib/db/hooks";
+import { useActiveWorkout, useSettings } from "@/lib/db/hooks";
 import { deleteProgram, hideProgram, setActiveProgram, startWorkout, updateProgram } from "@/lib/db/repo";
 import { generateId } from "@/lib/id";
 import { ExercisePicker } from "@/components/shared/exercise-picker";
 import type { Program, ProgramDay, ProgramExercise } from "@/lib/db/types";
+import { EmptyState } from "@/components/shared/empty-state";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -153,7 +154,7 @@ function EditableDayCard({
 export default function ProgramDetailPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
-  const program = useProgram(params.id);
+  const program = useLiveQuery(async () => (await db.programs.get(params.id)) ?? null, [params.id]);
   const settings = useSettings();
   const activeWorkout = useActiveWorkout();
 
@@ -179,6 +180,20 @@ export default function ProgramDetailPage() {
     };
   }, []);
 
+  if (program === null) {
+    return (
+      <EmptyState
+        icon={PlayCircle}
+        title="Program not found"
+        description="This program no longer exists. It may have been deleted."
+        action={
+          <Link href="/programs" className="text-sm font-medium text-primary">
+            Back to programs
+          </Link>
+        }
+      />
+    );
+  }
   if (!program) {
     return <div className="py-16 text-center text-sm text-muted-foreground">Loading…</div>;
   }
