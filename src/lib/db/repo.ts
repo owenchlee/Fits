@@ -74,7 +74,7 @@ export async function restoreProgram(id: string) {
   await updateSettings({ hiddenProgramIds: hidden.filter((h) => h !== id) });
 }
 
-export async function getSettings(): Promise<AppSettings> {
+async function getSettings(): Promise<AppSettings> {
   const settings = await db.settings.get("singleton");
   if (settings) return settings;
   const defaults: AppSettings = {
@@ -160,14 +160,10 @@ export async function setActiveProgram(programId: string | undefined) {
   await updateSettings({ activeProgramId: programId, activeProgramDayIndex: 0 });
 }
 
-export async function advanceProgramDay(totalDays: number) {
+async function advanceProgramDay(totalDays: number) {
   const settings = await getSettings();
   const next = ((settings.activeProgramDayIndex ?? 0) + 1) % Math.max(totalDays, 1);
   await updateSettings({ activeProgramDayIndex: next });
-}
-
-export async function getActiveWorkout(): Promise<Workout | undefined> {
-  return db.workouts.filter((w) => !w.completedAt).first();
 }
 
 export async function discardWorkout(workoutId: string) {
@@ -281,12 +277,6 @@ export async function logBodyMetric(metric: Omit<BodyMetric, "id" | "updatedAt">
 export async function deleteBodyMetric(id: string) {
   await db.bodyMetrics.delete(id);
   await enqueueSync("bodyMetrics", "delete", id);
-}
-
-export async function getWorkoutsInRange(startMs: number, endMs: number): Promise<Workout[]> {
-  return db.workouts
-    .filter((w) => (w.completedAt ?? w.startedAt) >= startMs && (w.completedAt ?? w.startedAt) <= endMs)
-    .toArray();
 }
 
 /** Workouts that were actually finished — in-progress and discarded sessions don't count toward stats. */
