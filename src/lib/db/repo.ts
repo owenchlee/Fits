@@ -50,6 +50,24 @@ export async function createCustomProgram(data: {
 }
 
 export async function updateProgram(id: string, patch: Partial<Program>) {
+  const old = patch.days ? await db.programs.get(id) : undefined;
+  if (old && patch.days) {
+    // Days may have been removed or reordered: re-point schedule slots and the next-day pointer by day id.
+    const newDays = patch.days;
+    const remap = (i: number) => {
+      const at = newDays.findIndex((d) => d.id === old.days[i]?.id);
+      return at >= 0 ? at : null;
+    };
+    if (patch.schedule === undefined && old.schedule) {
+      patch = { ...patch, schedule: old.schedule.map((s) => (s === null ? null : remap(s))) };
+    }
+    const settings = await getSettings();
+    if (settings.activeProgramId === id) {
+      const cur = settings.activeProgramDayIndex ?? 0;
+      const next = remap(cur) ?? Math.min(cur, Math.max(newDays.length - 1, 0));
+      if (next !== cur) await updateSettings({ activeProgramDayIndex: next });
+    }
+  }
   await db.programs.update(id, { ...patch, updatedAt: Date.now() });
   await enqueueSync("programs", "upsert", id);
 }
@@ -160,9 +178,9 @@ export async function setActiveProgram(programId: string | undefined) {
   await updateSettings({ activeProgramId: programId, activeProgramDayIndex: 0 });
 }
 
-export async function advanceProgramDay(totalDays: number) {
+export async function advanceProgramDay(totalDays: number, fromIndex?: number) {
   const settings = await getSettings();
-  const next = ((settings.activeProgramDayIndex ?? 0) + 1) % Math.max(totalDays, 1);
+  const next = ((fromIndex ?? settings.activeProgramDayIndex ?? 0) + 1) % Math.max(totalDays, 1);
   await updateSettings({ activeProgramDayIndex: next });
 }
 
@@ -193,7 +211,8 @@ export async function completeWorkout(workoutId: string) {
   if (workout?.programId && settings.activeProgramId === workout.programId) {
     const program = await db.programs.get(workout.programId);
     if (program && !program.schedule) {
-      await advanceProgramDay(program.days.length);
+      const done = program.days.findIndex((d) => d.name === workout.programDayName);
+      await advanceProgramDay(program.days.length, done >= 0 ? done : undefined);
     }
   }
 
