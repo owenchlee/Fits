@@ -1,4 +1,5 @@
-import { createBrowserClient } from "@supabase/ssr";
+import { combineChunks, createBrowserClient, stringFromBase64URL } from "@supabase/ssr";
+import type { Session } from "@supabase/supabase-js";
 import { Capacitor } from "@capacitor/core";
 import { Preferences } from "@capacitor/preferences";
 import type { Database } from "./types";
@@ -29,4 +30,35 @@ export function createClient() {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     Capacitor.isNativePlatform() ? { auth: { storage: nativeStorageAdapter } } : undefined
   );
+}
+
+/**
+ * Reads the saved session straight from storage without validating or refreshing it, so the UI can
+ * open instantly while supabase-js refreshes an expired token over a slow or missing connection.
+ */
+export async function readStoredSession(): Promise<Session | null> {
+  try {
+    let raw: string | null | undefined;
+    if (Capacitor.isNativePlatform()) {
+      const { keys } = await Preferences.keys();
+      const key = keys.find((k) => /^sb-.+-auth-token$/.test(k));
+      raw = key ? (await Preferences.get({ key })).value : null;
+    } else {
+      const jar = new Map(
+        document.cookie
+          .split("; ")
+          .filter(Boolean)
+          .map((c) => [c.slice(0, c.indexOf("=")), decodeURIComponent(c.slice(c.indexOf("=") + 1))] as const)
+      );
+      const base = [...jar.keys()]
+        .map((k) => k.match(/^(sb-.+-auth-token)(\.\d+)?$/)?.[1])
+        .find(Boolean);
+      raw = base ? await combineChunks(base, (name) => jar.get(name)) : null;
+      if (raw?.startsWith("base64-")) raw = stringFromBase64URL(raw.slice(7));
+    }
+    const session = raw ? (JSON.parse(raw) as Session) : null;
+    return session?.access_token && session.refresh_token && session.user ? session : null;
+  } catch {
+    return null;
+  }
 }
