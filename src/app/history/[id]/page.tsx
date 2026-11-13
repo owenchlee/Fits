@@ -145,14 +145,14 @@ function EditableSetRow({ set, index, unit }: { set: SetEntry; index: number; un
     const cleaned = sanitizeDecimalInput(value);
     setWeightStr(cleaned);
     const n = parseFloat(cleaned);
-    if (!Number.isNaN(n) && n >= 0) void updateSet(set.id, { weightKg: fromDisplayWeight(n, unit) });
+    void updateSet(set.id, { weightKg: Number.isNaN(n) ? 0 : fromDisplayWeight(n, unit) });
   }
 
   function commitReps(value: string) {
     const cleaned = sanitizeIntegerInput(value);
     setRepsStr(cleaned);
     const n = parseInt(cleaned, 10);
-    if (!Number.isNaN(n) && n >= 0) void updateSet(set.id, { reps: n });
+    void updateSet(set.id, { reps: Number.isNaN(n) ? 0 : n });
   }
 
   return (
