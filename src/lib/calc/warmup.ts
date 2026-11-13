@@ -1,5 +1,6 @@
 import type { SetEntry, UnitSystem } from "@/lib/db/types";
 import { kgToLb, lbToKg } from "@/lib/calc/units";
+import { PLATE_PRESETS } from "@/lib/calc/plate-presets";
 
 /**
  * Estimate a warm-up set (weight + reps) from the lifter's most recent working sets
@@ -10,7 +11,8 @@ import { kgToLb, lbToKg } from "@/lib/calc/units";
  */
 export function calculateWarmupSet(
   previousSets: SetEntry[],
-  unit: UnitSystem = "kg"
+  unit: UnitSystem = "kg",
+  equipment?: string
 ): { weightKg: number; reps: number } | null {
   const working = previousSets.filter((s) => !s.isWarmup && s.weightKg > 0 && s.reps > 0);
   if (working.length === 0) return null;
@@ -19,7 +21,8 @@ export function calculateWarmupSet(
   const rawDisplay = unit === "kg" ? topSet.weightKg * 0.5 : kgToLb(topSet.weightKg) * 0.5;
 
   const increment = unit === "kg" ? 2.5 : 5;
-  const floor = 2.5;
+  // A barbell warm-up never goes below the empty bar.
+  const floor = equipment === "barbell" ? PLATE_PRESETS[unit].bar : 2.5;
   const roundedDisplay = Math.max(Math.round(rawDisplay / increment) * increment, floor);
 
   const weightKg = unit === "kg" ? roundedDisplay : lbToKg(roundedDisplay);

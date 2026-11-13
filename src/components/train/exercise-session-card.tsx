@@ -49,11 +49,11 @@ export function ExerciseSessionCard({
   const bestThisSession = sets
     .filter((s) => !s.isWarmup)
     .reduce((max, s) => Math.max(max, estimateOneRepMax(s.weightKg, s.reps)), 0);
-  const recommendedWarmup = previousSets ? calculateWarmupSet(previousSets, unit) : null;
+  const recommendedWarmup = previousSets ? calculateWarmupSet(previousSets, unit, exercise?.equipment) : null;
   const hasWarmupSet = sets.some((s) => s.isWarmup);
 
   async function initializeSets() {
-    const warmup = previousSets ? calculateWarmupSet(previousSets, unit) : null;
+    const warmup = previousSets ? calculateWarmupSet(previousSets, unit, exercise?.equipment) : null;
     if (warmup) {
       await addSet({ workoutId, exerciseId, weightKg: warmup.weightKg, reps: warmup.reps, isWarmup: true });
     }

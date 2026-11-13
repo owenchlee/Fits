@@ -41,7 +41,7 @@ export function PlateCalculatorPopover({ weight, unit }: { weight: number; unit:
             ))}
           </div>
         )}
-        {!result.reachable && (
+        {weight > 0 && !result.reachable && (
           <p className="mt-2 text-xs text-destructive">Can&apos;t hit this exactly with available plates.</p>
         )}
         <p className="mt-2 text-xs text-muted-foreground">
