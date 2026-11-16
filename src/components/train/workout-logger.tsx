@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useLiveQuery } from "dexie-react-hooks";
 import { db } from "@/lib/db/db";
 import { useSettings, useWorkoutSets } from "@/lib/db/hooks";
@@ -15,13 +16,27 @@ import { EmptyState } from "@/components/shared/empty-state";
 
 export function WorkoutLogger({ workoutId }: { workoutId: string }) {
   const settings = useSettings();
-  const workout = useLiveQuery(() => db.workouts.get(workoutId), [workoutId]);
+  const workout = useLiveQuery(async () => (await db.workouts.get(workoutId)) ?? null, [workoutId]);
   const program = useLiveQuery(
     () => (workout?.programId ? db.programs.get(workout.programId) : undefined),
     [workout?.programId]
   );
   const sets = useWorkoutSets(workoutId);
 
+  if (workout === null) {
+    return (
+      <EmptyState
+        icon={Barbell}
+        title="Workout not found"
+        description="This workout no longer exists. It may have been discarded or deleted."
+        action={
+          <Link href="/train" className="text-sm font-medium text-primary">
+            Back to train
+          </Link>
+        }
+      />
+    );
+  }
   if (!workout) {
     return (
       <div className="flex h-64 items-center justify-center text-sm text-muted-foreground">

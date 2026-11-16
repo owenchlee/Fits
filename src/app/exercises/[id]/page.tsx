@@ -10,6 +10,7 @@ import { estimateOneRepMax } from "@/lib/calc/one-rep-max";
 import { isLoggedSet, toTotalLoadKg } from "@/lib/calc/load";
 import { formatWeight, toDisplayWeight } from "@/lib/calc/units";
 import { calculateExercisePercentile } from "@/lib/calc/strength-standards";
+import { EmptyState } from "@/components/shared/empty-state";
 import { StatCard } from "@/components/shared/stat-card";
 import { TrendChart, type TrendPoint } from "@/components/charts/trend-chart";
 import { LiftPercentileRow } from "@/components/percentile/lift-percentile-row";
@@ -18,12 +19,26 @@ import { Trophy, Barbell, ChartLineUp } from "@phosphor-icons/react/dist/ssr";
 export default function ExerciseDetailPage() {
   const params = useParams<{ id: string }>();
   const settings = useSettings();
-  const exercise = useLiveQuery(() => db.exercises.get(params.id), [params.id]);
+  const exercise = useLiveQuery(async () => (await db.exercises.get(params.id)) ?? null, [params.id]);
   const sets = useLiveQuery(
     () => db.sets.where("exerciseId").equals(params.id).sortBy("completedAt"),
     [params.id]
   );
 
+  if (exercise === null) {
+    return (
+      <EmptyState
+        icon={Barbell}
+        title="Exercise not found"
+        description="This exercise no longer exists. It may have been deleted."
+        action={
+          <Link href="/exercises" className="text-sm font-medium text-primary">
+            Back to exercises
+          </Link>
+        }
+      />
+    );
+  }
   if (!exercise) return <div className="py-16 text-center text-sm text-muted-foreground">Loading…</div>;
 
   const workingSets = (sets ?? []).filter((s) => !s.isWarmup && isLoggedSet(s, exercise));
