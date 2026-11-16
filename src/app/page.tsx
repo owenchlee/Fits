@@ -6,7 +6,7 @@ import { useLiveQuery } from "dexie-react-hooks";
 import { Flame, ArrowRight, Barbell, ClipboardText, Trophy, Plus } from "@phosphor-icons/react/dist/ssr";
 import { db } from "@/lib/db/db";
 import { useActiveWorkout, useProgram, useSettings } from "@/lib/db/hooks";
-import { startWorkout, getCompletedSets, getCompletedWorkouts } from "@/lib/db/repo";
+import { startWorkout } from "@/lib/db/repo";
 import { scheduledDayIndexFor } from "@/lib/schedule";
 import { estimateOneRepMax } from "@/lib/calc/one-rep-max";
 import { toTotalLoadKg } from "@/lib/calc/load";
@@ -19,14 +19,18 @@ import { Button } from "@/components/ui/button";
 function useWeeklyStats() {
   return useLiveQuery(async () => {
     const weekAgo = Date.now() - 7 * 86400000;
-    const [completedSets, completedWorkouts] = await Promise.all([getCompletedSets(), getCompletedWorkouts()]);
-    const workoutsThisWeek = completedWorkouts.filter((w) => w.completedAt! >= weekAgo);
-    const workoutIdsThisWeek = new Set(workoutsThisWeek.map((w) => w.id));
-    const sets = completedSets.filter((s) => workoutIdsThisWeek.has(s.workoutId) && !s.isWarmup);
+    // completedAt is only set on finished workouts, so index ranges replace full-table scans.
+    const [totalWorkouts, workoutsThisWeek] = await Promise.all([
+      db.workouts.where("completedAt").above(0).count(),
+      db.workouts.where("completedAt").aboveOrEqual(weekAgo).toArray(),
+    ]);
+    const sets = (await db.sets.where("workoutId").anyOf(workoutsThisWeek.map((w) => w.id)).toArray()).filter(
+      (s) => !s.isWarmup,
+    );
     const exercises = await db.exercises.bulkGet(Array.from(new Set(sets.map((s) => s.exerciseId))));
     const exerciseById = new Map(exercises.filter((e) => !!e).map((e) => [e!.id, e!]));
     const volumeKg = sets.reduce((sum, s) => sum + toTotalLoadKg(s.weightKg, exerciseById.get(s.exerciseId)) * s.reps, 0);
-    return { volumeKg, workoutsThisWeek: workoutsThisWeek.length, totalWorkouts: completedWorkouts.length };
+    return { volumeKg, workoutsThisWeek: workoutsThisWeek.length, totalWorkouts };
   }, []);
 }
 

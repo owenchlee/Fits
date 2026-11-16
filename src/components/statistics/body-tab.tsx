@@ -22,6 +22,9 @@ import {
 
 const MEASUREMENT_FIELDS = ["chest", "waist", "hips", "thigh", "arm", "calf", "shoulders"] as const;
 
+const shortDayFmt = new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric" });
+const fullDayFmt = new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric", year: "numeric" });
+
 export function BodyTab() {
   const settings = useSettings();
   const metrics = useBodyMetrics();
@@ -36,7 +39,7 @@ export function BodyTab() {
     .map((m) => ({
       date: new Date(m.date).toISOString(),
       value: Math.round(toDisplayWeight(m.weightKg!, settings.unitSystem) * 10) / 10,
-      label: new Date(m.date).toLocaleDateString(undefined, { month: "short", day: "numeric" }),
+      label: shortDayFmt.format(m.date),
     }));
 
   async function handleSave() {
@@ -141,7 +144,7 @@ export function BodyTab() {
             <div key={m.id} className="flex items-center justify-between rounded-xl border border-border bg-card px-4 py-3">
               <div>
                 <p className="text-sm font-medium">
-                  {new Date(m.date).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}
+                  {fullDayFmt.format(m.date)}
                 </p>
                 <p className="text-xs text-muted-foreground">
                   {m.weightKg && formatWeight(m.weightKg, settings.unitSystem)}
