@@ -39,9 +39,9 @@ async function seedInTransaction() {
   const existingProgramIds = new Set(await db.programs.toCollection().primaryKeys());
   const now = Date.now();
   const programs: Program[] = seedPrograms
-    .filter((p) => !existingProgramIds.has(slugId("prog", p.name)))
+    .filter((p) => !existingProgramIds.has(slugId("prog", p.idName ?? p.name)))
     .map((p) => ({
-      id: slugId("prog", p.name),
+      id: slugId("prog", p.idName ?? p.name),
       name: p.name,
       description: p.description,
       author: p.author,
@@ -49,7 +49,7 @@ async function seedInTransaction() {
       isCustom: false,
       updatedAt: now,
       days: p.days.map((day) => ({
-        id: slugId("day", `${p.name}-${day.name}`),
+        id: slugId("day", `${p.idName ?? p.name}-${day.name}`),
         name: day.name,
         exercises: day.exercises
           .map((ex) => {
@@ -67,6 +67,8 @@ async function seedInTransaction() {
       })),
     }));
   if (programs.length > 0) await db.programs.bulkAdd(programs);
+  // Renamed built-ins (trademark cleanup) keep their ids; refresh the visible text on existing copies.
+  await backfillBuiltInProgramText();
 
   const settings = await db.settings.get("singleton");
   if (!settings) {
@@ -151,4 +153,21 @@ async function backfillBuiltInExercises(exercisesByName: Map<string, Exercise>) 
     }
   }
   if (updates.length > 0) await db.exercises.bulkPut(updates);
+}
+
+/**
+ * Programs, like exercises, only bulkAdd once — so a built-in that was later renamed (e.g. to drop
+ * a third-party trademark) would keep its old name forever on already-seeded devices. Refresh the
+ * display text of built-ins by their stable id. Their days aren't touched: only the text changes,
+ * and the user's schedule/cycle settings live on the same row.
+ */
+async function backfillBuiltInProgramText() {
+  for (const seedProgram of seedPrograms) {
+    const id = slugId("prog", seedProgram.idName ?? seedProgram.name);
+    const current = await db.programs.get(id);
+    if (!current || current.isCustom) continue;
+    const { name, description, author } = seedProgram;
+    if (current.name === name && current.description === description && current.author === author) continue;
+    await db.programs.update(id, { name, description, author, updatedAt: Date.now() });
+  }
 }

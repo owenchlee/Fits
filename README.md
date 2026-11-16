@@ -10,7 +10,9 @@ Fits is a local-first strength training tracker. Workouts are logged and read st
 - **Body measurements** — track weight and body measurements over time.
 - **Calendar view** — see training history at a glance.
 - **Offline-first sync** — data lives in a local database first and syncs to Supabase when connected.
+- **No account required** — use Fits entirely on-device as a guest; create an account later to back up and sync.
 - **Native apps** — packaged for iOS and Android via Capacitor.
+- **Privacy & legal** — Terms, Privacy Policy, Consumer Health Data Policy, and license notices live under `src/app/{terms,privacy,health-data,licenses}`; shared facts (contact email, version of the terms) are in `src/lib/legal.ts`. Run `npm run licenses` after changing runtime dependencies. App Store launch steps: `docs/APP_STORE_SUBMISSION.md`.
 
 ## Tech stack
 

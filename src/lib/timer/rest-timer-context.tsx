@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { Capacitor } from "@capacitor/core";
+import { hapticSuccess } from "@/lib/native/haptics";
 
 type RestTimerState = {
   label: string | null;
@@ -43,7 +44,13 @@ function playChime() {
   } catch {
     // audio not available; ignore
   }
-  if (navigator.vibrate) navigator.vibrate([120, 60, 120]);
+  // iOS's WKWebView never implements the Vibration API, so navigator.vibrate is a silent no-op
+  // in the native app — Capacitor's native haptics is what actually buzzes the device there.
+  if (Capacitor.isNativePlatform()) {
+    void hapticSuccess();
+  } else if (navigator.vibrate) {
+    navigator.vibrate([120, 60, 120]);
+  }
 }
 
 export function RestTimerProvider({ children }: { children: React.ReactNode }) {

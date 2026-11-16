@@ -9,6 +9,7 @@ import { ElapsedTimer } from "@/components/train/elapsed-timer";
 import { ExerciseSessionCard } from "@/components/train/exercise-session-card";
 import { ExercisePicker } from "@/components/shared/exercise-picker";
 import { addExerciseToWorkout } from "@/lib/db/repo";
+import { isSetComplete } from "@/lib/calc/set-status";
 import { FinishWorkoutDialog } from "@/components/train/finish-workout-dialog";
 import { DiscardWorkoutButton } from "@/components/train/discard-workout-button";
 import { ManualTimerButton } from "@/components/train/manual-timer-button";
@@ -22,6 +23,7 @@ export function WorkoutLogger({ workoutId }: { workoutId: string }) {
     [workout?.programId]
   );
   const sets = useWorkoutSets(workoutId);
+  const exercises = useLiveQuery(() => db.exercises.bulkGet(workout?.exerciseOrder ?? []), [workout?.exerciseOrder]);
 
   if (workout === null) {
     return (
@@ -46,6 +48,18 @@ export function WorkoutLogger({ workoutId }: { workoutId: string }) {
   }
 
   const programDay = program?.days.find((d) => d.name === workout.programDayName);
+
+  /** The next exercise (after `index`, wrapping around) that still has unfinished working sets,
+   * so the rest timer's "Next:" skips exercises that were already done out of order. */
+  function nextUnfinishedExercise(index: number) {
+    const order = workout!.exerciseOrder;
+    for (let step = 1; step < order.length; step++) {
+      const id = order[(index + step) % order.length];
+      const working = sets.filter((s) => s.exerciseId === id && !s.isWarmup);
+      if (working.length === 0 || working.some((s) => !isSetComplete(s, exercises?.[(index + step) % order.length]))) return id;
+    }
+    return undefined;
+  }
 
   return (
     <div className="pb-24">
@@ -81,13 +95,14 @@ export function WorkoutLogger({ workoutId }: { workoutId: string }) {
         />
       ) : (
         <div className="space-y-4">
-          {workout.exerciseOrder.map((exerciseId) => {
+          {workout.exerciseOrder.map((exerciseId, i) => {
             const target = programDay?.exercises.find((e) => e.exerciseId === exerciseId);
             return (
               <ExerciseSessionCard
                 key={exerciseId}
                 workoutId={workoutId}
                 exerciseId={exerciseId}
+                nextExerciseId={nextUnfinishedExercise(i)}
                 targetSets={target?.targetSets}
                 targetReps={target?.targetReps}
                 restSeconds={target?.restSeconds ?? settings.defaultRestSeconds}

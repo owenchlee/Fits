@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { toDisplayWeight, fromDisplayWeight } from "@/lib/calc/units";
 import { sanitizeDecimalInput, sanitizeIntegerInput } from "@/lib/format";
+import { hapticLightTap } from "@/lib/native/haptics";
 import type { SetEntry, UnitSystem } from "@/lib/db/types";
 import { cn } from "@/lib/utils";
 
@@ -23,6 +24,8 @@ export function SetRow({
   index,
   unit,
   set,
+  complete,
+  showPlateCalculator = true,
   previous,
   onChange,
   onDelete,
@@ -30,6 +33,10 @@ export function SetRow({
   index: number;
   unit: UnitSystem;
   set: SetEntry;
+  /** Whether this set counts as logged (see isSetComplete) — drives the completion flash + haptic. */
+  complete: boolean;
+  /** Plate breakdown only makes sense for barbell lifts. */
+  showPlateCalculator?: boolean;
   previous?: { weightKg: number; reps: number };
   onChange: (patch: Partial<SetEntry>) => void;
   onDelete: () => void;
@@ -48,13 +55,14 @@ export function SetRow({
     setRepsStr(set.reps ? String(set.reps) : "");
   }
 
-  const isComplete = !set.isWarmup && set.weightKg > 0 && set.reps > 0;
+  const isComplete = complete;
   const wasComplete = React.useRef(isComplete);
   const [justCompleted, setJustCompleted] = React.useState(false);
 
   React.useEffect(() => {
     if (isComplete && !wasComplete.current) {
       setJustCompleted(true);
+      void hapticLightTap();
       const t = setTimeout(() => setJustCompleted(false), 550);
       wasComplete.current = isComplete;
       return () => clearTimeout(t);
@@ -72,8 +80,17 @@ export function SetRow({
   function commitReps(value: string) {
     const cleaned = sanitizeIntegerInput(value);
     setRepsStr(cleaned);
-    const n = parseInt(cleaned, 10);
-    onChange({ reps: Number.isNaN(n) ? 0 : n });
+    const parsed = parseInt(cleaned, 10);
+    // An emptied field saves 0 so the render-time sync above doesn't restore the old value.
+    const n = Number.isNaN(parsed) ? 0 : parsed;
+    // Most sessions only the reps change, so typing reps into a row with no weight yet carries
+    // last session's weight over — one number per set instead of two.
+    if (n > 0 && weightStr === "" && previous && previous.weightKg > 0) {
+      setWeightStr(String(round1(toDisplayWeight(previous.weightKg, unit))));
+      onChange({ reps: n, weightKg: previous.weightKg });
+      return;
+    }
+    onChange({ reps: n });
   }
 
   return (
@@ -116,7 +133,11 @@ export function SetRow({
         className="h-9 w-12 rounded-lg border border-transparent bg-secondary px-2 text-center text-sm font-medium tabular-nums placeholder:font-normal placeholder:text-muted-foreground focus:border-ring focus:bg-background focus:outline-none"
       />
 
-      <PlateCalculatorPopover weight={toDisplayWeight(set.weightKg, unit)} unit={unit} />
+      {showPlateCalculator ? (
+        <PlateCalculatorPopover weight={toDisplayWeight(set.weightKg, unit)} unit={unit} />
+      ) : (
+        <span className="size-8 shrink-0" aria-hidden />
+      )}
 
       <DropdownMenu>
         <DropdownMenuTrigger asChild>

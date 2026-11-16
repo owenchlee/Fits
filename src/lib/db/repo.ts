@@ -116,9 +116,6 @@ export async function updateSettings(patch: Partial<AppSettings>) {
   await enqueueSync("settings", "upsert", "singleton");
 }
 
-function todayKey(date = new Date()): string {
-  return dateKey(date);
-}
 
 export async function startWorkout(opts: {
   programId?: string;
@@ -199,10 +196,33 @@ export async function discardWorkout(workoutId: string) {
   await enqueueSync("workouts", "delete", workoutId);
 }
 
+/**
+ * Sets that were pre-filled as blanks (see ExerciseSessionCard) but never logged — no reps
+ * entered. Dropped when a workout is finished so history and stats only show what was done.
+ */
+export async function getUnloggedSets(workoutId: string): Promise<SetEntry[]> {
+  return db.sets
+    .where("workoutId")
+    .equals(workoutId)
+    .filter((s) => s.reps <= 0)
+    .toArray();
+}
+
 export async function completeWorkout(workoutId: string) {
   const workout = await db.workouts.get(workoutId);
-  if (workout?.completedAt) return;
-  await db.workouts.update(workoutId, { completedAt: Date.now(), updatedAt: Date.now() });
+  // Already finished (double tap, second tab): don't re-stamp, re-prune or advance the program twice.
+  if (!workout || workout.completedAt) return;
+
+  const unlogged = await getUnloggedSets(workoutId);
+  await db.sets.bulkDelete(unlogged.map((s) => s.id));
+  for (const s of unlogged) await enqueueSync("sets", "delete", s.id);
+  // Exercises added but never logged would otherwise show up in history as empty cards.
+  const loggedExerciseIds = new Set(
+    (await db.sets.where("workoutId").equals(workoutId).toArray()).map((s) => s.exerciseId)
+  );
+  const exerciseOrder = workout.exerciseOrder.filter((id) => loggedExerciseIds.has(id));
+
+  await db.workouts.update(workoutId, { completedAt: Date.now(), exerciseOrder, updatedAt: Date.now() });
   // The outbox write and the snapshot touch different tables, so run them together.
   await Promise.all([enqueueSync("workouts", "upsert", workoutId), recordPercentileSnapshot()]);
 
@@ -210,7 +230,7 @@ export async function completeWorkout(workoutId: string) {
 
   // Sequential programs (no cycle schedule) advance to the next day automatically.
   // Scheduled programs derive "today's day" from the cycle instead, so no index to advance.
-  if (workout?.programId && settings.activeProgramId === workout.programId) {
+  if (workout.programId && settings.activeProgramId === workout.programId) {
     const program = await db.programs.get(workout.programId);
     if (program && !program.schedule) {
       const done = program.days.findIndex((d) => d.name === workout.programDayName);
@@ -218,8 +238,9 @@ export async function completeWorkout(workoutId: string) {
     }
   }
 
-  const today = todayKey();
-  const yesterday = todayKey(addDays(new Date(), -1));
+  // Local calendar days — a 9pm workout in New York belongs to today, not tomorrow's UTC date.
+  const today = dateKey(new Date());
+  const yesterday = dateKey(addDays(new Date(), -1));
 
   if (settings.lastWorkoutDate === today) {
     // already counted today
@@ -328,21 +349,27 @@ export async function getCompletedSets(): Promise<SetEntry[]> {
 }
 
 export async function exportAllData() {
-  const [exercises, programs, workouts, sets, bodyMetrics, settings] = await Promise.all([
+  const [exercises, programs, workouts, sets, bodyMetrics, percentileSnapshots, settings] = await Promise.all([
     db.exercises.toArray(),
     db.programs.toArray(),
     db.workouts.toArray(),
     db.sets.toArray(),
     db.bodyMetrics.toArray(),
+    db.percentileSnapshots.toArray(),
     getSettings(),
   ]);
   return {
+    app: "Fits",
+    exportVersion: 1,
     exportedAt: new Date().toISOString(),
+    /** Weights are always stored in kilograms, regardless of the display unit in settings. */
+    weightUnit: "kg",
     exercises,
     programs,
     workouts,
     sets,
     bodyMetrics,
+    percentileSnapshots,
     settings,
   };
 }

@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { Trash } from "@phosphor-icons/react/dist/ssr";
 import { discardWorkout } from "@/lib/db/repo";
+import { useRestTimer } from "@/lib/timer/rest-timer-context";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -17,6 +18,7 @@ import {
 
 export function DiscardWorkoutButton({ workoutId }: { workoutId: string }) {
   const router = useRouter();
+  const restTimer = useRestTimer();
 
   return (
     <AlertDialog>
@@ -41,6 +43,7 @@ export function DiscardWorkoutButton({ workoutId }: { workoutId: string }) {
             className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             onClick={async () => {
               await discardWorkout(workoutId);
+              restTimer.stop();
               router.push("/");
             }}
           >

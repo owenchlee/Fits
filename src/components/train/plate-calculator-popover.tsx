@@ -16,7 +16,7 @@ export function PlateCalculatorPopover({ weight, unit }: { weight: number; unit:
         <button
           type="button"
           aria-label="Show plate breakdown"
-          className="flex size-8 shrink-0 items-center justify-center rounded-lg text-muted-foreground hover:bg-secondary hover:text-foreground"
+          className="relative flex size-8 shrink-0 items-center justify-center rounded-lg text-muted-foreground hit-slop-44 hover:bg-secondary hover:text-foreground"
         >
           <Rows size={16} />
         </button>
