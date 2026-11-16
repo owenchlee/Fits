@@ -150,6 +150,7 @@ export default function CalendarPage() {
                   {i + 1}
                 </span>
                 <select
+                  aria-label={`Day ${i + 1} workout`}
                   value={slot ?? "rest"}
                   onChange={(e) => setSlot(i, e.target.value === "rest" ? null : Number(e.target.value))}
                   className="h-9 flex-1 appearance-none rounded-lg border border-input bg-secondary px-2 text-sm focus:border-ring focus:outline-none"

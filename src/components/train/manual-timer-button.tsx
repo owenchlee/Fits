@@ -29,7 +29,7 @@ export function ManualTimerButton() {
           <Timer size={18} weight={active ? "fill" : "regular"} />
         </button>
       </PopoverTrigger>
-      <PopoverContent className="w-56" align="end">
+      <PopoverContent className="w-56" align="end" aria-label="Start rest timer">
         <p className="text-xs font-medium text-muted-foreground">Start rest timer</p>
         <div className="mt-1.5 grid grid-cols-3 gap-1.5">
           {PRESETS.map((seconds) => (

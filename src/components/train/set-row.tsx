@@ -120,14 +120,18 @@ export function SetRow({
           </button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
-          <div className="px-2 py-1.5">
-            <p className="mb-1.5 text-xs font-medium text-muted-foreground">RPE</p>
+          <div role="group" aria-label="RPE" className="px-2 py-1.5">
+            <p aria-hidden="true" className="mb-1.5 text-xs font-medium text-muted-foreground">RPE</p>
             <div className="flex flex-wrap gap-1">
               {RPE_OPTIONS.map((v) => (
-                <button
+                <DropdownMenuItem
                   key={v}
-                  type="button"
-                  onClick={() => onChange({ rpe: v === "—" ? undefined : parseFloat(v) })}
+                  role="menuitemradio"
+                  aria-checked={(set.rpe ? String(set.rpe) : "—") === v}
+                  onSelect={(e) => {
+                    e.preventDefault(); // keep menu open like before
+                    onChange({ rpe: v === "—" ? undefined : parseFloat(v) });
+                  }}
                   className={cn(
                     "rounded-md px-1.5 py-1 text-xs tabular-nums",
                     (set.rpe ? String(set.rpe) : "—") === v
@@ -136,7 +140,7 @@ export function SetRow({
                   )}
                 >
                   {v}
-                </button>
+                </DropdownMenuItem>
               ))}
             </div>
           </div>

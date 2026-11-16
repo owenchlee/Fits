@@ -21,7 +21,7 @@ export function PlateCalculatorPopover({ weight, unit }: { weight: number; unit:
           <Rows size={16} />
         </button>
       </PopoverTrigger>
-      <PopoverContent className="w-56" align="end">
+      <PopoverContent className="w-56" align="end" aria-label="Plate breakdown">
         <p className="text-xs font-medium text-muted-foreground">
           Per side · {preset.bar}
           {unit} bar
