@@ -1,3 +1,4 @@
+import { dateKey, parseDateKey } from "@/lib/date";
 import type { Database } from "@/lib/supabase/types";
 import type { AppSettings, BodyMetric, Exercise, PercentileSnapshot, Program, SetEntry, Workout } from "@/lib/db/types";
 
@@ -170,7 +171,7 @@ export function bodyMetricToRow(
   return {
     id: b.id,
     user_id: userId,
-    date: new Date(b.date).toISOString().slice(0, 10),
+    date: dateKey(new Date(b.date)),
     weight_kg: b.weightKg ?? null,
     body_fat_pct: b.bodyFatPct ?? null,
     measurements: b.measurements ?? null,
@@ -181,7 +182,7 @@ export function bodyMetricToRow(
 export function rowToBodyMetric(r: Database["public"]["Tables"]["body_metrics"]["Row"]): BodyMetric {
   return {
     id: r.id,
-    date: new Date(r.date).getTime(),
+    date: parseDateKey(r.date.slice(0, 10)).getTime(),
     weightKg: r.weight_kg ?? undefined,
     bodyFatPct: r.body_fat_pct ?? undefined,
     measurements: (r.measurements as BodyMetric["measurements"]) ?? undefined,

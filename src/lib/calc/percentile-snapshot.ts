@@ -2,6 +2,7 @@ import { db } from "@/lib/db/db";
 import { estimateOneRepMax } from "@/lib/calc/one-rep-max";
 import { toTotalLoadKg } from "@/lib/calc/load";
 import { calculateExercisePercentile, totalToPercentile, type StandardLift } from "@/lib/calc/strength-standards";
+import { dateKey } from "@/lib/date";
 import { enqueueSync } from "@/lib/sync/outbox";
 
 const BIG_THREE: StandardLift[] = ["squat", "bench", "deadlift"];
@@ -39,7 +40,7 @@ export async function recordPercentileSnapshot() {
 
   if (overallPercentile === null && Object.keys(perLift).length === 0) return;
 
-  const date = new Date().toISOString().slice(0, 10);
+  const date = dateKey(new Date());
   await db.percentileSnapshots.put({
     id: date,
     date,
