@@ -63,6 +63,7 @@ test("calculateLiftPercentile: male 1x bodyweight bench is the median", () => {
     tier: "Intermediate",
     nextTier: "Advanced",
     nextTierMultiplier: 150, // 1.5x bodyweight = 80th percentile
+    needsBodyweight: false,
   });
 });
 
@@ -121,7 +122,7 @@ test("calculateExercisePercentile: ratio converts to anchor-equivalent weight", 
   assert.equal(r.isEstimated, true);
   assert.deepEqual(r.estimatedFrom, { basedOn: "bench", ratio: 0.5 });
   assert.equal(r.lift, "bench");
-  assert.equal(r.multiplier, 1);
+  assert.equal(r.multiplier, 0.5); // estimated lifts report their own lift/bodyweight multiplier
   assert.equal(r.percentile, 50);
 });
 

@@ -20,7 +20,7 @@ test("sanitizeDecimalInput keeps a single decimal point", () => {
   assert.equal(sanitizeDecimalInput("7."), "7.");
   assert.equal(sanitizeDecimalInput("12kg"), "12");
   assert.equal(sanitizeDecimalInput("-2.5"), "2.5");
-  assert.equal(sanitizeDecimalInput("1,5"), "15");
+  assert.equal(sanitizeDecimalInput("1,5"), "1.5"); // comma is a decimal separator (EU keyboards)
   assert.equal(sanitizeDecimalInput(""), "");
 });
 
