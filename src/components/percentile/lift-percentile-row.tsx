@@ -24,7 +24,7 @@ export function LiftPercentileRow({
   unit: UnitSystem;
 }) {
   const hasValue = result.multiplier > 0;
-  const roundedPercentile = Math.round(result.percentile);
+  const roundedPercentile = Math.min(99, Math.floor(result.percentile)); // floor so the number never outruns the tier badge
   const label = "exerciseName" in result ? result.exerciseName : LIFT_LABELS[result.lift];
   const isEstimated = "isEstimated" in result && result.isEstimated;
   const estimatedFrom = "estimatedFrom" in result ? result.estimatedFrom : undefined;
@@ -67,7 +67,9 @@ export function LiftPercentileRow({
         <span className="tabular-nums">
           {hasValue
             ? `${result.multiplier.toFixed(2)}× bodyweight · ${roundedPercentile}${ordinalSuffix(roundedPercentile)} percentile`
-            : "Enter a 1RM to see this lift"}
+            : result.needsBodyweight
+              ? "Enter your bodyweight to see this lift"
+              : "Enter a 1RM to see this lift"}
         </span>
         {hasValue && result.nextTierMultiplier && result.nextTier && (
           <span className="tabular-nums">

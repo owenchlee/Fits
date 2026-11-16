@@ -79,6 +79,8 @@ export interface LiftPercentileResult {
   tier: StrengthTier;
   nextTierMultiplier: number | null;
   nextTier: StrengthTier | null;
+  /** True when a lift weight was entered but bodyweight is missing, so no percentile can be computed. */
+  needsBodyweight: boolean;
 }
 
 export function calculateLiftPercentile(
@@ -97,7 +99,7 @@ export function calculateLiftPercentile(
   const nextTier = tierIdx < tierOrder.length - 1 ? tierOrder[tierIdx + 1] : null;
   const nextTierMultiplier = tierIdx < 4 ? checkpoints[tierIdx + 1] * bodyweightKg : null;
 
-  return { lift, multiplier, percentile, tier, nextTierMultiplier, nextTier };
+  return { lift, multiplier, percentile, tier, nextTierMultiplier, nextTier, needsBodyweight: liftWeightKg > 0 && bodyweightKg <= 0 };
 }
 
 export interface ExercisePercentileResult extends LiftPercentileResult {
@@ -133,6 +135,9 @@ export function calculateExercisePercentile(
     const result = calculateLiftPercentile(basedOn, equivalentAnchorWeightKg, bodyweightKg, sex);
     return {
       ...result,
+      // Report the exercise's own multiplier and next-tier target, not the anchor equivalent.
+      multiplier: bodyweightKg > 0 ? liftWeightKg / bodyweightKg : 0,
+      nextTierMultiplier: result.nextTierMultiplier === null ? null : result.nextTierMultiplier * ratio,
       exerciseId: exercise.id,
       exerciseName: exercise.name,
       isEstimated: true,
