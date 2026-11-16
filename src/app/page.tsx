@@ -196,10 +196,10 @@ export default function DashboardPage() {
 }
 
 function ExercisePreviewRow({ exerciseId, sets, reps }: { exerciseId: string; sets: number; reps: string }) {
-  const exercise = useLiveQuery(() => db.exercises.get(exerciseId), [exerciseId]);
+  const exercise = useLiveQuery(() => db.exercises.get(exerciseId).then((e) => e ?? null), [exerciseId]);
   return (
     <li className="flex items-center justify-between text-sm">
-      <span className="text-foreground">{exercise?.name ?? "…"}</span>
+      <span className="text-foreground">{exercise?.name ?? (exercise === null ? "Deleted exercise" : "…")}</span>
       <span className="tabular-nums text-muted-foreground">
         {sets} {reps ? `× ${reps}` : "sets"}
       </span>

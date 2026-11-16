@@ -38,7 +38,7 @@ export default function WorkoutDetailPage() {
   if (!workout) return <div className="py-16 text-center text-sm text-muted-foreground">Loading…</div>;
 
   const exerciseById = new Map((exercises ?? []).filter((e) => !!e).map((e) => [e!.id, e!]));
-  const durationMin = workout.completedAt ? Math.round((workout.completedAt - workout.startedAt) / 60000) : 0;
+  const durationMin = workout.completedAt ? Math.max(0, Math.round((workout.completedAt - workout.startedAt) / 60000)) : 0;
   const volumeKg = sets
     .filter((s) => !s.isWarmup)
     .reduce((sum, s) => sum + toTotalLoadKg(s.weightKg, exerciseById.get(s.exerciseId)) * s.reps, 0);
@@ -116,10 +116,10 @@ function ExerciseBlock({
   sets: ReturnType<typeof useWorkoutSets>;
   unit: ReturnType<typeof useSettings>["unitSystem"];
 }) {
-  const exercise = useLiveQuery(() => db.exercises.get(exerciseId), [exerciseId]);
+  const exercise = useLiveQuery(() => db.exercises.get(exerciseId).then((e) => e ?? null), [exerciseId]);
   return (
     <div className="rounded-2xl border border-border bg-card p-4">
-      <p className="font-display text-lg font-bold">{exercise?.name ?? "…"}</p>
+      <p className="font-display text-lg font-bold">{exercise?.name ?? (exercise === null ? "Deleted exercise" : "…")}</p>
       <div className="mt-2 space-y-1">
         {sets.map((s, i) => (
           <EditableSetRow key={s.id} set={s} index={i + 1} unit={unit} />

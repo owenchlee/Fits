@@ -41,7 +41,7 @@ export function ExerciseSessionCard({
   unit: UnitSystem;
   sets: SetEntry[];
 }) {
-  const exercise = useLiveQuery(() => db.exercises.get(exerciseId), [exerciseId]);
+  const exercise = useLiveQuery(() => db.exercises.get(exerciseId).then((e) => e ?? null), [exerciseId]);
   const previousSets = useLiveQuery(() => getLastPerformance(exerciseId, workoutId), [exerciseId, workoutId]);
   const timer = useRestTimer();
 
@@ -110,7 +110,7 @@ export function ExerciseSessionCard({
       <div className="mb-2.5 flex items-start justify-between gap-2">
         <div>
           <Link href={`/exercises/${exerciseId}`} className="font-display text-lg font-bold hover:text-primary">
-            {exercise?.name ?? "…"}
+            {exercise?.name ?? (exercise === null ? "Deleted exercise" : "…")}
           </Link>
           <div className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-muted-foreground">
             {targetSets && (

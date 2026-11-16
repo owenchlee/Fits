@@ -27,10 +27,10 @@ import {
 } from "@/components/ui/alert-dialog";
 
 function DayExerciseRow({ exerciseId, sets, reps }: { exerciseId: string; sets: number; reps: string }) {
-  const exercise = useLiveQuery(() => db.exercises.get(exerciseId), [exerciseId]);
+  const exercise = useLiveQuery(() => db.exercises.get(exerciseId).then((e) => e ?? null), [exerciseId]);
   return (
     <li className="flex items-center justify-between py-1.5 text-sm">
-      <span>{exercise?.name ?? "…"}</span>
+      <span>{exercise?.name ?? (exercise === null ? "Deleted exercise" : "…")}</span>
       <span className="tabular-nums text-muted-foreground">
         {sets} {reps ? `× ${reps}` : "sets"}
       </span>
@@ -47,7 +47,7 @@ function EditableExerciseRow({
   onChange: (patch: Partial<ProgramExercise>) => void;
   onRemove: () => void;
 }) {
-  const exercise = useLiveQuery(() => db.exercises.get(ex.exerciseId), [ex.exerciseId]);
+  const exercise = useLiveQuery(() => db.exercises.get(ex.exerciseId).then((e) => e ?? null), [ex.exerciseId]);
   const controls = useDragControls();
   return (
     <Reorder.Item
@@ -62,7 +62,7 @@ function EditableExerciseRow({
         onPointerDown={(e) => controls.start(e)}
         className="shrink-0 cursor-grab touch-none text-muted-foreground active:cursor-grabbing"
       />
-      <span className="min-w-0 flex-1 truncate px-1.5 text-sm font-medium">{exercise?.name ?? "…"}</span>
+      <span className="min-w-0 flex-1 truncate px-1.5 text-sm font-medium">{exercise?.name ?? (exercise === null ? "Deleted exercise" : "…")}</span>
       <input
         type="number"
         min={1}

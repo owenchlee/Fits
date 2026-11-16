@@ -39,7 +39,7 @@ export function HistoryTab() {
               <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">{month}</h2>
               <div className="space-y-2">
                 {items.map((w) => {
-                  const durationMin = w.completedAt ? Math.round((w.completedAt - w.startedAt) / 60000) : 0;
+                  const durationMin = w.completedAt ? Math.max(0, Math.round((w.completedAt - w.startedAt) / 60000)) : 0;
                   return (
                     <Link
                       key={w.id}
