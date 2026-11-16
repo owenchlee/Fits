@@ -59,7 +59,17 @@ export function ExerciseSessionCard({
     () => (nextExerciseId ? db.exercises.get(nextExerciseId) : undefined),
     [nextExerciseId]
   );
-  const previousSets = useLiveQuery(() => getLastPerformance(exerciseId, workoutId), [exerciseId, workoutId]);
+  // Fetched once per exercise/workout: the previous session does not change while lifting.
+  const [previousSets, setPreviousSets] = React.useState<SetEntry[]>();
+  React.useEffect(() => {
+    let cancelled = false;
+    getLastPerformance(exerciseId, workoutId).then((r) => {
+      if (!cancelled) setPreviousSets(r);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [exerciseId, workoutId]);
   const timer = useRestTimer();
   const [confirmRemove, setConfirmRemove] = React.useState(false);
 
