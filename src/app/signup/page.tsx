@@ -33,6 +33,7 @@ export default function SignupPage() {
   const [checkEmail, setCheckEmail] = React.useState(false);
   const [migratePrompt, setMigratePrompt] = React.useState<{ userId: string } | null>(null);
   const [migrating, setMigrating] = React.useState(false);
+  const [migrateError, setMigrateError] = React.useState<string | null>(null);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -47,33 +48,53 @@ export default function SignupPage() {
     }
 
     setSubmitting(true);
-    const { data, error } = await supabase.auth.signUp({ email, password });
-    setSubmitting(false);
-    if (error) {
-      setError(error.message);
-      return;
-    }
+    try {
+      const { data, error } = await supabase.auth.signUp({ email, password });
+      if (error) {
+        setError(error.message);
+        return;
+      }
 
-    if (!data.session || !data.user) {
-      setCheckEmail(true);
-      return;
-    }
+      // Supabase hides existing accounts by returning a user with no identities.
+      if (data.user && data.user.identities?.length === 0 && !data.session) {
+        setError("An account with this email already exists. Log in instead.");
+        return;
+      }
 
-    if (await hasLocalDataToMigrate()) {
-      setMigratePrompt({ userId: data.user.id });
-      return;
-    }
+      if (!data.session || !data.user) {
+        setCheckEmail(true);
+        return;
+      }
 
-    toast.success("Account created");
-    router.replace("/");
+      // If the check fails, skip the upload prompt rather than blocking signup.
+      const hasLocal = await hasLocalDataToMigrate().catch(() => false);
+      if (hasLocal) {
+        setMigratePrompt({ userId: data.user.id });
+        return;
+      }
+
+      toast.success("Account created");
+      router.replace("/");
+    } catch {
+      setError("Couldn't reach the server. Check your connection and try again.");
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   async function handleMigrate(shouldMigrate: boolean) {
     if (!migratePrompt) return;
     if (shouldMigrate) {
       setMigrating(true);
-      await migrateLocalDataToAccount(supabase, migratePrompt.userId);
-      setMigrating(false);
+      setMigrateError(null);
+      try {
+        await migrateLocalDataToAccount(supabase, migratePrompt.userId);
+      } catch {
+        setMigrateError("Couldn't upload your data. It's still saved on this device. Try again or skip.");
+        return;
+      } finally {
+        setMigrating(false);
+      }
       toast.success("Your data is synced to your account");
     } else {
       toast.success("Account created");
@@ -169,6 +190,7 @@ export default function SignupPage() {
               your devices, or skip and they&apos;ll stay only on this device.
             </AlertDialogDescription>
           </AlertDialogHeader>
+          {migrateError && <p className="text-sm text-destructive">{migrateError}</p>}
           <AlertDialogFooter>
             <AlertDialogCancel disabled={migrating} onClick={() => void handleMigrate(false)}>
               Skip

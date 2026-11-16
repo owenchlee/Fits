@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 
 export default function ResetPasswordConfirmPage() {
-  const { supabase, user } = useAuth();
+  const { supabase, user, loading } = useAuth();
   const router = useRouter();
   const [password, setPassword] = React.useState("");
   const [confirmPassword, setConfirmPassword] = React.useState("");
@@ -30,14 +30,29 @@ export default function ResetPasswordConfirmPage() {
       return;
     }
     setSubmitting(true);
-    const { error } = await supabase.auth.updateUser({ password });
-    setSubmitting(false);
-    if (error) {
-      setError(error.message);
-      return;
+    try {
+      const { error } = await supabase.auth.updateUser({ password });
+      if (error) {
+        setError(error.message);
+        return;
+      }
+      toast.success("Password updated");
+      router.replace("/");
+    } catch {
+      setError("Couldn't reach the server. Check your connection and try again.");
+    } finally {
+      setSubmitting(false);
     }
-    toast.success("Password updated");
-    router.replace("/");
+  }
+
+  if (loading) {
+    return (
+      <AuthCard title="Checking your reset link" description="">
+        <div className="flex justify-center py-2">
+          <CircleNotch className="animate-spin" size={24} />
+        </div>
+      </AuthCard>
+    );
   }
 
   if (!user) {

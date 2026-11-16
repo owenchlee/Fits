@@ -20,15 +20,20 @@ export default function ResetPasswordPage() {
     e.preventDefault();
     setError(null);
     setSubmitting(true);
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/reset-password/confirm`,
-    });
-    setSubmitting(false);
-    if (error) {
-      setError(error.message);
-      return;
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/reset-password/confirm`,
+      });
+      if (error) {
+        setError(error.message);
+        return;
+      }
+      setSent(true);
+    } catch {
+      setError("Couldn't reach the server. Check your connection and try again.");
+    } finally {
+      setSubmitting(false);
     }
-    setSent(true);
   }
 
   if (sent) {
