@@ -1,4 +1,4 @@
-export interface SeedProgramExercise {
+interface SeedProgramExercise {
   exerciseName: string;
   targetSets: number;
   targetReps: string;
@@ -6,12 +6,12 @@ export interface SeedProgramExercise {
   restSeconds: number;
 }
 
-export interface SeedProgramDay {
+interface SeedProgramDay {
   name: string;
   exercises: SeedProgramExercise[];
 }
 
-export interface SeedProgram {
+interface SeedProgram {
   /**
    * Stable identity for slugId(): the name this program shipped under first. Built-in programs
    * are matched across devices and in users' settings (activeProgramId) by that id, so renaming a

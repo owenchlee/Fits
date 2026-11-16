@@ -8,7 +8,7 @@ import {
 } from "@phosphor-icons/react/dist/ssr";
 import { BookOpenText } from "@phosphor-icons/react/dist/ssr";
 
-export type NavItem = {
+type NavItem = {
   href: string;
   label: string;
   icon: Icon;

@@ -27,10 +27,6 @@ export function useExercises() {
   return useLiveQuery(() => db.exercises.orderBy("name").toArray(), []) ?? [];
 }
 
-export function useExercise(id: string | undefined) {
-  return useLiveQuery(() => (id ? db.exercises.get(id) : undefined), [id]);
-}
-
 /** IDs of exercises that have at least one logged set, for filtering the library down to "yours". */
 export function useLoggedExerciseIds() {
   return (
@@ -79,11 +75,3 @@ export function usePercentileHistory() {
   return useLiveQuery(() => db.percentileSnapshots.orderBy("date").toArray(), []) ?? [];
 }
 
-export function useRecentWorkouts(limit = 20) {
-  return (
-    useLiveQuery(
-      () => db.workouts.orderBy("startedAt").reverse().limit(limit).toArray(),
-      [limit]
-    ) ?? []
-  );
-}
