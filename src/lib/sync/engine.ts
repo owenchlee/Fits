@@ -77,7 +77,13 @@ export function flushOutbox(supabase: Client, userId: string): Promise<void> {
 }
 
 async function flushOnce(supabase: Client, userId: string) {
-  const pending = await db.syncOutbox.orderBy("createdAt").toArray();
+  const all = await db.syncOutbox.orderBy("createdAt").toArray();
+  // Coalesce: only the last entry per (table, record, op) matters, since upserts push current local state.
+  const key = (e: (typeof all)[number]) => `${e.table}|${e.recordId}|${e.op}`;
+  const last = new Map(all.map((e, i) => [key(e), i]));
+  const pending = all.filter((e, i) => last.get(key(e)) === i);
+  const dupIds = all.filter((e, i) => last.get(key(e)) !== i).flatMap((e) => (e.id === undefined ? [] : [e.id]));
+  if (dupIds.length) await db.syncOutbox.bulkDelete(dupIds);
   for (const entry of pending) {
     try {
       if (entry.table === "settings") {
