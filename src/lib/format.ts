@@ -3,9 +3,9 @@ export function sanitizeIntegerInput(value: string): string {
   return stripLeadingZeros(value.replace(/\D/g, ""));
 }
 
-/** Strips everything but digits and a single decimal point — for weight/measurement inputs. */
+/** Strips everything but digits and a single decimal point — for weight/measurement inputs. A comma counts as the decimal separator. */
 export function sanitizeDecimalInput(value: string): string {
-  const cleaned = value.replace(/[^0-9.]/g, "");
+  const cleaned = value.replace(/,/g, ".").replace(/[^0-9.]/g, "");
   const firstDot = cleaned.indexOf(".");
   const deduped = firstDot === -1 ? cleaned : cleaned.slice(0, firstDot + 1) + cleaned.slice(firstDot + 1).replace(/\./g, "");
   return stripLeadingZeros(deduped);

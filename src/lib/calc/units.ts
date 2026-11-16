@@ -24,3 +24,14 @@ export function formatWeight(kg: number, unit: UnitSystem, opts?: { decimals?: n
   const rounded = Math.round(value * 10 ** decimals) / 10 ** decimals;
   return `${rounded % 1 === 0 ? rounded.toFixed(0) : rounded.toFixed(decimals)} ${unit}`;
 }
+
+const CM_PER_IN = 2.54;
+
+/** Body measurements are stored in cm; "kg" users see cm, "lb" users see inches. */
+export function cmToDisplayLength(cm: number, unit: UnitSystem): number {
+  return unit === "kg" ? cm : cm / CM_PER_IN;
+}
+
+export function fromDisplayLength(value: number, unit: UnitSystem): number {
+  return unit === "kg" ? value : value * CM_PER_IN;
+}
