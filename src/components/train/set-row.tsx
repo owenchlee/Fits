@@ -39,6 +39,15 @@ export function SetRow({
   );
   const [repsStr, setRepsStr] = React.useState(() => (set.reps ? String(set.reps) : ""));
 
+  // Adopt changes from elsewhere (sync, unit switch) but not the echo of our own typing.
+  const shownWeight = toDisplayWeight(set.weightKg, unit);
+  if (Math.abs(shownWeight - (parseFloat(weightStr) || 0)) > 0.05) {
+    setWeightStr(set.weightKg ? String(round1(shownWeight)) : "");
+  }
+  if (set.reps !== (parseInt(repsStr, 10) || 0)) {
+    setRepsStr(set.reps ? String(set.reps) : "");
+  }
+
   const isComplete = !set.isWarmup && set.weightKg > 0 && set.reps > 0;
   const wasComplete = React.useRef(isComplete);
   const [justCompleted, setJustCompleted] = React.useState(false);
@@ -57,14 +66,14 @@ export function SetRow({
     const cleaned = sanitizeDecimalInput(value);
     setWeightStr(cleaned);
     const n = parseFloat(cleaned);
-    if (!Number.isNaN(n) && n >= 0) onChange({ weightKg: fromDisplayWeight(n, unit) });
+    onChange({ weightKg: Number.isNaN(n) ? 0 : fromDisplayWeight(n, unit) });
   }
 
   function commitReps(value: string) {
     const cleaned = sanitizeIntegerInput(value);
     setRepsStr(cleaned);
     const n = parseInt(cleaned, 10);
-    if (!Number.isNaN(n) && n >= 0) onChange({ reps: n });
+    onChange({ reps: Number.isNaN(n) ? 0 : n });
   }
 
   return (
