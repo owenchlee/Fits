@@ -14,6 +14,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Button } from "@/components/ui/button";
 import { AddExerciseDialog } from "@/components/shared/add-exercise-dialog";
 import { cn } from "@/lib/utils";
+import { searchExercises } from "@/lib/exercise-search";
 import type { Exercise, MuscleGroup } from "@/lib/db/types";
 
 /** Collapses the 13 raw muscle groups into a coarser set for the category drill-down —
@@ -51,7 +52,7 @@ export function ExercisePicker({
   const searching = normalizedQuery.length > 0;
 
   const visibleExercises = searching
-    ? exercises.filter((e) => e.name.toLowerCase().includes(normalizedQuery))
+    ? searchExercises(exercises, normalizedQuery)
     : activeCategory
       ? exercises.filter((e) => CATEGORY_GROUPS[activeCategory].includes(e.primaryMuscle))
       : [];

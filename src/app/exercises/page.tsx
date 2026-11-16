@@ -8,6 +8,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { AddExerciseDialog } from "@/components/shared/add-exercise-dialog";
 import { EmptyState } from "@/components/shared/empty-state";
 import { cn } from "@/lib/utils";
+import { searchExercises } from "@/lib/exercise-search";
 
 const SCOPE_TABS = [
   { value: "mine", label: "Yours" },
@@ -39,11 +40,7 @@ export default function ExercisesPage() {
   const [muscle, setMuscle] = React.useState<(typeof MUSCLE_FILTERS)[number]>("all");
 
   const scoped = scope === "mine" ? exercises.filter((e) => loggedIds.has(e.id)) : exercises;
-  const filtered = scoped.filter((e) => {
-    const matchesQuery = e.name.toLowerCase().includes(query.toLowerCase());
-    const matchesMuscle = muscle === "all" || e.primaryMuscle === muscle;
-    return matchesQuery && matchesMuscle;
-  });
+  const filtered = searchExercises(scoped, query).filter((e) => muscle === "all" || e.primaryMuscle === muscle);
 
   return (
     <div className="pb-6">
