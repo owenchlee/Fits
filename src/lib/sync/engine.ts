@@ -33,7 +33,7 @@ type Client = SupabaseClient<Database>;
  * to/fromRow functions, so this narrow `any` is contained to dynamic `.from()` dispatch only.
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function dynamicFrom(supabase: Client, table: string): any {
+export function dynamicFrom(supabase: Client, table: string): any {
   return (supabase as unknown as { from(table: string): unknown }).from(table);
 }
 
