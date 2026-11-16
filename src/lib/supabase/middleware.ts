@@ -27,7 +27,9 @@ export async function updateSession(request: NextRequest) {
     }
   );
 
-  await supabase.auth.getUser();
+  // getClaims verifies the JWT locally against cached JWKS (refreshing expired sessions first),
+  // avoiding a Supabase Auth round trip on every request.
+  await supabase.auth.getClaims();
 
   return response;
 }
