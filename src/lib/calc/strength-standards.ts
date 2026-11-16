@@ -10,7 +10,7 @@ export type StrengthTier = "Beginner" | "Novice" | "Intermediate" | "Advanced" |
  * These are population estimates, not a scientific census — the UI must present them
  * as such. Checkpoints: 5th, 20th, 50th, 80th, 95th, 99th percentile.
  */
-const PERCENTILE_CHECKPOINTS = [5, 20, 50, 80, 95, 99];
+const PERCENTILE_CHECKPOINTS = [5, 20, 50, 80, 95, 99] as const;
 
 const MALE_STANDARDS: Record<StandardLift, number[]> = {
   squat: [0.5, 0.9, 1.5, 2.0, 2.5, 2.9],
@@ -38,29 +38,35 @@ function standardsFor(sex: Sex): Record<StandardLift, number[]> {
 }
 
 /** Piecewise-linear interpolation of a bodyweight multiplier onto a 0-99.9 percentile. */
-export function multiplierToPercentile(multiplier: number, checkpoints: number[]): number {
+export function multiplierToPercentile(multiplier: number, checkpoints: readonly number[]): number {
   if (multiplier <= 0) return 0.5;
 
-  if (multiplier <= checkpoints[0]) {
-    const ratio = multiplier / checkpoints[0];
+  const first = checkpoints[0];
+  if (first === undefined) return 0.5;
+  if (multiplier <= first) {
+    const ratio = multiplier / first;
     return Math.max(0.5, PERCENTILE_CHECKPOINTS[0] * ratio);
   }
 
+  // Last valid segment, kept for extrapolation beyond the final checkpoint.
+  let segment: { lo: number; hi: number; pLo: number; pHi: number } | undefined;
   for (let i = 0; i < checkpoints.length - 1; i++) {
     const lo = checkpoints[i];
     const hi = checkpoints[i + 1];
+    const pLo = PERCENTILE_CHECKPOINTS[i];
+    const pHi = PERCENTILE_CHECKPOINTS[i + 1];
+    if (lo === undefined || hi === undefined || pLo === undefined || pHi === undefined) break;
+    segment = { lo, hi, pLo, pHi };
     if (multiplier >= lo && multiplier <= hi) {
       const t = (multiplier - lo) / (hi - lo);
-      return PERCENTILE_CHECKPOINTS[i] + t * (PERCENTILE_CHECKPOINTS[i + 1] - PERCENTILE_CHECKPOINTS[i]);
+      return pLo + t * (pHi - pLo);
     }
   }
+  if (!segment) return 0.5;
 
-  // Beyond the 99th-percentile checkpoint: extrapolate using the final segment's slope, capped.
-  const lastIdx = checkpoints.length - 1;
-  const slope =
-    (PERCENTILE_CHECKPOINTS[lastIdx] - PERCENTILE_CHECKPOINTS[lastIdx - 1]) /
-    (checkpoints[lastIdx] - checkpoints[lastIdx - 1]);
-  const extra = PERCENTILE_CHECKPOINTS[lastIdx] + slope * (multiplier - checkpoints[lastIdx]);
+  // Beyond the final checkpoint: extrapolate using the final segment's slope, capped.
+  const slope = (segment.pHi - segment.pLo) / (segment.hi - segment.lo);
+  const extra = segment.pHi + slope * (multiplier - segment.hi);
   return Math.min(99.9, extra);
 }
 
@@ -96,8 +102,9 @@ export function calculateLiftPercentile(
 
   const tierOrder: StrengthTier[] = ["Beginner", "Novice", "Intermediate", "Advanced", "Elite"];
   const tierIdx = tierOrder.indexOf(tier);
-  const nextTier = tierIdx < tierOrder.length - 1 ? tierOrder[tierIdx + 1] : null;
-  const nextTierMultiplier = tierIdx < 4 ? checkpoints[tierIdx + 1] * bodyweightKg : null;
+  const nextTier = tierOrder[tierIdx + 1] ?? null;
+  const nextCheckpoint = checkpoints[tierIdx + 1];
+  const nextTierMultiplier = tierIdx < 4 && nextCheckpoint !== undefined ? nextCheckpoint * bodyweightKg : null;
 
   return { lift, multiplier, percentile, tier, nextTierMultiplier, nextTier, needsBodyweight: liftWeightKg > 0 && bodyweightKg <= 0 };
 }
@@ -206,19 +213,23 @@ function totalStandardsFor(sex: Sex): TotalStandardRow[] {
 }
 
 /** Linearly interpolates the percentile-checkpoint row for a bodyweight between table rows (clamped at the ends). */
-function totalCheckpointsFor(bodyweightKg: number, sex: Sex): number[] {
+function totalCheckpointsFor(bodyweightKg: number, sex: Sex): readonly number[] {
   const rows = totalStandardsFor(sex);
-  const bw = Math.min(Math.max(bodyweightKg, rows[0].bodyweightKg), rows[rows.length - 1].bodyweightKg);
+  const first = rows[0];
+  const last = rows[rows.length - 1];
+  if (!first || !last) return [];
+  const bw = Math.min(Math.max(bodyweightKg, first.bodyweightKg), last.bodyweightKg);
 
   for (let i = 0; i < rows.length - 1; i++) {
     const lo = rows[i];
     const hi = rows[i + 1];
+    if (!lo || !hi) break;
     if (bw >= lo.bodyweightKg && bw <= hi.bodyweightKg) {
       const t = (bw - lo.bodyweightKg) / (hi.bodyweightKg - lo.bodyweightKg);
-      return lo.checkpoints.map((c, idx) => c + t * (hi.checkpoints[idx] - c));
+      return lo.checkpoints.map((c, idx) => c + t * ((hi.checkpoints[idx] ?? c) - c));
     }
   }
-  return rows[rows.length - 1].checkpoints;
+  return last.checkpoints;
 }
 
 export function totalToPercentile(totalKg: number, bodyweightKg: number, sex: Sex): number {

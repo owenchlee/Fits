@@ -17,7 +17,7 @@ export function calculateWarmupSet(
   const working = previousSets.filter((s) => !s.isWarmup && s.weightKg > 0 && s.reps > 0);
   if (working.length === 0) return null;
 
-  const topSet = working.reduce((max, s) => (s.weightKg > max.weightKg ? s : max), working[0]);
+  const topSet = working.reduce((max, s) => (s.weightKg > max.weightKg ? s : max));
   const rawDisplay = unit === "kg" ? topSet.weightKg * 0.5 : kgToLb(topSet.weightKg) * 0.5;
 
   const increment = unit === "kg" ? 2.5 : 5;

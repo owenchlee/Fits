@@ -238,7 +238,9 @@ export default function ProgramDetailPage() {
   }
 
   function renameDay(dayIndex: number, value: string) {
-    handleDayChange(dayIndex, { ...days[dayIndex], name: value });
+    const day = days[dayIndex];
+    if (!day) return;
+    handleDayChange(dayIndex, { ...day, name: value });
   }
 
   function addDay() {
@@ -255,6 +257,7 @@ export default function ProgramDetailPage() {
 
   async function handleStartDay(dayIndex: number) {
     const day = days[dayIndex];
+    if (!day) return;
     const id = await startWorkout({
       programId: program!.id,
       programDayName: day.name,
