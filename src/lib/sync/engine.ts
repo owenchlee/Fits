@@ -56,18 +56,42 @@ const FROM_ROW: Record<SyncTable, (row: never) => { id: string; updatedAt: numbe
 };
 
 /** Pushes every queued local write to Supabase. Leaves failed entries in the outbox for the next try. */
-export async function flushOutbox(supabase: Client, userId: string) {
+let flushInFlight: Promise<void> | null = null;
+let flushAgain = false;
+
+export function flushOutbox(supabase: Client, userId: string): Promise<void> {
+  // One flush at a time; writes that arrive mid-flush trigger a re-run instead of an overlapping push.
+  if (flushInFlight) {
+    flushAgain = true;
+    return flushInFlight;
+  }
+  flushInFlight = (async () => {
+    do {
+      flushAgain = false;
+      await flushOnce(supabase, userId);
+    } while (flushAgain);
+  })().finally(() => {
+    flushInFlight = null;
+  });
+  return flushInFlight;
+}
+
+async function flushOnce(supabase: Client, userId: string) {
   const pending = await db.syncOutbox.orderBy("createdAt").toArray();
   for (const entry of pending) {
     try {
       if (entry.table === "settings") {
         const settings = await db.settings.get("singleton");
-        if (settings) await supabase.from("profiles").upsert(settingsToProfileRow(settings, userId));
+        if (settings) {
+          const { error } = await supabase.from("profiles").upsert(settingsToProfileRow(settings, userId));
+          if (error) continue;
+        }
       } else if (entry.op === "delete") {
-        await dynamicFrom(supabase, REMOTE_TABLE[entry.table])
+        const { error } = await dynamicFrom(supabase, REMOTE_TABLE[entry.table])
           .update({ deleted_at: new Date().toISOString() })
           .eq("id", entry.recordId)
           .eq("user_id", userId);
+        if (error) continue;
       } else {
         const record = await db.table(entry.table).get(entry.recordId);
         if (!record) {
@@ -78,13 +102,14 @@ export async function flushOutbox(supabase: Client, userId: string) {
           // built-in, never synced
         } else {
           const row = TO_ROW[entry.table](record, userId);
-          await dynamicFrom(supabase, REMOTE_TABLE[entry.table]).upsert(row);
+          const { error } = await dynamicFrom(supabase, REMOTE_TABLE[entry.table]).upsert(row);
+          if (error) continue;
         }
       }
       if (entry.id !== undefined) await db.syncOutbox.delete(entry.id);
     } catch {
-      // Leave it queued; the next flush (interval/online/realtime-triggered) retries it.
-      break;
+      // Leave it queued and keep going so one poison entry cannot block the rest.
+      continue;
     }
   }
 }
@@ -95,6 +120,12 @@ async function mergeRow(table: SyncTable, row: never) {
   const deletedAt = (row as { deleted_at: string | null }).deleted_at;
   const id = (row as { id: string }).id;
   const local = await db.table(table).get(id);
+
+  // A local delete still waiting to push must not be undone by a stale remote copy.
+  const pendingDelete = await db.syncOutbox
+    .filter((e) => e.table === table && e.recordId === id && e.op === "delete")
+    .count();
+  if (pendingDelete) return;
 
   if (deletedAt) {
     if (local) await db.table(table).delete(id);
@@ -115,9 +146,17 @@ export async function pullAll(supabase: Client, userId: string) {
   }
 
   for (const table of SYNC_TABLES) {
-    const { data, error } = await dynamicFrom(supabase, REMOTE_TABLE[table]).select("*").eq("user_id", userId);
-    if (error || !data) continue;
-    for (const row of data) await mergeRow(table, row as never);
+    const PAGE = 1000;
+    for (let from = 0; ; from += PAGE) {
+      const { data, error } = await dynamicFrom(supabase, REMOTE_TABLE[table])
+        .select("*")
+        .eq("user_id", userId)
+        .order("id")
+        .range(from, from + PAGE - 1);
+      if (error || !data) break;
+      for (const row of data) await mergeRow(table, row as never);
+      if (data.length < PAGE) break;
+    }
   }
 }
 
