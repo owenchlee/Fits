@@ -1,42 +1,13 @@
 "use client";
 
-import {
-  Area,
-  AreaChart,
-  CartesianGrid,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
 import { ChartLineUp } from "@phosphor-icons/react/dist/ssr";
 import { EmptyState } from "@/components/shared/empty-state";
+import { SvgChart, TooltipBox, monotonePath, niceTicks } from "./svg-chart";
 
 export interface TrendPoint {
   date: string;
   value: number;
   label: string;
-}
-
-function ChartTooltip({
-  active,
-  payload,
-  unitLabel,
-}: {
-  active?: boolean;
-  payload?: Array<{ payload: TrendPoint }>;
-  unitLabel: string;
-}) {
-  if (!active || !payload?.length) return null;
-  const point = payload[0].payload;
-  return (
-    <div className="rounded-lg border border-border bg-popover px-3 py-2 text-xs shadow-md">
-      <p className="font-medium text-popover-foreground">{point.label}</p>
-      <p className="tabular-nums text-muted-foreground">
-        {point.value.toLocaleString()} {unitLabel}
-      </p>
-    </div>
-  );
 }
 
 export function TrendChart({
@@ -61,43 +32,41 @@ export function TrendChart({
     );
   }
 
+  const values = data.map((d) => d.value);
+  const ticks = niceTicks(Math.min(...values), Math.max(...values));
+  const xs = (i: number, w: number) => (i / (data.length - 1)) * w;
+
   return (
-    <div style={{ width: "100%", height }} role="img" aria-label={`Trend chart of ${data.length} data points in ${unitLabel}`}>
-      <ResponsiveContainer width="100%" height="100%">
-        <AreaChart data={data} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
-          <defs>
-            <linearGradient id="trendFill" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="var(--color-primary)" stopOpacity={0.35} />
-              <stop offset="100%" stopColor="var(--color-primary)" stopOpacity={0} />
-            </linearGradient>
-          </defs>
-          <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" vertical={false} />
-          <XAxis
-            dataKey="label"
-            tick={{ fontSize: 11, fill: "var(--color-muted-foreground)" }}
-            axisLine={{ stroke: "var(--color-border)" }}
-            tickLine={false}
-            minTickGap={24}
-          />
-          <YAxis
-            tick={{ fontSize: 11, fill: "var(--color-muted-foreground)" }}
-            axisLine={false}
-            tickLine={false}
-            width={40}
-            domain={["auto", "auto"]}
-          />
-          <Tooltip content={<ChartTooltip unitLabel={unitLabel} />} />
-          <Area
-            type="monotone"
-            dataKey="value"
-            stroke="var(--color-primary)"
-            strokeWidth={2.5}
-            fill="url(#trendFill)"
-            dot={{ r: 3, fill: "var(--color-primary)", strokeWidth: 0 }}
-            activeDot={{ r: 5 }}
-          />
-        </AreaChart>
-      </ResponsiveContainer>
-    </div>
+    <SvgChart
+      height={height}
+      label={`Trend chart of ${data.length} data points in ${unitLabel}`}
+      labels={data.map((d) => d.label)}
+      ticks={ticks}
+      yMin={ticks[0]}
+      yMax={ticks[ticks.length - 1]}
+      xs={xs}
+      tooltip={(i) => <TooltipBox title={data[i].label} value={`${data[i].value.toLocaleString()} ${unitLabel}`} />}
+    >
+      {({ y, plotW, active }) => {
+        const pts = data.map((d, i): [number, number] => [xs(i, plotW), y(d.value)]);
+        const line = monotonePath(pts);
+        const base = y(ticks[0]);
+        return (
+          <>
+            <defs>
+              <linearGradient id="trendFill" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="var(--color-primary)" stopOpacity={0.35} />
+                <stop offset="100%" stopColor="var(--color-primary)" stopOpacity={0} />
+              </linearGradient>
+            </defs>
+            <path d={`${line}L${plotW},${base}L0,${base}Z`} fill="url(#trendFill)" />
+            <path d={line} fill="none" stroke="var(--color-primary)" strokeWidth={2.5} />
+            {pts.map(([x, yy], i) => (
+              <circle key={i} cx={x} cy={yy} r={active === i ? 5 : 3} fill="var(--color-primary)" />
+            ))}
+          </>
+        );
+      }}
+    </SvgChart>
   );
 }
