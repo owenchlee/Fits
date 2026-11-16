@@ -185,8 +185,8 @@ export async function completeWorkout(workoutId: string) {
   const workout = await db.workouts.get(workoutId);
   if (workout?.completedAt) return;
   await db.workouts.update(workoutId, { completedAt: Date.now(), updatedAt: Date.now() });
-  await enqueueSync("workouts", "upsert", workoutId);
-  await recordPercentileSnapshot();
+  // The outbox write and the snapshot touch different tables, so run them together.
+  await Promise.all([enqueueSync("workouts", "upsert", workoutId), recordPercentileSnapshot()]);
 
   const settings = await getSettings();
 
@@ -261,16 +261,19 @@ export async function getLastPerformance(
   exerciseId: string,
   excludeWorkoutId?: string
 ): Promise<SetEntry[]> {
+  // Find the latest workout in one pass (strict > keeps the first of ties, like the old stable sort).
+  let last: SetEntry | undefined;
+  for (const s of await db.sets.where("exerciseId").equals(exerciseId).toArray()) {
+    if (s.workoutId !== excludeWorkoutId && (!last || s.completedAt > last.completedAt)) last = s;
+  }
+  if (!last) return [];
+  const lastWorkoutId = last.workoutId;
   const sets = await db.sets
-    .where("exerciseId")
-    .equals(exerciseId)
-    .filter((s) => s.workoutId !== excludeWorkoutId)
+    .where("workoutId")
+    .equals(lastWorkoutId)
+    .filter((s) => s.exerciseId === exerciseId)
     .toArray();
-  if (sets.length === 0) return [];
-  const lastWorkoutId = sets.sort((a, b) => b.completedAt - a.completedAt)[0].workoutId;
-  return sets
-    .filter((s) => s.workoutId === lastWorkoutId)
-    .sort((a, b) => a.setIndex - b.setIndex);
+  return sets.sort((a, b) => a.setIndex - b.setIndex);
 }
 
 export async function logBodyMetric(metric: Omit<BodyMetric, "id" | "updatedAt">): Promise<string> {
@@ -299,9 +302,10 @@ export async function getCompletedWorkouts(): Promise<Workout[]> {
 
 /** Sets belonging only to completed workouts, so an in-progress session's sets don't inflate stats. */
 export async function getCompletedSets(): Promise<SetEntry[]> {
-  const completed = await getCompletedWorkouts();
+  // Bulk getAll + in-memory filter is much cheaper than a per-row cursor callback; both reads run concurrently.
+  const [completed, sets] = await Promise.all([getCompletedWorkouts(), db.sets.toArray()]);
   const completedIds = new Set(completed.map((w) => w.id));
-  return db.sets.filter((s) => completedIds.has(s.workoutId)).toArray();
+  return sets.filter((s) => completedIds.has(s.workoutId));
 }
 
 export async function exportAllData() {

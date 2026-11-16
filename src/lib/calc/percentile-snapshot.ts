@@ -12,19 +12,32 @@ const BIG_THREE: StandardLift[] = ["squat", "bench", "deadlift"];
  * per day). Called after every completed workout so /statistics can chart percentile over time.
  */
 export async function recordPercentileSnapshot() {
-  const settings = await db.settings.get("singleton");
+  // Issue all three reads together so the big sets scan overlaps the small ones.
+  const [settings, exercises, allSets] = await Promise.all([
+    db.settings.get("singleton"),
+    db.exercises.filter((e) => e.standardLift !== null || !!e.standardLiftRatio).toArray(),
+    db.sets.toArray(),
+  ]);
   if (!settings || settings.bodyweightKg <= 0) return;
   const { sex, bodyweightKg } = settings;
 
-  const exercises = await db.exercises.filter((e) => e.standardLift !== null || !!e.standardLiftRatio).toArray();
   const perLift: Record<string, number> = {};
   const anchorBestKg: Partial<Record<StandardLift, number>> = {};
 
+  // One pass over all sets instead of one query per exercise.
+  const byId = new Map(exercises.map((e) => [e.id, e]));
+  const bests = new Map<string, number>();
+  // Bulk toArray is much cheaper than a per-row cursor callback.
+  for (const s of allSets) {
+    const ex = byId.get(s.exerciseId);
+    if (!ex || s.isWarmup) continue;
+    const e1rm = estimateOneRepMax(toTotalLoadKg(s.weightKg, ex), s.reps);
+    bests.set(ex.id, Math.max(bests.get(ex.id) ?? 0, e1rm));
+  }
+
   for (const ex of exercises) {
-    const sets = await db.sets.where("exerciseId").equals(ex.id).filter((s) => !s.isWarmup).toArray();
-    if (sets.length === 0) continue;
-    const bestKg = sets.reduce((max, s) => Math.max(max, estimateOneRepMax(toTotalLoadKg(s.weightKg, ex), s.reps)), 0);
-    if (bestKg <= 0) continue;
+    const bestKg = bests.get(ex.id);
+    if (bestKg === undefined || bestKg <= 0) continue;
 
     if (ex.standardLift) anchorBestKg[ex.standardLift] = Math.max(anchorBestKg[ex.standardLift] ?? 0, bestKg);
 
