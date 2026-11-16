@@ -6,7 +6,8 @@ import { db } from "@/lib/db/db";
 import { useExercises, usePercentileHistory, useSettings } from "@/lib/db/hooks";
 import { getCompletedSets } from "@/lib/db/repo";
 import { estimateOneRepMax } from "@/lib/calc/one-rep-max";
-import { toTotalLoadKg } from "@/lib/calc/load";
+import { isLoggedSet, toTotalLoadKg } from "@/lib/calc/load";
+import { parseDateKey } from "@/lib/date";
 import { toDisplayWeight } from "@/lib/calc/units";
 import { TrendChart, type TrendPoint } from "@/components/charts/trend-chart";
 import { VolumeBarChart, type VolumePoint } from "@/components/charts/volume-bar-chart";
@@ -61,7 +62,12 @@ function useExerciseTrend(exerciseId: string | undefined) {
     if (!exerciseId) return [];
     // Kept in the weight actually entered (per dumbbell, if applicable) — this chart is about
     // this one exercise's own progression, not a cross-exercise/strength-standard comparison.
-    const sets = await db.sets.where("exerciseId").equals(exerciseId).filter((s) => !s.isWarmup).sortBy("completedAt");
+    const exercise = await db.exercises.get(exerciseId);
+    const sets = await db.sets
+      .where("exerciseId")
+      .equals(exerciseId)
+      .filter((s) => !s.isWarmup && isLoggedSet(s, exercise))
+      .sortBy("completedAt");
     const byWorkout = new Map<string, { date: number; best: number }>();
     for (const s of sets) {
       const e1rm = estimateOneRepMax(s.weightKg, s.reps);
@@ -87,7 +93,7 @@ function usePercentileTrend() {
         .map((s) => ({
           date: s.date,
           value: Math.round((s.overallPercentile ?? 0) * 10) / 10,
-          label: new Date(s.date).toLocaleDateString(undefined, { month: "short", day: "numeric" }),
+          label: parseDateKey(s.date).toLocaleDateString(undefined, { month: "short", day: "numeric" }),
         })),
     [snapshots]
   );
