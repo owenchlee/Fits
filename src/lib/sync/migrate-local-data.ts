@@ -20,7 +20,7 @@ const CHUNK = 500;
 const PAGE = 1000;
 
 /** True when the guest changed anything from the factory defaults seeded in bootstrap.ts. */
-function settingsChanged(s: AppSettings | undefined): boolean {
+export function settingsChanged(s: AppSettings | undefined): boolean {
   if (!s) return false;
   return (
     s.unitSystem !== "lb" ||
