@@ -15,7 +15,8 @@ export async function enqueueSync(table: SyncOutboxEntry["table"], op: SyncOutbo
     const stale = await db.syncOutbox
       .where("recordId")
       .equals(recordId)
-      .filter((e) => e.table === table && e.op === op)
+      // A delete also supersedes pending upserts: flushOnce skips upserts of records that no longer exist locally.
+      .filter((e) => e.table === table && (op === "delete" || e.op === op))
       .primaryKeys();
     if (stale.length) await db.syncOutbox.bulkDelete(stale);
     await db.syncOutbox.add({ table, recordId, op, createdAt: Date.now() });
