@@ -10,7 +10,16 @@ export function onFlushRequested(fn: (() => void) | null) {
 }
 
 export async function enqueueSync(table: SyncOutboxEntry["table"], op: SyncOutboxEntry["op"], recordId: string) {
-  await db.syncOutbox.add({ table, recordId, op, createdAt: Date.now() });
+  // Coalesce like flushOnce does (last entry per table+record+op wins) so keystroke writes don't pile up rows.
+  await db.transaction("rw", db.syncOutbox, async () => {
+    const stale = await db.syncOutbox
+      .where("recordId")
+      .equals(recordId)
+      .filter((e) => e.table === table && e.op === op)
+      .primaryKeys();
+    if (stale.length) await db.syncOutbox.bulkDelete(stale);
+    await db.syncOutbox.add({ table, recordId, op, createdAt: Date.now() });
+  });
   // Trailing debounce: a burst of keystroke writes uploads once, after typing pauses.
   if (flushTimer) clearTimeout(flushTimer);
   flushTimer = setTimeout(() => flushRequested?.(), 400);
