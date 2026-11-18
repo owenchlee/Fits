@@ -8,6 +8,7 @@ import { Reorder, useDragControls } from "framer-motion";
 import { CaretLeft, DotsSixVertical, EyeSlash, PlayCircle, Plus, Trash, X } from "@phosphor-icons/react/dist/ssr";
 import { db } from "@/lib/db/db";
 import { useActiveWorkout, useSettings } from "@/lib/db/hooks";
+import { saveOrToast } from "@/lib/save";
 import { deleteProgram, hideProgram, setActiveProgram, startWorkout, updateProgram } from "@/lib/db/repo";
 import { generateId } from "@/lib/id";
 import { ExercisePicker } from "@/components/shared/exercise-picker";
@@ -181,7 +182,7 @@ export default function ProgramDetailPage() {
       if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
       const pending = pendingPatchRef.current;
       pendingPatchRef.current = {};
-      if (programId && Object.keys(pending).length > 0) void updateProgram(programId, pending);
+      if (programId && Object.keys(pending).length > 0) void saveOrToast(() => updateProgram(programId, pending));
     };
   }, [programId]);
 
@@ -214,7 +215,7 @@ export default function ProgramDetailPage() {
     saveTimeoutRef.current = setTimeout(() => {
       const toSave = pendingPatchRef.current;
       pendingPatchRef.current = {};
-      updateProgram(program!.id, toSave);
+      void saveOrToast(() => updateProgram(program!.id, toSave));
     }, 500);
   }
 
@@ -258,13 +259,16 @@ export default function ProgramDetailPage() {
   async function handleStartDay(dayIndex: number) {
     const day = days[dayIndex];
     if (!day) return;
-    const id = await startWorkout({
-      programId: program!.id,
-      programDayName: day.name,
-      title: `${program!.name} — ${day.name}`,
-      exerciseOrder: day.exercises.map((e) => e.exerciseId),
+    let id = "";
+    const saved = await saveOrToast(async () => {
+      id = await startWorkout({
+        programId: program!.id,
+        programDayName: day.name,
+        title: `${program!.name} — ${day.name}`,
+        exerciseOrder: day.exercises.map((e) => e.exerciseId),
+      });
     });
-    router.push(`/train?workoutId=${id}`);
+    if (saved) router.push(`/train?workoutId=${id}`);
   }
 
   return (
@@ -327,8 +331,7 @@ export default function ProgramDetailPage() {
                 <AlertDialogAction
                   className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                   onClick={async () => {
-                    await deleteProgram(program.id);
-                    router.push("/programs");
+                    if (await saveOrToast(() => deleteProgram(program.id))) router.push("/programs");
                   }}
                 >
                   Delete
@@ -342,8 +345,7 @@ export default function ProgramDetailPage() {
             title="Remove from list (can be restored later)"
             className="flex size-9 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:bg-secondary hover:text-destructive"
             onClick={async () => {
-              await hideProgram(program.id);
-              router.push("/programs");
+              if (await saveOrToast(() => hideProgram(program.id))) router.push("/programs");
             }}
           >
             <EyeSlash size={16} />
@@ -355,7 +357,7 @@ export default function ProgramDetailPage() {
         variant={isActive ? "secondary" : "default"}
         size="lg"
         className="mb-6"
-        onClick={() => setActiveProgram(isActive ? undefined : program.id)}
+        onClick={() => void saveOrToast(() => setActiveProgram(isActive ? undefined : program.id))}
       >
         {isActive ? "Currently active, tap to unset" : "Set as active program"}
       </Button>
