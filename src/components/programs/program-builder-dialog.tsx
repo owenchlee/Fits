@@ -8,6 +8,7 @@ import { useLiveQuery } from "dexie-react-hooks";
 import { db } from "@/lib/db/db";
 import { createCustomProgram } from "@/lib/db/repo";
 import { generateId } from "@/lib/id";
+import { saveOrToast } from "@/lib/save";
 import { ExercisePicker } from "@/components/shared/exercise-picker";
 import {
   Dialog,
@@ -154,20 +155,24 @@ export function ProgramBuilderDialog() {
   const canSave = name.trim().length > 0 && days.some((d) => d.exercises.length > 0);
 
   async function handleSave() {
-    const id = await createCustomProgram({
-      name: name.trim(),
-      description: description.trim() || "Custom program",
-      days: days
-        .filter((d) => d.exercises.length > 0)
-        .map((d) => ({
-          name: d.name.trim() || "Day",
-          exercises: d.exercises.map((ex) => ({
-            exerciseId: ex.exerciseId,
-            targetSets: Math.max(1, ex.targetSets),
-            targetReps: ex.targetReps,
+    let id = "";
+    const ok = await saveOrToast(async () => {
+      id = await createCustomProgram({
+        name: name.trim(),
+        description: description.trim() || "Custom program",
+        days: days
+          .filter((d) => d.exercises.length > 0)
+          .map((d) => ({
+            name: d.name.trim() || "Day",
+            exercises: d.exercises.map((ex) => ({
+              exerciseId: ex.exerciseId,
+              targetSets: Math.max(1, ex.targetSets),
+              targetReps: ex.targetReps,
+            })),
           })),
-        })),
+      });
     });
+    if (!ok) return;
     setOpen(false);
     reset();
     router.push(`/programs/${id}`);

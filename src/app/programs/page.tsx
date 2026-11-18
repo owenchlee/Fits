@@ -4,6 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 import { ArrowCounterClockwise, CheckCircle, ClipboardText } from "@phosphor-icons/react/dist/ssr";
 import { usePrograms, useSettings } from "@/lib/db/hooks";
+import { saveOrToast } from "@/lib/save";
 import { restoreProgram } from "@/lib/db/repo";
 import { PageHeader } from "@/components/shared/page-header";
 import { EmptyState } from "@/components/shared/empty-state";
@@ -85,7 +86,7 @@ export default function ProgramsPage() {
                     variant="outline"
                     size="sm"
                     className="mt-3 self-start"
-                    onClick={() => restoreProgram(program.id)}
+                    onClick={() => saveOrToast(() => restoreProgram(program.id))}
                   >
                     <ArrowCounterClockwise size={14} /> Restore
                   </Button>
