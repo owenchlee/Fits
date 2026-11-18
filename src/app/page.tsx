@@ -7,6 +7,7 @@ import { Flame, ArrowRight, Barbell, ClipboardText, Trophy, Plus } from "@phosph
 import { db } from "@/lib/db/db";
 import { useActiveWorkout, useProgram, useSettings } from "@/lib/db/hooks";
 import { startWorkout } from "@/lib/db/repo";
+import { saveOrToast } from "@/lib/save";
 import { scheduledDayIndexFor } from "@/lib/schedule";
 import { currentStreak } from "@/lib/streak";
 import { estimateOneRepMax } from "@/lib/calc/one-rep-max";
@@ -72,18 +73,26 @@ export default function DashboardPage() {
     : undefined;
 
   async function handleQuickStart() {
-    const id = await startWorkout({ title: "Quick Workout" });
+    let id = "";
+    const saved = await saveOrToast(async () => {
+      id = await startWorkout({ title: "Quick Workout" });
+    });
+    if (!saved) return;
     router.push(`/train?workoutId=${id}`);
   }
 
   async function handleStartProgramDay() {
     if (!activeProgram || !nextDay) return;
-    const id = await startWorkout({
-      programId: activeProgram.id,
-      programDayName: nextDay.name,
-      title: `${activeProgram.name} — ${nextDay.name}`,
-      exerciseOrder: nextDay.exercises.map((e) => e.exerciseId),
+    let id = "";
+    const saved = await saveOrToast(async () => {
+      id = await startWorkout({
+        programId: activeProgram.id,
+        programDayName: nextDay.name,
+        title: `${activeProgram.name} — ${nextDay.name}`,
+        exerciseOrder: nextDay.exercises.map((e) => e.exerciseId),
+      });
     });
+    if (!saved) return;
     router.push(`/train?workoutId=${id}`);
   }
 
