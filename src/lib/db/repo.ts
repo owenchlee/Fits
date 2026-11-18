@@ -12,6 +12,11 @@ export async function createExercise(data: {
   equipment: Equipment;
   isUnilateral?: boolean;
 }): Promise<string> {
+  const norm = (s: string) => s.trim().replace(/\s+/g, " ").toLowerCase();
+  const key = norm(data.name);
+  // Reuse an existing exercise with the same name so history and charts are not split.
+  const existing = (await db.exercises.toArray()).find((e) => norm(e.name) === key);
+  if (existing) return existing.id;
   const id = generateId();
   const exercise: Exercise = {
     id,
