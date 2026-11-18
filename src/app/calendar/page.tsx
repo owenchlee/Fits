@@ -20,6 +20,7 @@ import { db } from "@/lib/db/db";
 import { useActiveWorkout, useProgram, useSettings } from "@/lib/db/hooks";
 import { startWorkout, updateProgram } from "@/lib/db/repo";
 import { addDays, dateKey, isSameDay, startOfWeek, WEEKDAY_LABELS } from "@/lib/date";
+import { saveOrToast } from "@/lib/save";
 import { scheduledDayIndexFor } from "@/lib/schedule";
 import { PageHeader } from "@/components/shared/page-header";
 import { EmptyState } from "@/components/shared/empty-state";
@@ -71,23 +72,23 @@ export default function CalendarPage() {
   async function setSlot(i: number, value: number | null) {
     const next = (schedule ?? []).slice();
     next[i] = value;
-    await updateProgram(activeProgram!.id, { schedule: next });
+    await saveOrToast(() => updateProgram(activeProgram!.id, { schedule: next }));
   }
 
   async function addSlot() {
     const next = [...(schedule ?? []), null];
-    await updateProgram(activeProgram!.id, {
+    await saveOrToast(() => updateProgram(activeProgram!.id, {
       schedule: next,
       cycleStartDate: cycleStartDate ?? dateKey(new Date()),
-    });
+    }));
   }
 
   async function removeSlot(i: number) {
     const next = (schedule ?? []).filter((_, idx) => idx !== i);
-    await updateProgram(activeProgram!.id, {
+    await saveOrToast(() => updateProgram(activeProgram!.id, {
       schedule: next.length > 0 ? next : undefined,
       cycleStartDate: next.length > 0 ? cycleStartDate : undefined,
-    });
+    }));
   }
 
   async function moveSlot(i: number, dir: -1 | 1) {
@@ -98,31 +99,34 @@ export default function CalendarPage() {
     if (a === undefined || b === undefined) return;
     next[i] = b;
     next[j] = a;
-    await updateProgram(activeProgram!.id, { schedule: next });
+    await saveOrToast(() => updateProgram(activeProgram!.id, { schedule: next }));
   }
 
   async function setCycleStart(value: string) {
     if (!value) return; // cleared input: keep the existing cycle start
-    await updateProgram(activeProgram!.id, { cycleStartDate: value });
+    await saveOrToast(() => updateProgram(activeProgram!.id, { cycleStartDate: value }));
   }
 
   async function enableSchedule() {
-    await updateProgram(activeProgram!.id, {
+    await saveOrToast(() => updateProgram(activeProgram!.id, {
       schedule: activeProgram!.days.map((_, i) => i),
       cycleStartDate: dateKey(new Date()),
-    });
+    }));
   }
 
   async function handleStart(dayIndex: number) {
     const day = activeProgram!.days[dayIndex];
     if (!day) return;
-    const id = await startWorkout({
+    let id = "";
+    const ok = await saveOrToast(async () => {
+      id = await startWorkout({
       programId: activeProgram!.id,
       programDayName: day.name,
       title: `${activeProgram!.name} — ${day.name}`,
       exerciseOrder: day.exercises.map((e) => e.exerciseId),
     });
-    router.push(`/train?workoutId=${id}`);
+    });
+    if (ok) router.push(`/train?workoutId=${id}`);
   }
 
   return (
