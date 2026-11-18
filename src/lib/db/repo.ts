@@ -34,6 +34,18 @@ export async function createExercise(data: {
   return id;
 }
 
+// Days are looked up by name, so make names unique (case/space-insensitive): 'Day' -> 'Day (2)'.
+function uniqueDayNames<T extends { name: string }>(days: T[]): T[] {
+  const norm = (s: string) => s.trim().replace(/\s+/g, " ").toLowerCase();
+  const seen = new Set<string>();
+  return days.map((d) => {
+    let name = d.name;
+    for (let n = 2; seen.has(norm(name)); n++) name = `${d.name.trim()} (${n})`;
+    seen.add(norm(name));
+    return name === d.name ? d : { ...d, name };
+  });
+}
+
 export async function createCustomProgram(data: {
   name: string;
   description: string;
@@ -47,7 +59,7 @@ export async function createCustomProgram(data: {
     author: "You",
     isCustom: true,
     daysPerWeek: data.days.length,
-    days: data.days.map((d) => ({ id: generateId(), name: d.name, exercises: d.exercises })),
+    days: uniqueDayNames(data.days).map((d) => ({ id: generateId(), name: d.name, exercises: d.exercises })),
     updatedAt: Date.now(),
   };
   await db.programs.add(program);
@@ -56,6 +68,7 @@ export async function createCustomProgram(data: {
 }
 
 export async function updateProgram(id: string, patch: Partial<Program>) {
+  if (patch.days) patch = { ...patch, days: uniqueDayNames(patch.days) };
   const old = patch.days ? await db.programs.get(id) : undefined;
   if (old && patch.days) {
     // Days may have been removed or reordered: re-point schedule slots and the next-day pointer by day id.
