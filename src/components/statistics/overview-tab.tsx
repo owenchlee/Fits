@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { Download, Info } from "@phosphor-icons/react/dist/ssr";
 import { db } from "@/lib/db/db";
 import { useSettings } from "@/lib/db/hooks";
+import { saveOrToast } from "@/lib/save";
 import { updateSettings, getCompletedWorkouts } from "@/lib/db/repo";
 import { exportBackup } from "@/lib/export";
 import { estimateOneRepMax } from "@/lib/calc/one-rep-max";
@@ -185,7 +186,7 @@ export function OverviewTab() {
                   key={s}
                   onClick={() => {
                     setSex(s);
-                    void updateSettings({ sex: s });
+                    void saveOrToast(() => updateSettings({ sex: s }));
                   }}
                   className={cn(
                     "rounded-lg py-2 text-sm font-medium capitalize transition-colors",
@@ -207,7 +208,7 @@ export function OverviewTab() {
               onChange={(e) => setBodyweightStr(sanitizeDecimalInput(e.target.value))}
               onBlur={() => {
                 const n = parseFloat(bodyweightStr);
-                if (Number.isFinite(n)) void updateSettings({ bodyweightKg: fromDisplayWeight(n, settings.unitSystem) });
+                if (Number.isFinite(n)) void saveOrToast(() => updateSettings({ bodyweightKg: fromDisplayWeight(n, settings.unitSystem) }));
               }}
               className="h-10 w-full rounded-lg border border-input bg-secondary px-3 text-sm tabular-nums focus:border-ring focus:outline-none"
             />
