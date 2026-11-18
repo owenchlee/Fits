@@ -21,6 +21,8 @@ type RestTimerContextValue = RestTimerState & {
 
 const RestTimerContext = React.createContext<RestTimerContextValue | null>(null);
 
+const STORAGE_KEY = "fits:rest-timer";
+
 function playChime() {
   if (typeof window === "undefined") return;
   try {
@@ -161,9 +163,57 @@ export function RestTimerProvider({ children }: { children: React.ReactNode }) {
     });
   }, []);
 
+  // Restore a rest that was running/paused when the app was reloaded or killed.
+  React.useEffect(() => {
+    // Deferred so the restore is not a synchronous setState in the effect body.
+    queueMicrotask(restore);
+    function restore() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return;
+      const p = JSON.parse(raw) as { label: string | null; totalSeconds: number; endAt: number | null; pausedMs: number | null };
+      if (p.endAt !== null) {
+        if (p.endAt <= Date.now()) return localStorage.removeItem(STORAGE_KEY);
+        endAtRef.current = p.endAt;
+        pausedMsRef.current = null;
+        hasFiredRef.current = false;
+        setState({ label: p.label, totalSeconds: p.totalSeconds, secondsLeft: Math.ceil((p.endAt - Date.now()) / 1000), isRunning: true });
+      } else if (p.pausedMs !== null) {
+        pausedMsRef.current = p.pausedMs;
+        setState({ label: p.label, totalSeconds: p.totalSeconds, secondsLeft: Math.ceil(p.pausedMs / 1000), isRunning: false });
+      }
+    } catch {
+      // storage unavailable or corrupt; start with no timer
+    }
+    }
+  }, []);
+
+  // Persist after every change. Never clears on the empty initial state (that would wipe the
+  // saved rest before restore); stop() and expiry clear it explicitly.
+  React.useEffect(() => {
+    try {
+      if (state.totalSeconds === 0) return;
+      if (state.isRunning || pausedMsRef.current !== null) {
+        localStorage.setItem(
+          STORAGE_KEY,
+          JSON.stringify({ label: state.label, totalSeconds: state.totalSeconds, endAt: endAtRef.current, pausedMs: pausedMsRef.current })
+        );
+      } else {
+        localStorage.removeItem(STORAGE_KEY);
+      }
+    } catch {
+      // storage unavailable; the timer still works in-session
+    }
+  }, [state]);
+
   const stop = React.useCallback(() => {
     endAtRef.current = null;
     pausedMsRef.current = null;
+    try {
+      localStorage.removeItem(STORAGE_KEY);
+    } catch {
+      // ignore
+    }
     setState({ label: null, totalSeconds: 0, secondsLeft: 0, isRunning: false });
   }, []);
 
