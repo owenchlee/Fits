@@ -2,9 +2,8 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { db } from "@/lib/db/db";
 import { resetAllData } from "@/lib/db/repo";
 import { ensureSeeded, resetSeedState } from "@/lib/db/bootstrap";
-import { enqueueSync } from "@/lib/sync/outbox";
-import { flushOutbox } from "@/lib/sync/engine";
-import { shouldSyncExercise, shouldSyncProgram } from "@/lib/sync/tables";
+import { dynamicFrom, flushOutbox } from "@/lib/sync/engine";
+import { REMOTE_TABLE, SYNC_TABLES } from "@/lib/sync/tables";
 import type { Database } from "@/lib/supabase/types";
 
 type Client = SupabaseClient<Database>;
@@ -22,21 +21,28 @@ export async function clearDeviceData() {
  */
 export async function resetEverything(supabase: Client, userId: string | null) {
   if (userId) {
-    const [exercises, programs, workouts, sets, bodyMetrics, snapshots] = await Promise.all([
-      db.exercises.filter(shouldSyncExercise).toArray(),
-      db.programs.filter(shouldSyncProgram).toArray(),
-      db.workouts.toArray(),
-      db.sets.toArray(),
-      db.bodyMetrics.toArray(),
-      db.percentileSnapshots.toArray(),
-    ]);
-    for (const e of exercises) await enqueueSync("exercises", "delete", e.id);
-    for (const p of programs) await enqueueSync("programs", "delete", p.id);
-    for (const w of workouts) await enqueueSync("workouts", "delete", w.id);
-    for (const s of sets) await enqueueSync("sets", "delete", s.id);
-    for (const b of bodyMetrics) await enqueueSync("bodyMetrics", "delete", b.id);
-    for (const p of snapshots) await enqueueSync("percentileSnapshots", "delete", p.id);
-    await flushOutbox(supabase, userId);
+    // One bulk soft-delete per table (covers rows this device never pulled); any failure rejects
+    // before the device is touched, so offline never wipes local data the server still has.
+    const failed = () => new Error("Couldn't reset your account. Check your connection and try again.");
+    const deletedAt = new Date().toISOString();
+    for (const t of SYNC_TABLES) {
+      const { error } = await dynamicFrom(supabase, REMOTE_TABLE[t])
+        .update({ deleted_at: deletedAt })
+        .eq("user_id", userId)
+        .is("deleted_at", null);
+      if (error) throw failed();
+    }
+    const { error } = await supabase
+      .from("profiles")
+      .update({
+        streak: 0,
+        last_workout_date: null,
+        active_program_id: null,
+        active_program_day_index: null,
+        updated_at: deletedAt,
+      })
+      .eq("id", userId);
+    if (error) throw failed();
   }
   await clearDeviceData();
 }
@@ -54,7 +60,9 @@ export async function pendingSyncCount(supabase: Client, userId: string) {
  * pendingSyncCount first and warn, since unsynced changes are lost.
  */
 export async function signOutAndClearDevice(supabase: Client) {
-  await supabase.auth.signOut();
+  const { error } = await supabase.auth.signOut();
+  // A failed global sign-out (offline) keeps the session; drop it locally so we never wipe a still-signed-in device.
+  if (error) await supabase.auth.signOut({ scope: "local" });
   await clearDeviceData();
 }
 
