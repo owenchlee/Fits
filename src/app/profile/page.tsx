@@ -7,7 +7,8 @@ import { toast } from "sonner";
 import { CalendarBlank, BookOpenText, CaretRight, Download, Moon, Sun, Trash, Monitor } from "@phosphor-icons/react/dist/ssr";
 import { useTheme } from "next-themes";
 import { useSettings } from "@/lib/db/hooks";
-import { updateSettings } from "@/lib/db/repo";
+import { updateSettings as writeSettings } from "@/lib/db/repo";
+import { saveOrToast } from "@/lib/save";
 import { useAuth } from "@/lib/auth/auth-provider";
 import { resetEverything } from "@/lib/account";
 import { exportBackup } from "@/lib/export";
@@ -110,6 +111,9 @@ function SegmentedControl<T extends string>({
     </div>
   );
 }
+
+const updateSettings = (patch: Parameters<typeof writeSettings>[0]) =>
+  saveOrToast(() => writeSettings(patch));
 
 export default function ProfilePage() {
   const router = useRouter();
