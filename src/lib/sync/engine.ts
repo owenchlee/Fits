@@ -84,40 +84,73 @@ async function flushOnce(supabase: Client, userId: string) {
   const pending = all.filter((e, i) => last.get(key(e)) === i);
   const dupIds = all.filter((e, i) => last.get(key(e)) !== i).flatMap((e) => (e.id === undefined ? [] : [e.id]));
   if (dupIds.length) await db.syncOutbox.bulkDelete(dupIds);
-  for (const entry of pending) {
+  const done: number[] = [];
+  const markDone = (entries: typeof pending) => {
+    for (const e of entries) if (e.id !== undefined) done.push(e.id);
+  };
+  const CHUNK = 500;
+
+  for (const entry of pending.filter((e) => e.table === "settings")) {
     try {
-      if (entry.table === "settings") {
-        const settings = await db.settings.get("singleton");
-        if (settings) {
-          const { error } = await supabase.from("profiles").upsert(settingsToProfileRow(settings, userId));
-          if (error) continue;
-        }
-      } else if (entry.op === "delete") {
-        const { error } = await dynamicFrom(supabase, REMOTE_TABLE[entry.table])
-          .update({ deleted_at: new Date().toISOString() })
-          .eq("id", entry.recordId)
-          .eq("user_id", userId);
+      const settings = await db.settings.get("singleton");
+      if (settings) {
+        const { error } = await supabase.from("profiles").upsert(settingsToProfileRow(settings, userId));
         if (error) continue;
-      } else {
-        const record = await db.table(entry.table).get(entry.recordId);
-        if (!record) {
-          // Deleted locally before this upsert flushed — nothing to push.
-        } else if (entry.table === "exercises" && !shouldSyncExercise(record)) {
-          // built-in, never synced
-        } else if (entry.table === "programs" && !shouldSyncProgram(record)) {
-          // built-in, never synced
-        } else {
-          const row = TO_ROW[entry.table](record, userId);
-          const { error } = await dynamicFrom(supabase, REMOTE_TABLE[entry.table]).upsert(row);
-          if (error) continue;
-        }
       }
-      if (entry.id !== undefined) await db.syncOutbox.delete(entry.id);
+      markDone([entry]);
     } catch {
-      // Leave it queued and keep going so one poison entry cannot block the rest.
-      continue;
+      // Leave it queued for the next try.
     }
   }
+
+  // Upserts first, one request per table per chunk, in SYNC_TABLES order so parents land before children.
+  for (const table of SYNC_TABLES) {
+    const entries = pending.filter((e) => e.table === table && e.op !== "delete");
+    for (let i = 0; i < entries.length; i += CHUNK) {
+      const chunk = entries.slice(i, i + CHUNK);
+      try {
+        const records = await db.table(table).bulkGet(chunk.map((e) => e.recordId));
+        const rows: Record<string, unknown>[] = [];
+        records.forEach((record) => {
+          // Missing: deleted locally before this upsert flushed. Built-ins are never synced.
+          if (!record) return;
+          if (table === "exercises" && !shouldSyncExercise(record)) return;
+          if (table === "programs" && !shouldSyncProgram(record)) return;
+          rows.push(TO_ROW[table](record, userId));
+        });
+        if (rows.length) {
+          const { error } = await dynamicFrom(supabase, REMOTE_TABLE[table]).upsert(rows);
+          if (error) continue;
+        }
+        markDone(chunk);
+      } catch {
+        // Whole chunk stays queued; the next flush retries it.
+      }
+    }
+  }
+
+  // Soft-deletes, one request per table per chunk (children first).
+  for (const table of [...SYNC_TABLES].reverse()) {
+    const entries = pending.filter((e) => e.table === table && e.op === "delete");
+    for (let i = 0; i < entries.length; i += CHUNK) {
+      const chunk = entries.slice(i, i + CHUNK);
+      try {
+        const { error } = await dynamicFrom(supabase, REMOTE_TABLE[table])
+          .update({ deleted_at: new Date().toISOString() })
+          .in(
+            "id",
+            chunk.map((e) => e.recordId)
+          )
+          .eq("user_id", userId);
+        if (error) continue;
+        markDone(chunk);
+      } catch {
+        // Whole chunk stays queued; the next flush retries it.
+      }
+    }
+  }
+
+  if (done.length) await db.syncOutbox.bulkDelete(done);
 }
 
 /** Last-write-wins merge: only apply a row if it's newer than (or absent from) the local copy. */
