@@ -18,15 +18,19 @@ export default function ResetPasswordConfirmPage() {
   const [confirmPassword, setConfirmPassword] = React.useState("");
   const [submitting, setSubmitting] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+  const [errorField, setErrorField] = React.useState<"password" | "confirm-password" | null>(null);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+    setErrorField(null);
     if (password !== confirmPassword) {
+      setErrorField("confirm-password");
       setError("Passwords don't match.");
       return;
     }
     if (password.length < 8) {
+      setErrorField("password");
       setError("Password must be at least 8 characters.");
       return;
     }
@@ -79,6 +83,8 @@ export default function ResetPasswordConfirmPage() {
             autoComplete="new-password"
             required
             minLength={8}
+            aria-invalid={errorField === "password" || undefined}
+            aria-describedby={[errorField === "password" ? "form-error" : ""].filter(Boolean).join(" ") || undefined}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
           />
@@ -93,11 +99,13 @@ export default function ResetPasswordConfirmPage() {
             autoComplete="new-password"
             required
             minLength={8}
+            aria-invalid={errorField === "confirm-password" || undefined}
+            aria-describedby={errorField === "confirm-password" ? "form-error" : undefined}
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
           />
         </div>
-        {error && <p className="text-sm text-destructive">{error}</p>}
+        {error && <p id="form-error" role="alert" className="text-sm text-destructive">{error}</p>}
         <Button type="submit" className="w-full" disabled={submitting}>
           {submitting && <CircleNotch className="animate-spin" size={15} />}
           Update password

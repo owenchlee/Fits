@@ -107,7 +107,7 @@ export default function LoginPage() {
             onChange={(e) => setPassword(e.target.value)}
           />
         </div>
-        {error && <p className="text-sm text-destructive">{error}</p>}
+        {error && <p id="form-error" role="alert" className="text-sm text-destructive">{error}</p>}
         <Button type="submit" size="lg" className="h-11 w-full" disabled={submitting}>
           {submitting && <CircleNotch className="animate-spin" size={15} />}
           Log in

@@ -39,7 +39,7 @@ export default function ResetPasswordPage() {
 
   if (sent) {
     return (
-      <AuthCard title="Check your email" description="">
+      <AuthCard title="Check your email" description="" announceTitle>
         <div className="flex flex-col items-center gap-3 py-2 text-center">
           <EnvelopeSimple size={32} className="text-primary" />
           <p className="text-sm text-muted-foreground">
@@ -78,7 +78,7 @@ export default function ResetPasswordPage() {
             onChange={(e) => setEmail(e.target.value)}
           />
         </div>
-        {error && <p className="text-sm text-destructive">{error}</p>}
+        {error && <p id="form-error" role="alert" className="text-sm text-destructive">{error}</p>}
         <Button type="submit" className="w-full" disabled={submitting}>
           {submitting && <CircleNotch className="animate-spin" size={15} />}
           Send reset link

@@ -118,7 +118,7 @@ export function ExercisePicker({
           ) : (
             <>
               {visibleExercises.length === 0 && (
-                <p className="p-4 text-center text-sm text-muted-foreground">No exercises match.</p>
+                <p role="status" className="p-4 text-center text-sm text-muted-foreground">No exercises match.</p>
               )}
               {visibleExercises.map((ex) => (
                 <ExerciseRow key={ex.id} exercise={ex} added={addedIds.includes(ex.id)} onSelect={selectExercise} />
