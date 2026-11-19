@@ -96,6 +96,7 @@ export function WorkoutLogger({ workoutId }: { workoutId: string }) {
       ) : (
         <div className="space-y-4">
           {workout.exerciseOrder.map((exerciseId, i) => {
+            if (workout.exerciseOrder.indexOf(exerciseId) !== i) return null; // old/synced duplicates
             const target = programDay?.exercises.find((e) => e.exerciseId === exerciseId);
             return (
               <ExerciseSessionCard
