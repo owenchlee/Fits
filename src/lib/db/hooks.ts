@@ -2,6 +2,7 @@
 
 import { useLiveQuery } from "dexie-react-hooks";
 import { db } from "@/lib/db/db";
+import { isLoggedSet } from "@/lib/calc/load";
 import type { AppSettings } from "@/lib/db/types";
 
 const FALLBACK_SETTINGS: AppSettings = {
@@ -31,8 +32,9 @@ export function useExercises() {
 export function useLoggedExerciseIds() {
   return (
     useLiveQuery(async () => {
-      const ids = await db.sets.orderBy("exerciseId").uniqueKeys();
-      return new Set(ids as string[]);
+      const [sets, exercises] = await Promise.all([db.sets.toArray(), db.exercises.toArray()]);
+      const byId = new Map(exercises.map((e) => [e.id, e]));
+      return new Set(sets.filter((s) => isLoggedSet(s, byId.get(s.exerciseId))).map((s) => s.exerciseId));
     }, []) ?? new Set<string>()
   );
 }
