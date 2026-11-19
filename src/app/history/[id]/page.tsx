@@ -133,12 +133,17 @@ function ExerciseBlock({
   unit: ReturnType<typeof useSettings>["unitSystem"];
 }) {
   const exercise = useLiveQuery(() => db.exercises.get(exerciseId).then((e) => e ?? null), [exerciseId]);
+  // Warm-ups first, like the logger; working sets are numbered among themselves.
+  const ordered = [...sets].sort((a, b) =>
+    a.isWarmup !== b.isWarmup ? (a.isWarmup ? -1 : 1) : a.completedAt - b.completedAt,
+  );
+  const working = ordered.filter((s) => !s.isWarmup);
   return (
     <div className="rounded-2xl border border-border bg-card p-4">
       <p className="font-display text-lg font-bold">{exercise?.name ?? (exercise === null ? "Deleted exercise" : "…")}</p>
       <div className="mt-2 space-y-1">
-        {sets.map((s, i) => (
-          <EditableSetRow key={s.id} set={s} index={i + 1} unit={unit} />
+        {ordered.map((s) => (
+          <EditableSetRow key={s.id} set={s} index={s.isWarmup ? 0 : working.indexOf(s) + 1} unit={unit} />
         ))}
       </div>
     </div>
