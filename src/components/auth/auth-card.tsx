@@ -16,7 +16,7 @@ export function AuthCard({
   secondaryAction?: React.ReactNode;
 }) {
   return (
-    <div className="w-full max-w-sm">
+    <main className="w-full max-w-sm">
       <div className="mb-6 flex items-center justify-center gap-2">
         <Barbell size={22} weight="fill" className="text-primary" />
         <span className="font-display text-2xl font-bold tracking-tight">Fits</span>
@@ -39,6 +39,6 @@ export function AuthCard({
           Support
         </Link>
       </p>
-    </div>
+    </main>
   );
 }
