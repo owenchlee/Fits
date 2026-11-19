@@ -5,7 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useLiveQuery } from "dexie-react-hooks";
 import { Reorder, useDragControls } from "framer-motion";
-import { CaretLeft, DotsSixVertical, EyeSlash, PlayCircle, Plus, Trash, X } from "@phosphor-icons/react/dist/ssr";
+import { CaretDown, CaretLeft, CaretUp, DotsSixVertical, EyeSlash, PlayCircle, Plus, Trash, X } from "@phosphor-icons/react/dist/ssr";
 import { db } from "@/lib/db/db";
 import { useActiveWorkout, useSettings } from "@/lib/db/hooks";
 import { deleteProgram, hideProgram, setActiveProgram, startWorkout, updateProgram } from "@/lib/db/repo";
@@ -43,10 +43,14 @@ function EditableExerciseRow({
   ex,
   onChange,
   onRemove,
+  onMoveUp,
+  onMoveDown,
 }: {
   ex: ProgramExercise;
   onChange: (patch: Partial<ProgramExercise>) => void;
   onRemove: () => void;
+  onMoveUp?: () => void;
+  onMoveDown?: () => void;
 }) {
   const exercise = useLiveQuery(() => db.exercises.get(ex.exerciseId).then((e) => e ?? null), [ex.exerciseId]);
   const controls = useDragControls();
@@ -72,6 +76,24 @@ function EditableExerciseRow({
         className="h-8 w-12 rounded-md border border-input bg-background text-center text-xs tabular-nums"
         aria-label="Target sets"
       />
+      <button
+        type="button"
+        onClick={onMoveUp}
+        disabled={!onMoveUp}
+        className="relative flex size-7 shrink-0 items-center justify-center rounded-full text-muted-foreground hit-slop-44 hover:bg-background disabled:opacity-30"
+        aria-label={`Move ${exercise?.name ?? "exercise"} up`}
+      >
+        <CaretUp size={13} />
+      </button>
+      <button
+        type="button"
+        onClick={onMoveDown}
+        disabled={!onMoveDown}
+        className="relative flex size-7 shrink-0 items-center justify-center rounded-full text-muted-foreground hit-slop-44 hover:bg-background disabled:opacity-30"
+        aria-label={`Move ${exercise?.name ?? "exercise"} down`}
+      >
+        <CaretDown size={13} />
+      </button>
       <button
         type="button"
         onClick={onRemove}
@@ -102,6 +124,12 @@ function EditableDayCard({
     onChange({ ...day, exercises: day.exercises.filter((e) => e.exerciseId !== exerciseId) });
   }
 
+  function moveExercise(from: number, to: number) {
+    const exercises = [...day.exercises];
+    [exercises[from], exercises[to]] = [exercises[to], exercises[from]];
+    onChange({ ...day, exercises });
+  }
+
   function addExercise(exerciseId: string) {
     onChange({
       ...day,
@@ -116,7 +144,8 @@ function EditableDayCard({
           <span className="w-3.5 shrink-0" />
           <span className="min-w-0 flex-1">Exercise</span>
           <span className="w-12 shrink-0 text-center">Sets</span>
-          <span className="w-7 shrink-0" />
+          <span className="w-14 shrink-0" />
+<span className="w-7 shrink-0" />
         </div>
       )}
       <Reorder.Group
@@ -125,12 +154,14 @@ function EditableDayCard({
         onReorder={(newOrder) => onChange({ ...day, exercises: newOrder })}
         className="list-none space-y-1.5"
       >
-        {day.exercises.map((ex) => (
+        {day.exercises.map((ex, i) => (
           <EditableExerciseRow
             key={ex.exerciseId}
             ex={ex}
             onChange={(patch) => updateExercise(ex.exerciseId, patch)}
             onRemove={() => removeExercise(ex.exerciseId)}
+            onMoveUp={i > 0 ? () => moveExercise(i, i - 1) : undefined}
+            onMoveDown={i < day.exercises.length - 1 ? () => moveExercise(i, i + 1) : undefined}
           />
         ))}
       </Reorder.Group>
