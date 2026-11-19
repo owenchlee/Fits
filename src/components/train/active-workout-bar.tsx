@@ -162,7 +162,8 @@ export function ActiveWorkoutBar() {
   return (
     <AnimatePresence>
       {visible && (
-        <motion.div
+        <motion.aside
+          aria-label="Workout status"
           initial={{ y: 96, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           exit={{ y: 96, opacity: 0 }}
@@ -176,7 +177,7 @@ export function ActiveWorkoutBar() {
           ) : (
             <div className="w-full max-w-sm md:max-w-xs">{bar}</div>
           )}
-        </motion.div>
+        </motion.aside>
       )}
     </AnimatePresence>
   );
