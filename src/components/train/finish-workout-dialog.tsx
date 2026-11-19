@@ -49,13 +49,19 @@ export function FinishWorkoutDialog({
   const exerciseById = new Map((exercises ?? []).filter((e) => !!e).map((e) => [e!.id, e!]));
   const volumeKg = workingSets.reduce((sum, s) => sum + toTotalLoadKg(s.weightKg, exerciseById.get(s.exerciseId)) * s.reps, 0);
 
+  // Bodyweight-only sessions have no load to multiply, so report reps instead of "0 lb".
+  const volumeLabel =
+    volumeKg > 0
+      ? `${formatWeight(volumeKg, unit, { decimals: 0 })} total volume`
+      : `${workingSets.reduce((sum, s) => sum + s.reps, 0)} total reps`;
+
   async function handleFinish() {
     if (finishing) return;
     setFinishing(true);
     await completeWorkout(workoutId);
     restTimer.stop();
     toast.success("Workout logged", {
-      description: `${workingSets.length} sets · ${formatWeight(volumeKg, unit, { decimals: 0 })} volume`,
+      description: `${workingSets.length} sets · ${volumeLabel.replace("total ", "")}`,
       icon: <CheckCircle weight="fill" />,
     });
     router.push("/");
@@ -76,7 +82,7 @@ export function FinishWorkoutDialog({
         <AlertDialogHeader>
           <AlertDialogTitle>Finish this workout?</AlertDialogTitle>
           <AlertDialogDescription>
-            {workingSets.length} working sets · {formatWeight(volumeKg, unit, { decimals: 0 })} total volume ·{" "}
+            {workingSets.length} working sets · {volumeLabel} ·{" "}
             {durationMin} min
             {unloggedCount > 0 && (
               <>

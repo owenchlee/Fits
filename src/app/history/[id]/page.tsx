@@ -59,6 +59,12 @@ export default function WorkoutDetailPage() {
     .filter((s) => !s.isWarmup)
     .reduce((sum, s) => sum + toTotalLoadKg(s.weightKg, exerciseById.get(s.exerciseId)) * s.reps, 0);
 
+  // Bodyweight-only sessions have no load to multiply, so report reps instead of "0 lb".
+  const volumeLabel =
+    volumeKg > 0
+      ? `${formatWeight(volumeKg, settings.unitSystem, { decimals: 0 })} volume`
+      : `${sets.filter((s) => !s.isWarmup).reduce((sum, s) => sum + s.reps, 0)} reps`;
+
   return (
     <div className="pb-6">
       <Link href="/statistics?tab=history" className="mb-4 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
@@ -70,7 +76,7 @@ export default function WorkoutDetailPage() {
           <h1 className="font-display text-2xl font-bold tracking-tight">{workout.title}</h1>
           <p className="mt-1 text-sm text-muted-foreground">
             {new Date(workout.startedAt).toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" })} ·{" "}
-            {durationMin} min · {formatWeight(volumeKg, settings.unitSystem, { decimals: 0 })} volume
+            {durationMin} min · {volumeLabel}
           </p>
         </div>
         <AlertDialog>
