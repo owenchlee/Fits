@@ -42,7 +42,7 @@ export default function CalendarPage() {
   const completedInWeek = useLiveQuery(
     () =>
       db.workouts
-        .filter((w) => !!w.completedAt && w.completedAt >= weekStart.getTime() && w.completedAt < weekEnd.getTime())
+        .filter((w) => !!w.completedAt && w.startedAt >= weekStart.getTime() && w.startedAt < weekEnd.getTime())
         .toArray(),
     [weekStart.getTime(), weekEnd.getTime()]
   );
@@ -242,7 +242,7 @@ export default function CalendarPage() {
               const dayName = isRest ? "Rest day" : activeProgram.days[dayIndex]?.name;
               const isToday = isSameDay(date, today);
               const isPast = date < today && !isToday;
-              const done = (completedInWeek ?? []).some((w) => w.completedAt && isSameDay(new Date(w.completedAt), date));
+              const done = (completedInWeek ?? []).some((w) => w.completedAt && isSameDay(new Date(w.startedAt), date));
               const missed = !isRest && isPast && !done;
 
               return (
