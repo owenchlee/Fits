@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Inter, Barlow_Condensed, JetBrains_Mono } from "next/font/google";
+import { headers } from "next/headers";
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -62,7 +63,9 @@ export const viewport: Viewport = {
   ],
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  // Per-request nonce set by the proxy; reading it also makes rendering dynamic so Next can stamp its scripts.
+  const nonce = (await headers()).get("x-nonce") ?? undefined;
   return (
     <html
       lang="en"
@@ -74,6 +77,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           attribute="class"
           defaultTheme="dark"
           enableSystem
+          nonce={nonce}
           disableTransitionOnChange
         >
           <TooltipProvider>
