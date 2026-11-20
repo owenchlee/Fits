@@ -3,7 +3,7 @@
 import * as React from "react";
 import { useRouter } from "next/navigation";
 import { Reorder, useDragControls } from "framer-motion";
-import { DotsSixVertical, Plus, Trash, X } from "@phosphor-icons/react/dist/ssr";
+import { CaretDown, CaretUp, DotsSixVertical, Plus, Trash, X } from "@phosphor-icons/react/dist/ssr";
 import { useLiveQuery } from "dexie-react-hooks";
 import { db } from "@/lib/db/db";
 import { createCustomProgram } from "@/lib/db/repo";
@@ -42,11 +42,16 @@ function DraftExerciseRow({
   ex,
   onChange,
   onRemove,
+  onMoveUp,
+  onMoveDown,
 }: {
   ex: DraftExercise;
   onChange: (patch: Partial<DraftExercise>) => void;
   onRemove: () => void;
+  onMoveUp?: () => void;
+  onMoveDown?: () => void;
 }) {
+  const exercise = useLiveQuery(() => db.exercises.get(ex.exerciseId), [ex.exerciseId]);
   const controls = useDragControls();
   return (
     <Reorder.Item
@@ -72,6 +77,24 @@ function DraftExerciseRow({
         className="h-8 w-12 rounded-md border border-input bg-background text-center text-xs tabular-nums"
         aria-label="Target sets"
       />
+      <button
+        type="button"
+        onClick={onMoveUp}
+        disabled={!onMoveUp}
+        className="relative flex size-7 shrink-0 items-center justify-center rounded-full text-muted-foreground hit-slop-44 hover:bg-background disabled:opacity-30"
+        aria-label={`Move ${exercise?.name ?? "exercise"} up`}
+      >
+        <CaretUp size={13} />
+      </button>
+      <button
+        type="button"
+        onClick={onMoveDown}
+        disabled={!onMoveDown}
+        className="relative flex size-7 shrink-0 items-center justify-center rounded-full text-muted-foreground hit-slop-44 hover:bg-background disabled:opacity-30"
+        aria-label={`Move ${exercise?.name ?? "exercise"} down`}
+      >
+        <CaretDown size={13} />
+      </button>
       <button
         type="button"
         onClick={onRemove}
@@ -134,6 +157,12 @@ export function ProgramBuilderDialog() {
 
   function reorderExercises(dayIndex: number, newOrder: DraftExercise[]) {
     setDays((d) => d.map((day, i) => (i === dayIndex ? { ...day, exercises: newOrder } : day)));
+  }
+
+  function moveExercise(dayIndex: number, from: number, to: number) {
+    const exercises = [...days[dayIndex].exercises];
+    [exercises[from], exercises[to]] = [exercises[to], exercises[from]];
+    reorderExercises(dayIndex, exercises);
   }
 
   function updateExercise(dayIndex: number, exIndex: number, patch: Partial<DraftExercise>) {
@@ -257,7 +286,8 @@ export function ProgramBuilderDialog() {
                       <span className="w-3.5 shrink-0" />
                       <span className="min-w-0 flex-1">Exercise</span>
                       <span className="w-12 shrink-0 text-center">Sets</span>
-                      <span className="w-7 shrink-0" />
+                      <span className="w-14 shrink-0" />
+<span className="w-7 shrink-0" />
                     </div>
                   )}
                   <Reorder.Group
@@ -272,6 +302,8 @@ export function ProgramBuilderDialog() {
                         ex={ex}
                         onChange={(patch) => updateExercise(dayIndex, exIndex, patch)}
                         onRemove={() => removeExercise(dayIndex, exIndex)}
+                        onMoveUp={exIndex > 0 ? () => moveExercise(dayIndex, exIndex, exIndex - 1) : undefined}
+                        onMoveDown={exIndex < day.exercises.length - 1 ? () => moveExercise(dayIndex, exIndex, exIndex + 1) : undefined}
                       />
                     ))}
                   </Reorder.Group>
