@@ -163,6 +163,15 @@
     -webkit-font-smoothing: antialiased;
     overscroll-behavior-y: none;
   }
+  /* body is the scroller (html is overflow hidden) */
+  body {
+    scroll-padding-bottom: calc(11rem + env(safe-area-inset-bottom));
+  }
+  @media (min-width: 768px) {
+    body {
+      scroll-padding-bottom: 0;
+    }
+  }
   .font-display {
     font-family: var(--font-display);
   }
