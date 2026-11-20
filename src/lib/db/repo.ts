@@ -151,7 +151,14 @@ export async function startWorkout(opts: {
     exerciseOrder: opts.exerciseOrder ?? [],
     updatedAt: Date.now(),
   };
-  await db.workouts.add(workout);
+  // Only one workout may be in progress: reuse it instead of inserting a second.
+  const existing = await db.transaction("rw", db.workouts, async () => {
+    const running = await db.workouts.filter((w) => !w.completedAt).first();
+    if (running) return running;
+    await db.workouts.add(workout);
+    return undefined;
+  });
+  if (existing) return existing.id;
   await enqueueSync("workouts", "upsert", id);
   return id;
 }
