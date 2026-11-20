@@ -182,6 +182,17 @@
   }
 }
 
+/* Reduce Motion (iOS / Android): drop CSS enter/exit keyframes and moving transitions.
+   Loading spinners and pulses keep running. Colour/opacity changes are instant too, which is fine. */
+@media (prefers-reduced-motion: reduce) {
+  *:not(.animate-spin):not(.animate-pulse),
+  *:not(.animate-spin):not(.animate-pulse)::before,
+  *:not(.animate-spin):not(.animate-pulse)::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
 /* Liquid-glass surface: pairs with the alpha already baked into --card/--popover/--sidebar so
    real overlays (dialogs, sheets, popovers, dropdowns, fixed nav chrome) blur what's behind them.
    Applying it to a surface that isn't layered over other content is a visual no-op.
