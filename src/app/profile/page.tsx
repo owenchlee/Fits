@@ -58,7 +58,11 @@ function CustomRestDuration({ seconds, onChange }: { seconds: number; onChange: 
     const m = Math.max(0, parseInt(nextMinutes, 10) || 0);
     const s = Math.max(0, Math.min(59, parseInt(nextSecs, 10) || 0));
     const total = m * 60 + s;
-    if (total > 0) onChange(total);
+    // A 0:00 commit is rejected, so fall back to the saved value; either way show what is saved.
+    const saved = total > 0 ? total : seconds;
+    if (saved !== seconds) onChange(saved);
+    setMinutes(String(Math.floor(saved / 60)));
+    setSecs(String(saved % 60).padStart(2, "0"));
   }
 
   return (

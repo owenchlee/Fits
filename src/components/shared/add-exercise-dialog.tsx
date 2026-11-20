@@ -164,7 +164,10 @@ export function AddExerciseDialog({
         </div>
 
         <div className="mt-2 flex justify-end gap-2 border-t border-border pt-4">
-          <Button type="button" variant="ghost" onClick={() => setOpen(false)}>
+          <Button type="button" variant="ghost" onClick={() => {
+              setOpen(false);
+              reset();
+            }}>
             Cancel
           </Button>
           <Button type="button" onClick={handleSave} disabled={!canSave || saving}>
