@@ -1,6 +1,7 @@
 import type { RealtimeChannel, SupabaseClient } from "@supabase/supabase-js";
 import { db } from "@/lib/db/db";
 import type { Database } from "@/lib/supabase/types";
+import { settingsChanged } from "@/lib/sync/migrate-local-data";
 import { onFlushRequested } from "@/lib/sync/outbox";
 import {
   REMOTE_TABLE,
@@ -147,7 +148,7 @@ async function pullAll(supabase: Client, userId: string) {
     if (profile) {
       const local = await db.settings.get("singleton");
       const remoteUpdatedAt = new Date(profile.updated_at).getTime();
-      if (!local || remoteUpdatedAt > local.updatedAt) {
+      if (!local || remoteUpdatedAt > local.updatedAt || !settingsChanged(local)) {
         await db.settings.update("singleton", { ...profileRowToSettings(profile), updatedAt: remoteUpdatedAt });
       }
     }
@@ -196,7 +197,7 @@ function subscribeRealtime(supabase: Client, userId: string): RealtimeChannel {
       void (async () => {
         const local = await db.settings.get("singleton");
         const remoteUpdatedAt = new Date(payload.new.updated_at).getTime();
-        if (!local || remoteUpdatedAt > local.updatedAt) {
+        if (!local || remoteUpdatedAt > local.updatedAt || !settingsChanged(local)) {
           await db.settings.update("singleton", {
             ...profileRowToSettings(payload.new as never),
             updatedAt: remoteUpdatedAt,
