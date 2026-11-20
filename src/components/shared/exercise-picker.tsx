@@ -51,11 +51,10 @@ export function ExercisePicker({
   const normalizedQuery = query.trim().toLowerCase();
   const searching = normalizedQuery.length > 0;
 
-  const visibleExercises = searching
-    ? searchExercises(exercises, normalizedQuery)
-    : activeCategory
-      ? exercises.filter((e) => (CATEGORY_GROUPS[activeCategory] ?? []).includes(e.primaryMuscle))
-      : [];
+  const inCategory = activeCategory
+    ? exercises.filter((e) => (CATEGORY_GROUPS[activeCategory] ?? []).includes(e.primaryMuscle))
+    : exercises;
+  const visibleExercises = searching ? searchExercises(inCategory, normalizedQuery) : activeCategory ? inCategory : [];
 
   function selectExercise(ex: Exercise) {
     onSelect(ex);

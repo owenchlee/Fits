@@ -96,7 +96,9 @@ export default function ExercisesPage() {
         ))}
       </div>
 
-      {filtered.length === 0 && scope === "mine" ? (
+      {filtered.length === 0 && scope === "mine" && scoped.length > 0 ? (
+        <p className="p-4 text-center text-sm text-muted-foreground">No exercises match.</p>
+      ) : filtered.length === 0 && scope === "mine" ? (
         <EmptyState
           icon={Barbell}
           title="No logged exercises yet"
