@@ -11,7 +11,7 @@ const dayFmt = new Intl.DateTimeFormat(undefined, { weekday: "short", month: "sh
 function groupByMonth(workouts: ReturnType<typeof useCompletedWorkouts>) {
   const groups = new Map<string, typeof workouts>();
   for (const w of workouts) {
-    const key = monthFmt.format(w.completedAt!);
+    const key = monthFmt.format(w.startedAt);
     if (!groups.has(key)) groups.set(key, []);
     groups.get(key)!.push(w);
   }
@@ -49,7 +49,7 @@ export function HistoryTab() {
                       <div>
                         <p className="text-sm font-medium">{w.title}</p>
                         <p className="text-xs text-muted-foreground">
-                          {dayFmt.format(w.completedAt!)}
+                          {dayFmt.format(w.startedAt)}
                         </p>
                       </div>
                       <span className="tabular-nums text-xs text-muted-foreground">{durationMin} min</span>
