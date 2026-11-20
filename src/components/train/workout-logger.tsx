@@ -8,6 +8,7 @@ import { Barbell } from "@phosphor-icons/react/dist/ssr";
 import { ElapsedTimer } from "@/components/train/elapsed-timer";
 import { ExerciseSessionCard } from "@/components/train/exercise-session-card";
 import { ExercisePicker } from "@/components/shared/exercise-picker";
+import { saveOrToast } from "@/lib/save";
 import { addExerciseToWorkout } from "@/lib/db/repo";
 import { isSetComplete } from "@/lib/calc/set-status";
 import { FinishWorkoutDialog } from "@/components/train/finish-workout-dialog";
@@ -117,7 +118,7 @@ export function WorkoutLogger({ workoutId }: { workoutId: string }) {
       <div className="mt-4">
         <ExercisePicker
           addedIds={workout.exerciseOrder}
-          onSelect={(exercise) => addExerciseToWorkout(workoutId, exercise.id)}
+          onSelect={(exercise) => void saveOrToast(() => addExerciseToWorkout(workoutId, exercise.id))}
         />
       </div>
     </div>

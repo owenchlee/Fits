@@ -6,6 +6,7 @@ import { useLiveQuery } from "dexie-react-hooks";
 import { Plus, TrendUp, X } from "@phosphor-icons/react/dist/ssr";
 import { db } from "@/lib/db/db";
 import { addSet, deleteSet, getLastPerformance, updateSet, removeExerciseFromWorkout } from "@/lib/db/repo";
+import { saveOrToast } from "@/lib/save";
 import { useRestTimer } from "@/lib/timer/rest-timer-context";
 import { estimateOneRepMax } from "@/lib/calc/one-rep-max";
 import { calculateWarmupSet } from "@/lib/calc/warmup";
@@ -121,7 +122,7 @@ export function ExerciseSessionCard({
     const prev = previousSets?.filter((s) => !s.isWarmup)[workingSets.length];
     const weightKg = last?.weightKg ?? prev?.weightKg ?? 0;
     const reps = last?.reps ?? prev?.reps ?? 0;
-    await addSet({ workoutId, exerciseId, weightKg, reps });
+    await saveOrToast(() => addSet({ workoutId, exerciseId, weightKg, reps }));
   }
 
   /** Always describes what comes *after* the rest — "Next: Bench Press · Set 3 of 4", then
@@ -138,7 +139,7 @@ export function ExerciseSessionCard({
   }
 
   function handleSetChange(setId: string, patch: Partial<SetEntry>, isNewlyCompleted: boolean) {
-    void updateSet(setId, patch);
+    void saveOrToast(() => updateSet(setId, patch));
     if (isNewlyCompleted) {
       timer.start(restSeconds, restLabel(setId));
     }
@@ -184,7 +185,7 @@ export function ExerciseSessionCard({
           onClick={() => {
             // One stray tap shouldn't silently throw away logged sets — confirm only when there are some.
             if (sets.some((s) => isSetComplete(s, exercise))) setConfirmRemove(true);
-            else void removeExerciseFromWorkout(workoutId, exerciseId);
+            else void saveOrToast(() => removeExerciseFromWorkout(workoutId, exerciseId));
           }}
           className="relative flex size-7 shrink-0 items-center justify-center rounded-full text-muted-foreground hit-slop-44 hover:bg-secondary hover:text-destructive"
         >
@@ -200,7 +201,7 @@ export function ExerciseSessionCard({
               <AlertDialogCancel>Keep it</AlertDialogCancel>
               <AlertDialogAction
                 className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                onClick={() => void removeExerciseFromWorkout(workoutId, exerciseId)}
+                onClick={() => void saveOrToast(() => removeExerciseFromWorkout(workoutId, exerciseId))}
               >
                 Remove
               </AlertDialogAction>

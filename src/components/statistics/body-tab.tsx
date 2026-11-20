@@ -4,6 +4,7 @@ import * as React from "react";
 import { toast } from "sonner";
 import { Plus, Ruler, Trash } from "@phosphor-icons/react/dist/ssr";
 import { useBodyMetrics, useSettings } from "@/lib/db/hooks";
+import { saveOrToast } from "@/lib/save";
 import { logBodyMetric, deleteBodyMetric } from "@/lib/db/repo";
 import { cmToDisplayLength, fromDisplayLength, fromDisplayWeight, formatWeight, toDisplayWeight } from "@/lib/calc/units";
 import { sanitizeDecimalInput } from "@/lib/format";
@@ -55,12 +56,15 @@ export function BodyTab() {
   async function handleSave() {
     if (!canSave) return;
     const weightKg = Number.isFinite(weightNum) ? fromDisplayWeight(weightNum, settings.unitSystem) : undefined;
-    await logBodyMetric({
-      date: Date.now(),
-      weightKg,
-      bodyFatPct: Number.isFinite(bodyFatNum) ? bodyFatNum : undefined,
-      measurements: Object.keys(parsedMeasurements).length ? parsedMeasurements : undefined,
-    });
+    const ok = await saveOrToast(() =>
+      logBodyMetric({
+        date: Date.now(),  
+        weightKg,  
+        bodyFatPct: Number.isFinite(bodyFatNum) ? bodyFatNum : undefined,  
+        measurements: Object.keys(parsedMeasurements).length ? parsedMeasurements : undefined,
+      }),
+    );
+    if (!ok) return;
     toast.success("Entry logged");
     setOpen(false);
     setWeight("");
@@ -163,7 +167,7 @@ export function BodyTab() {
               </div>
               <button
                 aria-label="Delete entry"
-                onClick={() => deleteBodyMetric(m.id)}
+                onClick={() => void saveOrToast(() => deleteBodyMetric(m.id))}
                 className="flex size-8 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:bg-secondary hover:text-destructive"
               >
                 <Trash size={14} />

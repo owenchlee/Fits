@@ -1,5 +1,6 @@
 "use client";
 
+import { saveOrToast } from "@/lib/save";
 import { Suspense } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -23,7 +24,8 @@ function TrainContent() {
   }
 
   async function handleQuickStart() {
-    const id = await startWorkout({ title: "Quick Workout" });
+    let id = "";
+    if (!(await saveOrToast(async () => { id = await startWorkout({ title: "Quick Workout" }); }))) return;
     router.push(`/train?workoutId=${id}`);
   }
 

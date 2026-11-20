@@ -16,6 +16,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
+import { saveOrToast } from "@/lib/save";
 import type { Equipment, Exercise, MuscleGroup } from "@/lib/db/types";
 
 const MUSCLES: MuscleGroup[] = [
@@ -83,8 +84,15 @@ export function AddExerciseDialog({
   async function handleSave() {
     if (!canSave || !primaryMuscle || !equipment) return;
     setSaving(true);
-    const id = await createExercise({ name: name.trim(), primaryMuscle, equipment, isUnilateral });
-    const exercise = await db.exercises.get(id);
+    let exercise: Exercise | undefined;
+    const ok = await saveOrToast(async () => {
+      const id = await createExercise({ name: name.trim(), primaryMuscle, equipment, isUnilateral });
+      exercise = await db.exercises.get(id);
+    });
+    if (!ok) {
+      setSaving(false);
+      return;
+    }
     setOpen(false);
     reset();
     if (exercise) onCreated?.(exercise);

@@ -1,5 +1,6 @@
 "use client";
 
+import { saveOrToast } from "@/lib/save";
 import * as React from "react";
 import { useRouter } from "next/navigation";
 import { useLiveQuery } from "dexie-react-hooks";
@@ -52,7 +53,10 @@ export function FinishWorkoutDialog({
   async function handleFinish() {
     if (finishing) return;
     setFinishing(true);
-    await completeWorkout(workoutId);
+    if (!(await saveOrToast(() => completeWorkout(workoutId)))) {
+      setFinishing(false);
+      return;
+    }
     restTimer.stop();
     toast.success("Workout logged", {
       description: `${workingSets.length} sets · ${formatWeight(volumeKg, unit, { decimals: 0 })} volume`,

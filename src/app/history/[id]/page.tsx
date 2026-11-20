@@ -8,6 +8,7 @@ import { Barbell, CaretLeft, Trash } from "@phosphor-icons/react/dist/ssr";
 import { EmptyState } from "@/components/shared/empty-state";
 import { db } from "@/lib/db/db";
 import { useSettings, useWorkoutSets } from "@/lib/db/hooks";
+import { saveOrToast } from "@/lib/save";
 import { deleteWorkout, updateSet } from "@/lib/db/repo";
 import { toTotalLoadKg } from "@/lib/calc/load";
 import { toDisplayWeight, fromDisplayWeight, formatWeight } from "@/lib/calc/units";
@@ -89,8 +90,7 @@ export default function WorkoutDetailPage() {
               <AlertDialogAction
                 className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                 onClick={async () => {
-                  await deleteWorkout(workout.id);
-                  router.push("/statistics?tab=history");
+                  if (await saveOrToast(() => deleteWorkout(workout.id))) router.push("/statistics?tab=history");
                 }}
               >
                 Delete
@@ -163,14 +163,14 @@ function EditableSetRow({ set, index, unit }: { set: SetEntry; index: number; un
     const cleaned = sanitizeDecimalInput(value);
     setWeightStr(cleaned);
     const n = parseFloat(cleaned);
-    void updateSet(set.id, { weightKg: Number.isNaN(n) ? 0 : fromDisplayWeight(n, unit) });
+    void saveOrToast(() => updateSet(set.id, { weightKg: Number.isNaN(n) ? 0 : fromDisplayWeight(n, unit) }));
   }
 
   function commitReps(value: string) {
     const cleaned = sanitizeIntegerInput(value);
     setRepsStr(cleaned);
     const n = parseInt(cleaned, 10);
-    void updateSet(set.id, { reps: Number.isNaN(n) ? 0 : n });
+    void saveOrToast(() => updateSet(set.id, { reps: Number.isNaN(n) ? 0 : n }));
   }
 
   return (

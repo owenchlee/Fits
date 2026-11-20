@@ -1,5 +1,6 @@
 "use client";
 
+import { saveOrToast } from "@/lib/save";
 import { useRouter } from "next/navigation";
 import { Trash } from "@phosphor-icons/react/dist/ssr";
 import { discardWorkout } from "@/lib/db/repo";
@@ -42,7 +43,7 @@ export function DiscardWorkoutButton({ workoutId }: { workoutId: string }) {
           <AlertDialogAction
             className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             onClick={async () => {
-              await discardWorkout(workoutId);
+              if (!(await saveOrToast(() => discardWorkout(workoutId)))) return;
               restTimer.stop();
               router.push("/");
             }}
