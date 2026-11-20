@@ -165,7 +165,7 @@ export async function startWorkout(opts: {
 
 export async function addExerciseToWorkout(workoutId: string, exerciseId: string) {
   const workout = await db.workouts.get(workoutId);
-  if (!workout) return;
+  if (!workout || workout.completedAt) return;
   if (workout.exerciseOrder.includes(exerciseId)) return;
   await db.workouts.update(workoutId, {
     exerciseOrder: [...workout.exerciseOrder, exerciseId],
@@ -208,6 +208,8 @@ async function advanceProgramDay(totalDays: number, fromIndex?: number) {
 }
 
 export async function discardWorkout(workoutId: string) {
+  // A finished workout is history; deleting it goes through deleteWorkout.
+  if ((await db.workouts.get(workoutId))?.completedAt) return;
   const setIds = await db.sets.where("workoutId").equals(workoutId).primaryKeys();
   await db.transaction("rw", db.workouts, db.sets, async () => {
     await db.sets.where("workoutId").equals(workoutId).delete();

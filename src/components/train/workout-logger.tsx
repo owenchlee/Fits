@@ -48,6 +48,21 @@ export function WorkoutLogger({ workoutId }: { workoutId: string }) {
     );
   }
 
+  if (workout.completedAt) {
+    return (
+      <EmptyState
+        icon={Barbell}
+        title="This workout is finished"
+        description="It has already been saved to your history."
+        action={
+          <Link href={`/history/${workoutId}`} className="text-sm font-medium text-primary">
+            View in history
+          </Link>
+        }
+      />
+    );
+  }
+
   const programDay = program?.days.find((d) => d.name === workout.programDayName);
 
   /** The next exercise (after `index`, wrapping around) that still has unfinished working sets,
