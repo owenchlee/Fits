@@ -1,7 +1,7 @@
 import { db } from "@/lib/db/db";
 import { addDays, dateKey } from "@/lib/date";
 import { generateId } from "@/lib/id";
-import { recordPercentileSnapshot } from "@/lib/calc/percentile-snapshot";
+import { recordPercentileSnapshot, refreshSnapshotsFrom } from "@/lib/calc/percentile-snapshot";
 import { enqueueSync } from "@/lib/sync/outbox";
 import type { AppSettings, BodyMetric, Equipment, Exercise, MuscleGroup, Program, ProgramExercise, SetEntry, Workout } from "@/lib/db/types";
 
@@ -304,6 +304,10 @@ export async function addSet(entry: {
 export async function updateSet(id: string, patch: Partial<SetEntry>) {
   await db.sets.update(id, { ...patch, updatedAt: Date.now() });
   await enqueueSync("sets", "upsert", id);
+  // Only a finished workout feeds the percentile history; typing into a live one must not touch it.
+  const set = await db.sets.get(id);
+  const done = set && (await db.workouts.get(set.workoutId))?.completedAt;
+  if (done) await refreshSnapshotsFrom(done);
 }
 
 export async function deleteSet(id: string) {
@@ -402,6 +406,7 @@ export async function resetAllData() {
 }
 
 export async function deleteWorkout(workoutId: string) {
+  const completedAt = (await db.workouts.get(workoutId))?.completedAt;
   const setIds = await db.sets.where("workoutId").equals(workoutId).primaryKeys();
   await db.transaction("rw", db.workouts, db.sets, async () => {
     await db.sets.where("workoutId").equals(workoutId).delete();
@@ -409,4 +414,5 @@ export async function deleteWorkout(workoutId: string) {
   });
   for (const setId of setIds) await enqueueSync("sets", "delete", String(setId));
   await enqueueSync("workouts", "delete", workoutId);
+  if (completedAt) await refreshSnapshotsFrom(completedAt);
 }
