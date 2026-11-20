@@ -56,7 +56,8 @@ export default function DashboardPage() {
   const activeProgram = useProgram(settings.activeProgramId);
   const weekly = useWeeklyStats();
   const prs = useMainLiftPRs();
-  const streak = currentStreak(settings);
+  const completedAts = useLiveQuery(() => db.workouts.where("completedAt").above(0).keys() as Promise<number[]>, []);
+  const streak = currentStreak(completedAts ?? []);
 
   const usingSchedule = !!activeProgram?.schedule;
   const scheduledDayIndex = usingSchedule ? scheduledDayIndexFor(activeProgram!, new Date()) : undefined;
