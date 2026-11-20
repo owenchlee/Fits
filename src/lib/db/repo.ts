@@ -235,6 +235,8 @@ export async function completeWorkout(workoutId: string) {
   const workout = await db.workouts.get(workoutId);
   // Already finished (double tap, second tab): don't re-stamp, re-prune or advance the program twice.
   if (!workout || workout.completedAt) return;
+  // Nothing logged: leave the workout open so no empty session, streak bump or program skip is recorded.
+  if ((await db.sets.where("workoutId").equals(workoutId).filter((s) => s.reps > 0).count()) === 0) return;
 
   const unlogged = await getUnloggedSets(workoutId);
   await db.sets.bulkDelete(unlogged.map((s) => s.id));

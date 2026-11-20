@@ -88,6 +88,12 @@ export function FinishWorkoutDialog({
           <AlertDialogDescription>
             {workingSets.length} working sets · {volumeLabel} ·{" "}
             {durationMin} min
+            {sets.every((s) => s.reps <= 0) && (
+              <>
+                <br />
+                Log at least one set to finish.
+              </>
+            )}
             {unloggedCount > 0 && (
               <>
                 <br />
@@ -98,7 +104,7 @@ export function FinishWorkoutDialog({
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel>Keep going</AlertDialogCancel>
-          <AlertDialogAction disabled={finishing} onClick={() => void handleFinish()}>
+          <AlertDialogAction disabled={finishing || sets.every((s) => s.reps <= 0)} onClick={() => void handleFinish()}>
             Finish workout
           </AlertDialogAction>
         </AlertDialogFooter>
