@@ -21,7 +21,7 @@ export function VolumeBarChart({ data, unitLabel, height = 200 }: { data: Volume
   return (
     <SvgChart
       height={height}
-      label={`Bar chart of training volume across ${data.length} weeks`}
+      label={`Bar chart of training volume across ${data.length} weeks, latest week ${data[data.length - 1].label}: ${data[data.length - 1].value.toLocaleString()} ${unitLabel}`}
       labels={data.map((d) => d.label)}
       ticks={ticks}
       yMin={0}

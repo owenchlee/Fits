@@ -34,12 +34,20 @@ export function TrendChart({
 
   const values = data.map((d) => d.value);
   const ticks = niceTicks(Math.min(...values), Math.max(...values));
-  const xs = (i: number, w: number) => (i / (data.length - 1)) * w;
+  // x is proportional to time; falls back to index spacing if dates are unparsable or identical
+  const times = data.map((d) => Date.parse(d.date));
+  const t0 = Math.min(...times);
+  const span = Math.max(...times) - t0;
+  const timed = Number.isFinite(span) && span > 0;
+  const xs = (i: number, w: number) => (timed ? ((times[i] - t0) / span) * w : (i / (data.length - 1)) * w);
+  const first = data[0];
+  const last = data[data.length - 1];
+  const summary = `Trend chart of ${data.length} data points in ${unitLabel}, from ${first.value.toLocaleString()} ${unitLabel} on ${first.label} to ${last.value.toLocaleString()} ${unitLabel} on ${last.label}`;
 
   return (
     <SvgChart
       height={height}
-      label={`Trend chart of ${data.length} data points in ${unitLabel}`}
+      label={summary}
       labels={data.map((d) => d.label)}
       ticks={ticks}
       yMin={ticks[0]}

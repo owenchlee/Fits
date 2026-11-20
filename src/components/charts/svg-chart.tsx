@@ -80,6 +80,7 @@ export function SvgChart({
   const ref = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(0);
   const [active, setActive] = useState<number | null>(null);
+  const pinned = useRef(false);
 
   useEffect(() => {
     const el = ref.current;
@@ -95,23 +96,53 @@ export function SvgChart({
   const y = (v: number) => PAD.top + plotH - ((v - yMin) / (yMax - yMin || 1)) * plotH;
   const step = Math.max(1, Math.ceil(56 / Math.max(1, plotW / Math.max(1, labels.length))));
 
-  function onMove(e: React.PointerEvent) {
+  function nearest(e: React.PointerEvent | React.MouseEvent) {
     const x = e.clientX - e.currentTarget.getBoundingClientRect().left - PAD.left;
     let best = 0;
     for (let i = 1; i < labels.length; i++) {
       if (Math.abs(xs(i, plotW) - x) < Math.abs(xs(best, plotW) - x)) best = i;
     }
-    setActive(best);
+    return best;
+  }
+
+  // A tap pins the tooltip (touch has no hover); mouse hover stays transient.
+  function onTap(e: React.PointerEvent | React.MouseEvent) {
+    if ("pointerType" in e && e.pointerType === "mouse") return;
+    pinned.current = true;
+    setActive(nearest(e));
+  }
+
+  function onKeyDown(e: React.KeyboardEvent) {
+    const n = labels.length;
+    const next =
+      e.key === "ArrowRight" ? Math.min(n - 1, (active ?? -1) + 1)
+      : e.key === "ArrowLeft" ? Math.max(0, (active ?? n) - 1)
+      : e.key === "Home" ? 0
+      : e.key === "End" ? n - 1
+      : null;
+    if (next === null) return;
+    e.preventDefault();
+    setActive(next);
   }
 
   return (
     <div
       ref={ref}
       style={{ width: "100%", height, position: "relative" }}
+      className="rounded-md outline-none focus-visible:ring-2 focus-visible:ring-ring"
       role="img"
       aria-label={label}
-      onPointerMove={onMove}
-      onPointerLeave={() => setActive(null)}
+      tabIndex={0}
+      onKeyDown={onKeyDown}
+      onBlur={() => setActive(null)}
+      onPointerDown={onTap}
+      onClick={onTap}
+      onPointerMove={(e) => {
+        if (!pinned.current || e.pointerType === "mouse") setActive(nearest(e));
+      }}
+      onPointerLeave={() => {
+        if (!pinned.current) setActive(null);
+      }}
     >
       {width > 0 && (
         <svg width={width} height={height} style={{ display: "block" }}>
