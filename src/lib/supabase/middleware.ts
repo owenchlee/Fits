@@ -29,7 +29,15 @@ export async function updateSession(request: NextRequest) {
 
   // getClaims verifies the JWT locally against cached JWKS (refreshing expired sessions first),
   // avoiding a Supabase Auth round trip on every request.
-  await supabase.auth.getClaims();
+  // Bounded: if Supabase is down/slow, let the page through rather than hanging it.
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  await Promise.race([
+    supabase.auth.getClaims().catch(() => undefined),
+    new Promise((resolve) => {
+      timer = setTimeout(resolve, 2000);
+    }),
+  ]);
+  clearTimeout(timer);
 
   return response;
 }
