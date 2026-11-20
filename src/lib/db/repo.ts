@@ -148,7 +148,7 @@ export async function startWorkout(opts: {
     programDayName: opts.programDayName,
     title: opts.title,
     startedAt: Date.now(),
-    exerciseOrder: opts.exerciseOrder ?? [],
+    exerciseOrder: [...new Set(opts.exerciseOrder ?? [])],
     updatedAt: Date.now(),
   };
   // Only one workout may be in progress: reuse it instead of inserting a second.

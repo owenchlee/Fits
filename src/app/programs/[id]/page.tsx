@@ -104,6 +104,7 @@ function EditableDayCard({
   }
 
   function addExercise(exerciseId: string) {
+    if (day.exercises.some((e) => e.exerciseId === exerciseId)) return;
     onChange({
       ...day,
       exercises: [...day.exercises, { exerciseId, targetSets: 3, targetReps: "" }],

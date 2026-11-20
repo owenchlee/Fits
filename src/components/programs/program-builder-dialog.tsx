@@ -119,7 +119,7 @@ export function ProgramBuilderDialog() {
   function addExerciseToDay(dayIndex: number, exerciseId: string) {
     setDays((d) =>
       d.map((day, i) =>
-        i === dayIndex
+        i === dayIndex && !day.exercises.some((e) => e.exerciseId === exerciseId)
           ? {
               ...day,
               exercises: [
