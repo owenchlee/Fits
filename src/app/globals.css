@@ -226,3 +226,12 @@
     transform: translate(-50%, -50%);
   }
 }
+
+/* Keep form text at 16px on phones so iOS does not auto-zoom on focus (pinch-zoom is allowed). */
+@media (max-width: 767px) {
+  input:not([type="checkbox"]):not([type="radio"]),
+  textarea,
+  select {
+    font-size: 16px;
+  }
+}

@@ -116,7 +116,7 @@ export function TrendsTab() {
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
           <h2 className="font-display text-lg font-bold">Lift progress</h2>
           <Select value={exerciseId} onValueChange={setExerciseId}>
-            <SelectTrigger className="w-48">
+            <SelectTrigger className="w-48" aria-label="Lift">
               <SelectValue placeholder="Choose exercise" />
             </SelectTrigger>
             <SelectContent>
