@@ -100,6 +100,9 @@ async function promoteMatchingCustomExercises(exercisesByName: Map<string, Exerc
     if (!current.isCustom) continue;
     const seedMatch = seedByNormalizedName.get(current.name.toLowerCase().trim());
     if (!seedMatch) continue;
+    // The built-in already exists: promoting would leave two identical entries.
+    const builtIn = exercisesByName.get(seedMatch.name);
+    if (builtIn && builtIn !== current) continue;
     const promoted: Exercise = { ...current, ...seedMatch, isCustom: false, updatedAt: Date.now() };
     updates.push(promoted);
     exercisesByName.set(promoted.name, promoted);
