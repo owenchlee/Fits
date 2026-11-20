@@ -47,10 +47,14 @@ export default function ExerciseDetailPage() {
   const bestE1rm = workingSets.reduce((max, s) => Math.max(max, estimateOneRepMax(s.weightKg, s.reps)), 0);
   const bestTotalLoadE1rm = workingSets.reduce((max, s) => Math.max(max, estimateOneRepMax(toTotalLoadKg(s.weightKg, exercise), s.reps)), 0);
   const totalSets = workingSets.length;
+  const unloaded = exercise.equipment === "bodyweight" || exercise.equipment === "bands";
+  // Bodyweight/bands sets log only added load, so with none logged reps are the progress signal.
+  const repBased = totalSets > 0 && bestE1rm === 0;
+  const bestReps = workingSets.reduce((max, s) => Math.max(max, s.reps), 0);
 
   const byWorkout = new Map<string, { date: number; best: number }>();
   for (const s of workingSets) {
-    const e1rm = estimateOneRepMax(s.weightKg, s.reps);
+    const e1rm = repBased ? s.reps : estimateOneRepMax(s.weightKg, s.reps);
     const existing = byWorkout.get(s.workoutId);
     if (!existing || e1rm > existing.best) byWorkout.set(s.workoutId, { date: s.completedAt, best: e1rm });
   }
@@ -58,7 +62,7 @@ export default function ExerciseDetailPage() {
     .sort((a, b) => a.date - b.date)
     .map((point) => ({
       date: new Date(point.date).toISOString(),
-      value: Math.round(toDisplayWeight(point.best, settings.unitSystem)),
+      value: repBased ? point.best : Math.round(toDisplayWeight(point.best, settings.unitSystem)),
       label: new Date(point.date).toLocaleDateString(undefined, { month: "short", day: "numeric" }),
     }));
 
@@ -82,7 +86,11 @@ export default function ExerciseDetailPage() {
       </p>
 
       <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3">
-        <StatCard label="Best est. 1RM" value={bestE1rm ? formatWeight(bestE1rm, settings.unitSystem, { decimals: 0 }).split(" ")[0] ?? "" : "—"} unit={settings.unitSystem} icon={Trophy} accent />
+        {repBased ? (
+          <StatCard label="Most reps" value={String(bestReps)} unit="reps" icon={Trophy} accent />
+        ) : (
+          <StatCard label="Best est. 1RM" value={bestE1rm ? formatWeight(bestE1rm, settings.unitSystem, { decimals: 0 }).split(" ")[0] ?? "" : "—"} unit={settings.unitSystem} icon={Trophy} accent />
+        )}
         <StatCard label="Sessions logged" value={String(byWorkout.size)} icon={ChartLineUp} />
         <StatCard label="Total sets" value={String(totalSets)} icon={Barbell} />
       </div>
@@ -102,8 +110,8 @@ export default function ExerciseDetailPage() {
       )}
 
       <section className="mt-6 rounded-2xl border border-border bg-card p-4">
-        <h2 className="mb-3 font-display text-lg font-bold">Estimated 1RM trend</h2>
-        <TrendChart data={chartData} unitLabel={settings.unitSystem} />
+        <h2 className="mb-3 font-display text-lg font-bold">{repBased ? "Best reps per session" : "Estimated 1RM trend"}</h2>
+        <TrendChart data={chartData} unitLabel={repBased ? "reps" : settings.unitSystem} />
       </section>
 
       <section className="mt-6">
@@ -127,7 +135,7 @@ export default function ExerciseDetailPage() {
                     <td className="px-3 py-2 text-muted-foreground">
                       {new Date(s.completedAt).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
                     </td>
-                    <td className="px-3 py-2 text-right tabular-nums">{formatWeight(s.weightKg, settings.unitSystem)}</td>
+                    <td className="px-3 py-2 text-right tabular-nums">{unloaded ? (s.weightKg > 0 ? `BW + ${formatWeight(s.weightKg, settings.unitSystem)}` : "BW") : formatWeight(s.weightKg, settings.unitSystem)}</td>
                     <td className="px-3 py-2 text-right tabular-nums">{s.reps}</td>
                     <td className="px-3 py-2 text-right tabular-nums text-muted-foreground">{s.rpe ?? "—"}</td>
                   </tr>
