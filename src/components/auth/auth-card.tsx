@@ -3,12 +3,15 @@ import { Barbell } from "@phosphor-icons/react/dist/ssr";
 
 export function AuthCard({
   title,
+  announceTitle,
   description,
   children,
   footer,
   secondaryAction,
 }: {
   title: string;
+  /** Announce the title to screen readers when this card appears (e.g. a success view). */
+  announceTitle?: boolean;
   description?: string;
   children: React.ReactNode;
   footer?: React.ReactNode;
@@ -22,7 +25,9 @@ export function AuthCard({
         <span className="font-display text-2xl font-bold tracking-tight">Fits</span>
       </div>
       <div className="rounded-2xl border border-border bg-card p-6">
-        <h1 className="font-display text-2xl font-bold tracking-tight">{title}</h1>
+        <div role={announceTitle ? "status" : undefined}>
+          <h1 className="font-display text-2xl font-bold tracking-tight">{title}</h1>
+        </div>
         {description && <p className="mt-1 text-sm text-muted-foreground">{description}</p>}
         <div className="mt-5 space-y-4">{children}</div>
       </div>

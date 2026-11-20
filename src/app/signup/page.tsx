@@ -24,16 +24,20 @@ export default function SignupPage() {
   const [consent, setConsent] = React.useState(NO_CONSENT);
   const [submitting, setSubmitting] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+  const [errorField, setErrorField] = React.useState<"password" | "confirm-password" | null>(null);
   const [checkEmail, setCheckEmail] = React.useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+    setErrorField(null);
     if (password !== confirmPassword) {
+      setErrorField("confirm-password");
       setError("Passwords don't match.");
       return;
     }
     if (password.length < 8) {
+      setErrorField("password");
       setError("Password must be at least 8 characters.");
       return;
     }
@@ -152,10 +156,12 @@ export default function SignupPage() {
             autoComplete="new-password"
             required
             minLength={8}
+            aria-invalid={errorField === "password" || undefined}
+            aria-describedby={["password-hint", errorField === "password" ? "form-error" : ""].filter(Boolean).join(" ") || undefined}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
           />
-          <p className="mt-1 text-[11px] text-muted-foreground">At least 8 characters.</p>
+          <p id="password-hint" className="mt-1 text-[11px] text-muted-foreground">At least 8 characters.</p>
         </div>
         <div>
           <Label htmlFor="confirm-password" className="mb-1.5 block text-xs font-medium text-muted-foreground">
@@ -167,12 +173,14 @@ export default function SignupPage() {
             autoComplete="new-password"
             required
             minLength={8}
+            aria-invalid={errorField === "confirm-password" || undefined}
+            aria-describedby={errorField === "confirm-password" ? "form-error" : undefined}
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
           />
         </div>
         <ConsentFields value={consent} onChange={setConsent} idPrefix="signup" />
-        {error && <p className="text-sm text-destructive">{error}</p>}
+        {error && <p id="form-error" role="alert" className="text-sm text-destructive">{error}</p>}
         <Button type="submit" size="lg" className="h-11 w-full" disabled={submitting || !hasFullConsent(consent)}>
           {submitting && <CircleNotch className="animate-spin" size={15} />}
           Create account

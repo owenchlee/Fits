@@ -105,6 +105,7 @@ export function ActiveWorkoutBar() {
       )}
 
       <div className="min-w-0 flex-1">
+        <span role="status" className="sr-only">{resting && finished ? "Rest complete" : ""}</span>
         <p
           className={cn(
             "truncate text-[11px] font-medium",
