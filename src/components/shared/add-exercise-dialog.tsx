@@ -37,13 +37,24 @@ const MUSCLES: MuscleGroup[] = [
 
 const EQUIPMENT: Equipment[] = ["barbell", "dumbbell", "machine", "cable", "bodyweight", "kettlebell", "bands", "other"];
 
-function ChipPicker<T extends string>({ options, value, onChange }: { options: T[]; value: T | null; onChange: (v: T) => void }) {
+function ChipPicker<T extends string>({
+  options,
+  value,
+  onChange,
+  label,
+}: {
+  options: T[];
+  value: T | null;
+  onChange: (v: T) => void;
+  label: string;
+}) {
   return (
-    <div className="flex flex-wrap gap-1.5">
+    <div role="group" aria-label={label} className="flex flex-wrap gap-1.5">
       {options.map((o) => (
         <button
           key={o}
           type="button"
+          aria-pressed={value === o}
           onClick={() => onChange(o)}
           className={cn(
             "rounded-full px-3 py-1.5 text-xs font-medium capitalize transition-colors",
@@ -133,12 +144,12 @@ export function AddExerciseDialog({
 
           <div>
             <Label className="mb-1.5">Primary muscle</Label>
-            <ChipPicker options={MUSCLES} value={primaryMuscle} onChange={setPrimaryMuscle} />
+            <ChipPicker label="Primary muscle" options={MUSCLES} value={primaryMuscle} onChange={setPrimaryMuscle} />
           </div>
 
           <div>
             <Label className="mb-1.5">Equipment</Label>
-            <ChipPicker options={EQUIPMENT} value={equipment} onChange={setEquipment} />
+            <ChipPicker label="Equipment" options={EQUIPMENT} value={equipment} onChange={setEquipment} />
           </div>
 
           <div className="flex items-start justify-between gap-3 rounded-xl bg-secondary/60 p-3">

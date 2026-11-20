@@ -180,10 +180,11 @@ export function OverviewTab() {
         <div className="space-y-4">
           <div className="rounded-2xl border border-border bg-card p-4">
             <Label className="mb-2 block text-xs font-medium text-muted-foreground">Sex</Label>
-            <div className="grid grid-cols-2 gap-1.5">
+            <div role="group" aria-label="Sex" className="grid grid-cols-2 gap-1.5">
               {(["male", "female"] as Sex[]).map((s) => (
                 <button
                   key={s}
+                  aria-pressed={sex === s}
                   onClick={() => {
                     setSex(s);
                     void saveOrToast(() => updateSettings({ sex: s }));
@@ -193,7 +194,7 @@ export function OverviewTab() {
                     sex === s ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground"
                   )}
                 >
-                  {s}
+                  {s === "male" ? "Male" : "Female"}
                 </button>
               ))}
             </div>

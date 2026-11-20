@@ -89,16 +89,24 @@ function SegmentedControl<T extends string>({
   value,
   onChange,
   options,
+  label,
 }: {
+  label: string;
   value: T;
   onChange: (v: T) => void;
   options: Array<{ value: T; label: string }>;
 }) {
   return (
-    <div className="grid gap-1.5" style={{ gridTemplateColumns: `repeat(${options.length}, minmax(0, 1fr))` }}>
+    <div
+      role="group"
+      aria-label={label}
+      className="grid gap-1.5"
+      style={{ gridTemplateColumns: `repeat(${options.length}, minmax(0, 1fr))` }}
+    >
       {options.map((o) => (
         <button
           key={o.value}
+          aria-pressed={value === o.value}
           onClick={() => onChange(o.value)}
           className={cn(
             "rounded-lg py-2 text-sm font-medium capitalize transition-colors",
@@ -171,6 +179,7 @@ export default function ProfilePage() {
       <SettingsSection title="Units">
         <Label className="mb-1.5 block text-xs text-muted-foreground">Weight unit</Label>
         <SegmentedControl<UnitSystem>
+          label="Weight unit"
           value={settings.unitSystem}
           onChange={(v) => updateSettings({ unitSystem: v })}
           options={[
@@ -183,6 +192,7 @@ export default function ProfilePage() {
       <SettingsSection title="Percentile calculator">
         <Label className="mb-1.5 block text-xs text-muted-foreground">Sex (used for strength standards)</Label>
         <SegmentedControl<Sex>
+          label="Sex"
           value={settings.sex}
           onChange={(v) => updateSettings({ sex: v })}
           options={[
@@ -194,10 +204,11 @@ export default function ProfilePage() {
 
       <SettingsSection title="Rest timer">
         <Label className="mb-1.5 block text-xs text-muted-foreground">Default rest duration</Label>
-        <div className="grid grid-cols-3 gap-1.5">
+        <div role="group" aria-label="Default rest duration" className="grid grid-cols-3 gap-1.5">
           {REST_PRESETS.map((seconds) => (
             <button
               key={seconds}
+              aria-pressed={settings.defaultRestSeconds === seconds}
               onClick={() => updateSettings({ defaultRestSeconds: seconds })}
               className={cn(
                 "rounded-lg py-2 text-sm font-medium tabular-nums transition-colors",
@@ -219,8 +230,9 @@ export default function ProfilePage() {
       </SettingsSection>
 
       <SettingsSection title="Appearance">
-        <div className="grid grid-cols-3 gap-1.5">
+        <div role="group" aria-label="Appearance" className="grid grid-cols-3 gap-1.5">
           <button
+            aria-pressed={theme === "light"}
             onClick={() => setTheme("light")}
             suppressHydrationWarning
             className={cn(
@@ -231,6 +243,7 @@ export default function ProfilePage() {
             <Sun size={15} /> Light
           </button>
           <button
+            aria-pressed={theme === "dark"}
             onClick={() => setTheme("dark")}
             suppressHydrationWarning
             className={cn(
@@ -241,6 +254,7 @@ export default function ProfilePage() {
             <Moon size={15} /> Dark
           </button>
           <button
+            aria-pressed={theme === "system"}
             onClick={() => setTheme("system")}
             suppressHydrationWarning
             className={cn(

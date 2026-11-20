@@ -54,10 +54,11 @@ export default function ExercisesPage() {
         action={<AddExerciseDialog />}
       />
 
-      <div className="mb-3 grid grid-cols-2 gap-1.5">
+      <div role="group" aria-label="Exercise scope" className="mb-3 grid grid-cols-2 gap-1.5">
         {SCOPE_TABS.map((tab) => (
           <button
             key={tab.value}
+            aria-pressed={scope === tab.value}
             onClick={() => setScope(tab.value)}
             className={cn(
               "rounded-lg py-2 text-sm font-medium transition-colors",
@@ -79,10 +80,11 @@ export default function ExercisesPage() {
         />
       </div>
 
-      <div className="-mx-1 mb-4 flex flex-wrap gap-1.5 px-1 pb-1">
+      <div role="group" aria-label="Muscle group filter" className="-mx-1 mb-4 flex flex-wrap gap-1.5 px-1 pb-1">
         {MUSCLE_FILTERS.map((m) => (
           <button
             key={m}
+            aria-pressed={muscle === m}
             onClick={() => setMuscle(m)}
             className={cn(
               "shrink-0 rounded-full px-3 py-1.5 text-xs font-medium capitalize transition-colors",
