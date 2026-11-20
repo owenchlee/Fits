@@ -22,6 +22,6 @@ export function scheduledDayIndexFor(
   if (!cycleStartDate) return validSlot(program, schedule[mondayIndex(date)]);
 
   const offset = daysBetween(parseDateKey(cycleStartDate), date);
-  const i = ((offset % schedule.length) + schedule.length) % schedule.length;
-  return validSlot(program, schedule[i]);
+  if (offset < 0) return null; // before the cycle started: nothing is due
+  return validSlot(program, schedule[offset % schedule.length]);
 }
