@@ -29,7 +29,7 @@ function ConsentCheckbox({
         type="checkbox"
         checked={checked}
         onChange={(e) => onChange(e.target.checked)}
-        className="mt-0.5 size-5 shrink-0 cursor-pointer rounded accent-primary"
+        className="mt-0.5 size-5 shrink-0 cursor-pointer appearance-none rounded border border-input bg-center bg-no-repeat checked:border-primary checked:bg-primary checked:bg-[url('data:image/svg+xml,%3Csvg%20xmlns=%22http://www.w3.org/2000/svg%22%20viewBox=%220%200%2016%2016%22%3E%3Cpath%20d=%22M3.5%208.5l3%203%206-7%22%20fill=%22none%22%20stroke=%22%23000%22%20stroke-width=%222%22/%3E%3C/svg%3E')]"
       />
       <label htmlFor={id} className="cursor-pointer text-xs leading-relaxed text-muted-foreground">
         {children}
