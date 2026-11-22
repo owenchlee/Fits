@@ -141,6 +141,34 @@ async function mergeRow(table: SyncTable, row: never) {
   await db.table(table).put(FROM_ROW[table](row));
 }
 
+/** Same LWW rules as mergeRow, but one transaction per fetched page instead of several per row. */
+async function mergePage(table: SyncTable, rows: never[]) {
+  const t = db.table(table);
+  await db.transaction("rw", t, db.syncOutbox, async () => {
+    const pendingDeletes = new Set(
+      (await db.syncOutbox.toArray()).filter((e) => e.table === table && e.op === "delete").map((e) => e.recordId)
+    );
+    const ids = rows.map((r) => (r as { id: string }).id);
+    const locals = (await t.bulkGet(ids)) as ({ updatedAt: number } | undefined)[];
+    const puts: unknown[] = [];
+    const deletes: string[] = [];
+    rows.forEach((row, i) => {
+      const id = ids[i];
+      if (pendingDeletes.has(id)) return;
+      const local = locals[i];
+      if ((row as { deleted_at: string | null }).deleted_at) {
+        if (local) deletes.push(id);
+        return;
+      }
+      const remoteUpdatedAt = new Date((row as { updated_at: string }).updated_at).getTime();
+      if (local && local.updatedAt >= remoteUpdatedAt) return; // unchanged or local is newer
+      puts.push(FROM_ROW[table](row));
+    });
+    if (deletes.length) await t.bulkDelete(deletes);
+    if (puts.length) await t.bulkPut(puts);
+  });
+}
+
 async function pullAll(supabase: Client, userId: string) {
   try {
     const { data: profile } = await supabase.from("profiles").select("*").eq("id", userId).single();
@@ -170,7 +198,7 @@ async function pullAll(supabase: Client, userId: string) {
         // No network (or Supabase unreachable) — skip this table for now, retry on the next pullAll.
       }
       if (!data) break;
-      for (const row of data) await mergeRow(table, row as never);
+      await mergePage(table, data as never[]);
       if (data.length < PAGE) break;
     }
   }
