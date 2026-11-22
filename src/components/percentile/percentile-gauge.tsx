@@ -42,7 +42,7 @@ export function PercentileGauge({ percentile, tier }: { percentile: number; tier
         <motion.path
           d={`M ${CENTER - RADIUS} ${CENTER} A ${RADIUS} ${RADIUS} 0 0 1 ${CENTER + RADIUS} ${CENTER}`}
           fill="none"
-          stroke="var(--color-primary)"
+          stroke="var(--color-chart-1)"
           strokeWidth={14}
           strokeLinecap="round"
           strokeDasharray={ARC_LENGTH}
@@ -61,7 +61,7 @@ export function PercentileGauge({ percentile, tier }: { percentile: number; tier
           cy={needle.y}
           r={7}
           fill="var(--color-primary-foreground)"
-          stroke="var(--color-primary)"
+          stroke="var(--color-chart-1)"
           strokeWidth={4}
           initial={false}
           animate={{ cx: needle.x, cy: needle.y }}

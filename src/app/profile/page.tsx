@@ -68,7 +68,7 @@ function CustomRestDuration({ seconds, onChange }: { seconds: number; onChange: 
         onChange={(e) => setMinutes(sanitizeIntegerInput(e.target.value))}
         onBlur={() => commit(minutes, secs)}
         aria-label="Rest duration minutes"
-        className="h-9 w-16 rounded-lg border border-transparent bg-secondary px-2 text-center text-sm font-medium tabular-nums focus:border-ring focus:bg-background focus:outline-none"
+        className="h-9 w-16 rounded-lg border border-input bg-secondary px-2 text-center text-sm font-medium tabular-nums focus:border-ring focus:bg-background focus:outline-none"
       />
       <span className="text-sm text-muted-foreground">min</span>
       <input
@@ -77,7 +77,7 @@ function CustomRestDuration({ seconds, onChange }: { seconds: number; onChange: 
         onChange={(e) => setSecs(sanitizeIntegerInput(e.target.value))}
         onBlur={() => commit(minutes, secs)}
         aria-label="Rest duration seconds"
-        className="h-9 w-16 rounded-lg border border-transparent bg-secondary px-2 text-center text-sm font-medium tabular-nums focus:border-ring focus:outline-none"
+        className="h-9 w-16 rounded-lg border border-input bg-secondary px-2 text-center text-sm font-medium tabular-nums focus:border-ring focus:outline-none"
       />
       <span className="text-sm text-muted-foreground">sec</span>
     </div>

@@ -55,14 +55,14 @@ export function TrendChart({
           <>
             <defs>
               <linearGradient id="trendFill" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="var(--color-primary)" stopOpacity={0.35} />
-                <stop offset="100%" stopColor="var(--color-primary)" stopOpacity={0} />
+                <stop offset="0%" stopColor="var(--color-chart-1)" stopOpacity={0.35} />
+                <stop offset="100%" stopColor="var(--color-chart-1)" stopOpacity={0} />
               </linearGradient>
             </defs>
             <path d={`${line}L${plotW},${base}L0,${base}Z`} fill="url(#trendFill)" />
-            <path d={line} fill="none" stroke="var(--color-primary)" strokeWidth={2.5} />
+            <path d={line} fill="none" stroke="var(--color-chart-1)" strokeWidth={2.5} />
             {pts.map(([x, yy], i) => (
-              <circle key={i} cx={x} cy={yy} r={active === i ? 5 : 3} fill="var(--color-primary)" />
+              <circle key={i} cx={x} cy={yy} r={active === i ? 5 : 3} fill="var(--color-chart-1)" />
             ))}
           </>
         );

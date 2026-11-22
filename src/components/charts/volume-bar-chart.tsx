@@ -40,7 +40,7 @@ export function VolumeBarChart({ data, unitLabel, height = 200 }: { data: Volume
             {data.map((d, i) => {
               const h = y(0) - y(d.value);
               return (
-                <rect key={i} x={xs(i, plotW) - bw / 2} y={y(d.value)} width={bw} height={h} rx={Math.min(4, h / 2)} fill="var(--color-primary)" />
+                <rect key={i} x={xs(i, plotW) - bw / 2} y={y(d.value)} width={bw} height={h} rx={Math.min(4, h / 2)} fill="var(--color-chart-1)" />
               );
             })}
           </>
