@@ -1,5 +1,6 @@
 import { db } from "@/lib/db/db";
 import { addDays, dateKey } from "@/lib/date";
+import { isLoggedSet } from "@/lib/calc/load";
 import { generateId } from "@/lib/id";
 import { recordPercentileSnapshot, refreshSnapshotsFrom } from "@/lib/calc/percentile-snapshot";
 import { enqueueSync } from "@/lib/sync/outbox";
@@ -330,19 +331,15 @@ export async function getLastPerformance(
   exerciseId: string,
   excludeWorkoutId?: string
 ): Promise<SetEntry[]> {
-  // Find the latest workout in one pass (strict > keeps the first of ties, like the old stable sort).
+  const exercise = await db.exercises.get(exerciseId);
+  // Newest workout holding a logged working set; blank pre-created rows and warm-ups don't count.
+  const all = await db.sets.where("exerciseId").equals(exerciseId).toArray();
+  const logged = all.filter((s) => s.workoutId !== excludeWorkoutId && !s.isWarmup && isLoggedSet(s, exercise));
   let last: SetEntry | undefined;
-  for (const s of await db.sets.where("exerciseId").equals(exerciseId).toArray()) {
-    if (s.workoutId !== excludeWorkoutId && (!last || s.completedAt > last.completedAt)) last = s;
-  }
+  for (const s of logged) if (!last || s.completedAt > last.completedAt) last = s;
   if (!last) return [];
   const lastWorkoutId = last.workoutId;
-  const sets = await db.sets
-    .where("workoutId")
-    .equals(lastWorkoutId)
-    .filter((s) => s.exerciseId === exerciseId)
-    .toArray();
-  return sets.sort((a, b) => a.setIndex - b.setIndex);
+  return logged.filter((s) => s.workoutId === lastWorkoutId).sort((a, b) => a.setIndex - b.setIndex);
 }
 
 export async function logBodyMetric(metric: Omit<BodyMetric, "id" | "updatedAt">): Promise<string> {
