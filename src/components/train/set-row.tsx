@@ -134,6 +134,22 @@ export function SetRow({
         className="h-9 w-12 rounded-lg border border-input bg-secondary px-2 text-center text-sm font-medium tabular-nums placeholder:font-normal placeholder:text-muted-foreground focus:border-ring focus:bg-background focus:outline-none"
       />
 
+      {(set.isFailure || set.isDropSet || set.rpe) && (
+        <span className="flex shrink-0 items-center gap-1 text-[10px] font-semibold text-muted-foreground">
+          {set.isFailure && (
+            <span aria-label="To failure" title="To failure" className="rounded bg-secondary px-1">
+              F
+            </span>
+          )}
+          {set.isDropSet && (
+            <span aria-label="drop set" title="drop set" className="rounded bg-secondary px-1">
+              D
+            </span>
+          )}
+          {set.rpe ? <span className="tabular-nums">@{set.rpe}</span> : null}
+        </span>
+      )}
+
       {showPlateCalculator ? (
         <PlateCalculatorPopover weight={toDisplayWeight(set.weightKg, unit)} unit={unit} />
       ) : (
