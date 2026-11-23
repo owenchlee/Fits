@@ -11,7 +11,7 @@ import { updateSettings as writeSettings } from "@/lib/db/repo";
 import { saveOrToast } from "@/lib/save";
 import { useAuth } from "@/lib/auth/auth-provider";
 import { resetEverything } from "@/lib/account";
-import { exportBackup } from "@/lib/export";
+import { exportBackup, exportSetsCsv, type ExportResult } from "@/lib/export";
 import { APP_NAME, APP_VERSION, LEGAL_LINKS } from "@/lib/legal";
 import { AccountSection } from "@/components/profile/account-section";
 import { sanitizeIntegerInput } from "@/lib/format";
@@ -134,10 +134,10 @@ export default function ProfilePage() {
   const { user, isGuest, supabase } = useAuth();
   const [resetting, setResetting] = React.useState(false);
 
-  async function handleExport() {
+  async function handleExport(run: () => Promise<ExportResult>, label: string) {
     try {
-      const result = await exportBackup();
-      if (result === "saved") toast.success("Backup downloaded");
+      const result = await run();
+      if (result === "saved") toast.success(`${label} downloaded`);
     } catch {
       toast.error("Couldn't export your data. Please try again.");
     }
@@ -278,8 +278,11 @@ export default function ProfilePage() {
             : "Fits keeps a local copy on this device for offline use, synced to your account in the background."}
         </p>
         <div className="flex flex-wrap gap-2">
-          <Button variant="outline" onClick={() => void handleExport()}>
+          <Button variant="outline" onClick={() => void handleExport(exportBackup, "Backup")}>
             <Download size={15} /> Export as JSON
+          </Button>
+          <Button variant="outline" onClick={() => void handleExport(exportSetsCsv, "Training log")}>
+            <Download size={15} /> Export as CSV
           </Button>
           <AlertDialog>
             <AlertDialogTrigger asChild>
