@@ -192,7 +192,7 @@ function EditableSetRow({ set, index, unit }: { set: SetEntry; index: number; un
         value={weightStr}
         onChange={(e) => commitWeight(e.target.value)}
         aria-label={`Set ${index} weight (${unit})`}
-        className="h-8 w-16 rounded-lg border border-transparent bg-secondary px-2 text-center text-sm font-medium tabular-nums focus:border-ring focus:bg-background focus:outline-none"
+        className="h-8 w-16 rounded-lg border border-input bg-secondary px-2 text-center text-sm font-medium tabular-nums focus:border-ring focus:bg-background focus:outline-none"
       />
       <span className="text-muted-foreground">×</span>
       <input
@@ -200,7 +200,7 @@ function EditableSetRow({ set, index, unit }: { set: SetEntry; index: number; un
         value={repsStr}
         onChange={(e) => commitReps(e.target.value)}
         aria-label={`Set ${index} reps`}
-        className="h-8 w-12 rounded-lg border border-transparent bg-secondary px-2 text-center text-sm font-medium tabular-nums focus:border-ring focus:bg-background focus:outline-none"
+        className="h-8 w-12 rounded-lg border border-input bg-secondary px-2 text-center text-sm font-medium tabular-nums focus:border-ring focus:bg-background focus:outline-none"
       />
       {set.rpe && <span className="tabular-nums text-muted-foreground">RPE {set.rpe}</span>}
     </div>
