@@ -1,5 +1,6 @@
 "use client";
 
+import * as React from "react";
 import Link from "next/link";
 
 export interface ConsentState {
@@ -36,6 +37,37 @@ function ConsentCheckbox({
       </label>
     </div>
   );
+}
+
+/**
+ * State kept in sessionStorage for this tab only, so opening a policy and coming back doesn't wipe
+ * the form. Never put passwords here; consent stays per-tab so a new session starts unticked.
+ */
+export function useSessionDraft<T>(key: string, initial: T) {
+  const [value, setValue] = React.useState<T>(() => {
+    if (typeof window === "undefined") return initial;
+    try {
+      const raw = window.sessionStorage.getItem(key);
+      return raw ? ({ ...initial, ...JSON.parse(raw) } as T) : initial;
+    } catch {
+      return initial;
+    }
+  });
+  React.useEffect(() => {
+    try {
+      window.sessionStorage.setItem(key, JSON.stringify(value));
+    } catch {
+      // storage unavailable: the draft just isn't kept
+    }
+  }, [key, value]);
+  const clear = React.useCallback(() => {
+    try {
+      window.sessionStorage.removeItem(key);
+    } catch {
+      // ignore
+    }
+  }, [key]);
+  return [value, setValue, clear] as const;
 }
 
 const linkClass = "font-medium text-foreground underline underline-offset-2";
