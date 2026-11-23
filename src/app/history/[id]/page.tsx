@@ -4,12 +4,12 @@ import * as React from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useLiveQuery } from "dexie-react-hooks";
-import { Barbell, CaretLeft, Trash } from "@phosphor-icons/react/dist/ssr";
+import { ArrowCounterClockwise, Barbell, CaretLeft, Trash } from "@phosphor-icons/react/dist/ssr";
 import { EmptyState } from "@/components/shared/empty-state";
 import { db } from "@/lib/db/db";
-import { useSettings, useWorkoutSets } from "@/lib/db/hooks";
+import { useActiveWorkout, useSettings, useWorkoutSets } from "@/lib/db/hooks";
 import { saveOrToast } from "@/lib/save";
-import { deleteWorkout, updateSet } from "@/lib/db/repo";
+import { deleteWorkout, repeatWorkout, updateSet } from "@/lib/db/repo";
 import { toTotalLoadKg } from "@/lib/calc/load";
 import { toDisplayWeight, fromDisplayWeight, formatWeight } from "@/lib/calc/units";
 import { sanitizeDecimalInput, sanitizeIntegerInput } from "@/lib/format";
@@ -30,6 +30,7 @@ export default function WorkoutDetailPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
   const settings = useSettings();
+  const activeWorkout = useActiveWorkout();
   // null = confirmed missing, undefined = still loading
   const workout = useLiveQuery(async () => (await db.workouts.get(params.id)) ?? null, [params.id]);
   const sets = useWorkoutSets(params.id);
@@ -80,6 +81,20 @@ export default function WorkoutDetailPage() {
             {durationMin} min · {volumeLabel}
           </p>
         </div>
+        <div className="flex shrink-0 items-center gap-1">
+        <button
+          aria-label="Do this workout again"
+          disabled={!!activeWorkout}
+          onClick={async () => {
+            let id: string | undefined;
+            if (await saveOrToast(async () => { id = await repeatWorkout(workout.id); })) {
+              if (id) router.push(`/train?workoutId=${id}`);
+            }
+          }}
+          className="flex h-9 items-center gap-1 rounded-full px-3 text-sm font-medium text-muted-foreground hover:bg-secondary hover:text-foreground disabled:opacity-50"
+        >
+          <ArrowCounterClockwise size={16} /> Do again
+        </button>
         <AlertDialog>
           <AlertDialogTrigger asChild>
             <button aria-label="Delete workout" className="flex size-9 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:bg-secondary hover:text-destructive">
@@ -104,6 +119,7 @@ export default function WorkoutDetailPage() {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+        </div>
       </div>
 
       <WorkoutExerciseBreakdown exerciseOrder={workout.exerciseOrder} sets={sets} unit={settings.unitSystem} />

@@ -163,6 +163,23 @@ export async function startWorkout(opts: {
   return id;
 }
 
+/** Starts a new workout with the same title and exercises as a past one, with blank working-set rows. */
+export async function repeatWorkout(sourceId: string): Promise<string | undefined> {
+  const source = await db.workouts.get(sourceId);
+  if (!source) return undefined;
+  // startWorkout reuses a running workout; never fill that one with extra rows.
+  if (await db.workouts.filter((w) => !w.completedAt).first()) return undefined;
+  const found = await db.exercises.bulkGet(source.exerciseOrder);
+  const exerciseOrder = source.exerciseOrder.filter((_, i) => !!found[i]);
+  const sets = await db.sets.where("workoutId").equals(sourceId).toArray();
+  const id = await startWorkout({ title: source.title, exerciseOrder });
+  for (const exerciseId of exerciseOrder) {
+    const count = sets.filter((s) => s.exerciseId === exerciseId && !s.isWarmup).length;
+    for (let i = 0; i < count; i++) await addSet({ workoutId: id, exerciseId, weightKg: 0, reps: 0 });
+  }
+  return id;
+}
+
 export async function addExerciseToWorkout(workoutId: string, exerciseId: string) {
   const workout = await db.workouts.get(workoutId);
   if (!workout || workout.completedAt) return;
