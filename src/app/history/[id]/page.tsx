@@ -106,6 +106,8 @@ export default function WorkoutDetailPage() {
         </AlertDialog>
       </div>
 
+      {workout.notes && <p className="mb-4 whitespace-pre-wrap rounded-lg bg-secondary/50 px-3 py-2 text-sm">{workout.notes}</p>}
+
       <WorkoutExerciseBreakdown exerciseOrder={workout.exerciseOrder} sets={sets} unit={settings.unitSystem} />
     </div>
   );
