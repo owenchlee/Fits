@@ -54,6 +54,8 @@ function SignedInAccount({ email }: { email: string | undefined }) {
   const [loggingOut, setLoggingOut] = React.useState(false);
   const [deleteOpen, setDeleteOpen] = React.useState(false);
   const [deleting, setDeleting] = React.useState(false);
+  const logoutBtnRef = React.useRef<HTMLButtonElement>(null);
+  const deleteBtnRef = React.useRef<HTMLButtonElement>(null);
 
   async function openLogout() {
     setPending(null);
@@ -91,16 +93,21 @@ function SignedInAccount({ email }: { email: string | undefined }) {
         every device you log in on.
       </p>
       <div className="flex flex-wrap gap-2">
-        <Button variant="outline" onClick={() => void openLogout()}>
+        <Button ref={logoutBtnRef} variant="outline" onClick={() => void openLogout()}>
           <SignOut size={15} /> Log out
         </Button>
-        <Button variant="outline" className="text-destructive hover:text-destructive" onClick={() => setDeleteOpen(true)}>
+        <Button ref={deleteBtnRef} variant="outline" className="text-destructive hover:text-destructive" onClick={() => setDeleteOpen(true)}>
           <Trash size={15} /> Delete account
         </Button>
       </div>
 
       <AlertDialog open={logoutOpen} onOpenChange={(open) => !loggingOut && setLogoutOpen(open)}>
-        <AlertDialogContent>
+        <AlertDialogContent
+          onCloseAutoFocus={(e) => {
+            e.preventDefault();
+            logoutBtnRef.current?.focus();
+          }}
+        >
           <AlertDialogHeader>
             <AlertDialogTitle>Log out?</AlertDialogTitle>
             <AlertDialogDescription>
@@ -126,7 +133,12 @@ function SignedInAccount({ email }: { email: string | undefined }) {
       </AlertDialog>
 
       <AlertDialog open={deleteOpen} onOpenChange={(open) => !deleting && setDeleteOpen(open)}>
-        <AlertDialogContent>
+        <AlertDialogContent
+          onCloseAutoFocus={(e) => {
+            e.preventDefault();
+            deleteBtnRef.current?.focus();
+          }}
+        >
           <AlertDialogHeader>
             <AlertDialogTitle>Delete your account?</AlertDialogTitle>
             <AlertDialogDescription>
