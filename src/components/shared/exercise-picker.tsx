@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { CaretLeft, CaretRight, Check, Info, MagnifyingGlass, Plus } from "@phosphor-icons/react/dist/ssr";
-import { useExercises } from "@/lib/db/hooks";
+import { useExercises, useRecentExercises } from "@/lib/db/hooks";
 import {
   Dialog,
   DialogContent,
@@ -47,6 +47,7 @@ export function ExercisePicker({
   const [query, setQuery] = React.useState("");
   const [activeCategory, setActiveCategory] = React.useState<string | null>(null);
   const exercises = useExercises();
+  const recent = useRecentExercises();
 
   const normalizedQuery = query.trim().toLowerCase();
   const searching = normalizedQuery.length > 0;
@@ -113,7 +114,17 @@ export function ExercisePicker({
 
         <div className="min-h-0 flex-1 overflow-y-auto p-2">
           {!activeCategory && !searching ? (
-            <CategoryList exercises={exercises} onSelectCategory={setActiveCategory} />
+            <>
+              {recent.length > 0 && (
+                <section aria-label="Recent">
+                  <h3 className="px-3 pb-1 pt-2 text-xs font-medium uppercase text-muted-foreground">Recent</h3>
+                  {recent.map((ex) => (
+                    <ExerciseRow key={ex.id} exercise={ex} added={addedIds.includes(ex.id)} onSelect={selectExercise} />
+                  ))}
+                </section>
+              )}
+              <CategoryList exercises={exercises} onSelectCategory={setActiveCategory} />
+            </>
           ) : (
             <>
               {visibleExercises.length === 0 && (
