@@ -28,13 +28,14 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 
-function DayExerciseRow({ exerciseId, sets, reps }: { exerciseId: string; sets: number; reps: string }) {
+function DayExerciseRow({ exerciseId, sets, reps, rpe }: { exerciseId: string; sets: number; reps: string; rpe?: number }) {
   const exercise = useLiveQuery(() => db.exercises.get(exerciseId).then((e) => e ?? null), [exerciseId]);
   return (
     <li className="flex items-center justify-between py-1.5 text-sm">
       <span>{exercise?.name ?? (exercise === null ? "Deleted exercise" : "…")}</span>
       <span className="tabular-nums text-muted-foreground">
         {sets} {reps ? `× ${reps}` : "sets"}
+        {rpe ? ` @${rpe}` : ""}
       </span>
     </li>
   );
@@ -434,7 +435,7 @@ export default function ProgramDetailPage() {
             ) : (
               <ul className="divide-y divide-border">
                 {day.exercises.map((ex) => (
-                  <DayExerciseRow key={ex.exerciseId} exerciseId={ex.exerciseId} sets={ex.targetSets} reps={ex.targetReps} />
+                  <DayExerciseRow key={ex.exerciseId} exerciseId={ex.exerciseId} sets={ex.targetSets} reps={ex.targetReps} rpe={ex.targetRpe} />
                 ))}
               </ul>
             )}

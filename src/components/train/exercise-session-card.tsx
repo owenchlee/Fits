@@ -42,6 +42,7 @@ export function ExerciseSessionCard({
   nextExerciseId,
   targetSets,
   targetReps,
+  targetRpe,
   restSeconds,
   unit,
   sets,
@@ -51,6 +52,7 @@ export function ExerciseSessionCard({
   nextExerciseId?: string;
   targetSets?: number;
   targetReps?: string;
+  targetRpe?: number;
   restSeconds: number;
   unit: UnitSystem;
   sets: SetEntry[];
@@ -171,6 +173,7 @@ export function ExerciseSessionCard({
               <span>
                 Target {targetSets}
                 {targetReps ? ` × ${targetReps}` : " sets"}
+                {targetRpe ? ` @${targetRpe}` : ""}
               </span>
             )}
             {bestThisSession > 0 && (

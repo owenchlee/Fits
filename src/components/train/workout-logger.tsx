@@ -122,6 +122,7 @@ export function WorkoutLogger({ workoutId }: { workoutId: string }) {
                 nextExerciseId={nextUnfinishedExercise(i)}
                 targetSets={target?.targetSets}
                 targetReps={target?.targetReps}
+                targetRpe={target?.targetRpe}
                 restSeconds={target?.restSeconds ?? settings.defaultRestSeconds}
                 unit={settings.unitSystem}
                 sets={sets.filter((s) => s.exerciseId === exerciseId)}
