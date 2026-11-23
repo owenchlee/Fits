@@ -67,6 +67,26 @@ export async function createCustomProgram(data: {
   return id;
 }
 
+// Editable copy of any program (built-in or custom): new ids, copied exercise objects.
+export async function copyProgram(sourceId: string): Promise<string> {
+  const src = await db.programs.get(sourceId);
+  if (!src) throw new Error("Program not found");
+  const id = generateId();
+  const program: Program = {
+    id,
+    name: `${src.name} (copy)`,
+    description: src.description,
+    author: "You",
+    isCustom: true,
+    daysPerWeek: src.daysPerWeek,
+    days: src.days.map((d) => ({ ...d, id: generateId(), exercises: d.exercises.map((e) => ({ ...e })) })),
+    updatedAt: Date.now(),
+  };
+  await db.programs.add(program);
+  await enqueueSync("programs", "upsert", id);
+  return id;
+}
+
 export async function updateProgram(id: string, patch: Partial<Program>) {
   if (patch.days) patch = { ...patch, days: uniqueDayNames(patch.days) };
   const old = patch.days ? await db.programs.get(id) : undefined;

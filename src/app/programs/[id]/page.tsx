@@ -5,11 +5,11 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useLiveQuery } from "dexie-react-hooks";
 import { Reorder, useDragControls } from "framer-motion";
-import { CaretDown, CaretLeft, CaretUp, DotsSixVertical, EyeSlash, PlayCircle, Plus, Trash, X } from "@phosphor-icons/react/dist/ssr";
+import { CaretDown, CaretLeft, CaretUp, Copy, DotsSixVertical, EyeSlash, PlayCircle, Plus, Trash, X } from "@phosphor-icons/react/dist/ssr";
 import { db } from "@/lib/db/db";
 import { useActiveWorkout, useSettings } from "@/lib/db/hooks";
 import { saveOrToast } from "@/lib/save";
-import { deleteProgram, hideProgram, setActiveProgram, startWorkout, updateProgram } from "@/lib/db/repo";
+import { copyProgram, deleteProgram, hideProgram, setActiveProgram, startWorkout, updateProgram } from "@/lib/db/repo";
 import { generateId } from "@/lib/id";
 import { ExercisePicker } from "@/components/shared/exercise-picker";
 import type { Program, ProgramDay, ProgramExercise } from "@/lib/db/types";
@@ -385,14 +385,25 @@ export default function ProgramDetailPage() {
         )}
       </div>
 
-      <Button
-        variant={isActive ? "secondary" : "default"}
-        size="lg"
-        className="mb-6"
-        onClick={() => void saveOrToast(() => setActiveProgram(isActive ? undefined : program.id))}
-      >
-        {isActive ? "Currently active, tap to unset" : "Set as active program"}
-      </Button>
+      <div className="mb-6 flex flex-wrap gap-2">
+        <Button
+          variant={isActive ? "secondary" : "default"}
+          size="lg"
+          onClick={() => void saveOrToast(() => setActiveProgram(isActive ? undefined : program.id))}
+        >
+          {isActive ? "Currently active, tap to unset" : "Set as active program"}
+        </Button>
+        <Button
+          variant="outline"
+          size="lg"
+          onClick={async () => {
+            let id = "";
+            if (await saveOrToast(async () => { id = await copyProgram(program.id); })) router.push(`/programs/${id}`);
+          }}
+        >
+          <Copy size={16} /> {program.isCustom ? "Duplicate" : "Make it your own"}
+        </Button>
+      </div>
 
       <div className="space-y-4">
         {days.map((day, i) => (
