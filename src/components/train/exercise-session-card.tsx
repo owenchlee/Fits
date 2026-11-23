@@ -261,13 +261,16 @@ export function ExerciseSessionCard({
                 const wasComplete = isSetComplete(s, exercise);
                 handleSetChange(s.id, patch, willBeComplete && !wasComplete);
               }}
-              onDelete={() => deleteSet(s.id)}
+              onDelete={() => {
+                // The row unmounts, so park focus on this card's Add set button (WCAG 2.4.3).
+                void deleteSet(s.id).then(() => setTimeout(() => cardRef.current?.querySelector<HTMLElement>("[data-add-set]")?.focus(), 0));
+              }}
             />
           );
         })}
       </div>
 
-      <Button variant="ghost" size="sm" className="mt-2 w-full justify-center text-muted-foreground" onClick={handleAddSet}>
+      <Button variant="ghost" size="sm" data-add-set="" className="mt-2 w-full justify-center text-muted-foreground" onClick={handleAddSet}>
         <Plus size={15} /> Add set
       </Button>
     </div>
