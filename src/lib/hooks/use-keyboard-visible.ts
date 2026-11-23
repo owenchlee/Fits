@@ -11,7 +11,8 @@ export function useKeyboardVisible(threshold = 150) {
     if (!vv) return;
 
     function update() {
-      setVisible(window.innerHeight - vv!.height > threshold);
+      // Scale vv.height back to layout px so pinch-zoom is not mistaken for a keyboard.
+      setVisible(window.innerHeight - vv!.height * vv!.scale > threshold);
     }
 
     update();
