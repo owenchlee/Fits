@@ -11,6 +11,7 @@ import { isLoggedSet, toTotalLoadKg } from "@/lib/calc/load";
 import { formatWeight, toDisplayWeight } from "@/lib/calc/units";
 import { calculateExercisePercentile } from "@/lib/calc/strength-standards";
 import { EmptyState } from "@/components/shared/empty-state";
+import { CustomExerciseActions } from "@/components/shared/custom-exercise-actions";
 import { StatCard } from "@/components/shared/stat-card";
 import { TrendChart, type TrendPoint } from "@/components/charts/trend-chart";
 import { LiftPercentileRow } from "@/components/percentile/lift-percentile-row";
@@ -84,6 +85,7 @@ export default function ExerciseDetailPage() {
         {exercise.primaryMuscle} · {exercise.equipment}
         {exercise.secondaryMuscles.length > 0 && ` · also ${exercise.secondaryMuscles.join(", ")}`}
       </p>
+      {exercise.isCustom && <CustomExerciseActions exercise={exercise} />}
 
       <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3">
         {repBased ? (
