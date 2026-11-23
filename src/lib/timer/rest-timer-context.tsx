@@ -23,11 +23,46 @@ const RestTimerContext = React.createContext<RestTimerContextValue | null>(null)
 
 const STORAGE_KEY = "fits:rest-timer";
 
-function playChime() {
-  if (typeof window === "undefined") return;
+const SOUND_KEY = "fits:rest-timer-sound";
+
+// Device-level preference; sound is on unless explicitly turned off.
+export function getRestSoundEnabled(): boolean {
   try {
-    const Ctx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
-    const ctx = new Ctx();
+    return localStorage.getItem(SOUND_KEY) !== "off";
+  } catch {
+    return true;
+  }
+}
+
+export function setRestSoundEnabled(on: boolean) {
+  try {
+    localStorage.setItem(SOUND_KEY, on ? "on" : "off");
+  } catch {
+    // storage unavailable; the choice just won't persist
+  }
+}
+
+// iOS WebKit only lets an AudioContext run if it was created/resumed inside a user tap, so
+// start() (the tap) calls this and expiry reuses the same context.
+function unlockAudio(ref: { current: AudioContext | null }) {
+  if (typeof window === "undefined" || !getRestSoundEnabled()) return;
+  try {
+    if (!ref.current) {
+      const Ctx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+      ref.current = new Ctx();
+    }
+    void ref.current.resume();
+  } catch {
+    // audio not available; ignore
+  }
+}
+
+function playChime(audioRef: { current: AudioContext | null }) {
+  if (typeof window === "undefined") return;
+  if (getRestSoundEnabled()) try {
+    unlockAudio(audioRef);
+    const ctx = audioRef.current;
+    if (!ctx) throw new Error("no audio");
     const now = ctx.currentTime;
     [880, 1320, 880, 1320].forEach((freq, i) => {
       const start = i * 0.35;
@@ -42,7 +77,6 @@ function playChime() {
       osc.start(now + start);
       osc.stop(now + start + 0.6);
     });
-    setTimeout(() => ctx.close(), 2000);
   } catch {
     // audio not available; ignore
   }
@@ -63,6 +97,7 @@ export function RestTimerProvider({ children }: { children: React.ReactNode }) {
     isRunning: false,
   });
   const hasFiredRef = React.useRef(false);
+  const audioRef = React.useRef<AudioContext | null>(null);
   // Wall-clock deadline rather than a per-tick decrement, so the countdown stays correct even
   // when `setInterval` is throttled or fully suspended while the tab/app is backgrounded —
   // a foreground tick or resume event just recomputes from this instead of losing time.
@@ -77,7 +112,7 @@ export function RestTimerProvider({ children }: { children: React.ReactNode }) {
       if (remaining <= 0) {
         if (!hasFiredRef.current) {
           hasFiredRef.current = true;
-          playChime();
+          playChime(audioRef);
         }
         endAtRef.current = null;
         return { ...s, secondsLeft: 0, isRunning: false };
@@ -118,6 +153,7 @@ export function RestTimerProvider({ children }: { children: React.ReactNode }) {
 
   const start = React.useCallback((seconds: number, label?: string) => {
     hasFiredRef.current = false;
+    unlockAudio(audioRef);
     pausedMsRef.current = null;
     endAtRef.current = Date.now() + seconds * 1000;
     setState({ label: label ?? null, totalSeconds: seconds, secondsLeft: seconds, isRunning: true });
