@@ -141,7 +141,7 @@ export async function restoreProgram(id: string) {
   await updateSettings({ hiddenProgramIds: hidden.filter((h) => h !== id) });
 }
 
-async function getSettings(): Promise<AppSettings> {
+export async function getSettings(): Promise<AppSettings> {
   const settings = await db.settings.get("singleton");
   if (settings) return settings;
   const defaults: AppSettings = {
