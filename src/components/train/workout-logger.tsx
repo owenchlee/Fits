@@ -132,6 +132,9 @@ export function WorkoutLogger({ workoutId }: { workoutId: string }) {
                 workoutId={workoutId}
                 exerciseId={exerciseId}
                 nextExerciseId={nextUnfinishedExercise(i)}
+                canMoveUp={i > 0}
+                canMoveDown={i < workout.exerciseOrder.length - 1}
+                addedIds={workout.exerciseOrder}
                 targetSets={target?.targetSets}
                 targetReps={target?.targetReps}
                 targetRpe={target?.targetRpe}

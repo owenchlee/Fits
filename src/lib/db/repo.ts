@@ -197,6 +197,36 @@ export async function removeExerciseFromWorkout(workoutId: string, exerciseId: s
   await enqueueSync("workouts", "upsert", workoutId);
 }
 
+export async function moveExerciseInWorkout(workoutId: string, exerciseId: string, delta: -1 | 1) {
+  const workout = await db.workouts.get(workoutId);
+  if (!workout || workout.completedAt) return;
+  const order = [...workout.exerciseOrder];
+  const from = order.indexOf(exerciseId);
+  const to = from + delta;
+  if (from < 0 || to < 0 || to >= order.length) return;
+  [order[from], order[to]] = [order[to]!, order[from]!];
+  await db.workouts.update(workoutId, { exerciseOrder: order, updatedAt: Date.now() });
+  await enqueueSync("workouts", "upsert", workoutId);
+}
+
+/** Puts `newId` in `oldId`'s slot and deletes the old exercise's sets (callers confirm first if any are logged). */
+export async function replaceExerciseInWorkout(workoutId: string, oldId: string, newId: string) {
+  const workout = await db.workouts.get(workoutId);
+  if (!workout || workout.completedAt || oldId === newId) return;
+  if (workout.exerciseOrder.includes(newId) || !workout.exerciseOrder.includes(oldId)) return;
+  const removed = db.sets.where("workoutId").equals(workoutId).filter((s) => s.exerciseId === oldId);
+  const removedSetIds = await removed.primaryKeys();
+  await db.transaction("rw", db.workouts, db.sets, async () => {
+    await removed.delete();
+    await db.workouts.update(workoutId, {
+      exerciseOrder: workout.exerciseOrder.map((id) => (id === oldId ? newId : id)),
+      updatedAt: Date.now(),
+    });
+  });
+  for (const setId of removedSetIds) await enqueueSync("sets", "delete", String(setId));
+  await enqueueSync("workouts", "upsert", workoutId);
+}
+
 export async function setActiveProgram(programId: string | undefined) {
   await updateSettings({ activeProgramId: programId, activeProgramDayIndex: 0 });
 }

@@ -3,9 +3,18 @@
 import * as React from "react";
 import Link from "next/link";
 import { useLiveQuery } from "dexie-react-hooks";
-import { Plus, TrendUp, X } from "@phosphor-icons/react/dist/ssr";
+import { ArrowDown, ArrowUp, ArrowsLeftRight, Plus, TrendUp, X } from "@phosphor-icons/react/dist/ssr";
 import { db } from "@/lib/db/db";
-import { addSet, deleteSet, getLastPerformance, updateSet, removeExerciseFromWorkout } from "@/lib/db/repo";
+import {
+  addSet,
+  deleteSet,
+  getLastPerformance,
+  updateSet,
+  removeExerciseFromWorkout,
+  moveExerciseInWorkout,
+  replaceExerciseInWorkout,
+} from "@/lib/db/repo";
+import { ExercisePicker } from "@/components/shared/exercise-picker";
 import { saveOrToast } from "@/lib/save";
 import { useRestTimer } from "@/lib/timer/rest-timer-context";
 import { estimateOneRepMax } from "@/lib/calc/one-rep-max";
@@ -40,6 +49,9 @@ export function ExerciseSessionCard({
   workoutId,
   exerciseId,
   nextExerciseId,
+  canMoveUp = false,
+  canMoveDown = false,
+  addedIds,
   targetSets,
   targetReps,
   targetRpe,
@@ -50,6 +62,9 @@ export function ExerciseSessionCard({
   workoutId: string;
   exerciseId: string;
   nextExerciseId?: string;
+  canMoveUp?: boolean;
+  canMoveDown?: boolean;
+  addedIds?: string[];
   targetSets?: number;
   targetReps?: string;
   targetRpe?: number;
@@ -75,6 +90,7 @@ export function ExerciseSessionCard({
   }, [exerciseId, workoutId]);
   const timer = useRestTimer();
   const [confirmRemove, setConfirmRemove] = React.useState(false);
+  const [pendingSwapId, setPendingSwapId] = React.useState<string | null>(null);
 
   const orderedSets = React.useMemo(() => orderSets(sets), [sets]);
   const bestThisSession = sets
@@ -195,6 +211,43 @@ export function ExerciseSessionCard({
             )}
           </div>
         </div>
+        <div className="flex shrink-0 items-center gap-1">
+        <button
+          type="button"
+          aria-label={`Move ${exercise?.name ?? "exercise"} up`}
+          disabled={!canMoveUp}
+          onClick={() => void saveOrToast(() => moveExerciseInWorkout(workoutId, exerciseId, -1))}
+          className="relative flex size-7 items-center justify-center rounded-full text-muted-foreground hit-slop-44 hover:bg-secondary hover:text-foreground disabled:opacity-30"
+        >
+          <ArrowUp size={14} />
+        </button>
+        <button
+          type="button"
+          aria-label={`Move ${exercise?.name ?? "exercise"} down`}
+          disabled={!canMoveDown}
+          onClick={() => void saveOrToast(() => moveExerciseInWorkout(workoutId, exerciseId, 1))}
+          className="relative flex size-7 items-center justify-center rounded-full text-muted-foreground hit-slop-44 hover:bg-secondary hover:text-foreground disabled:opacity-30"
+        >
+          <ArrowDown size={14} />
+        </button>
+        <ExercisePicker
+          addedIds={addedIds}
+          triggerLabel="Swap exercise"
+          onSelect={(next) => {
+            // Swapping deletes this exercise's sets, so confirm when any are logged.
+            if (sets.some((s) => isSetComplete(s, exercise))) setPendingSwapId(next.id);
+            else void saveOrToast(() => replaceExerciseInWorkout(workoutId, exerciseId, next.id));
+          }}
+          trigger={
+            <button
+              type="button"
+              aria-label={`Swap ${exercise?.name ?? "exercise"}`}
+              className="relative flex size-7 items-center justify-center rounded-full text-muted-foreground hit-slop-44 hover:bg-secondary hover:text-foreground"
+            >
+              <ArrowsLeftRight size={14} />
+            </button>
+          }
+        />
         <button
           ref={removeBtnRef}
           data-remove-exercise=""
@@ -208,6 +261,27 @@ export function ExerciseSessionCard({
         >
           <X size={14} />
         </button>
+        </div>
+        <AlertDialog open={pendingSwapId !== null} onOpenChange={(o) => !o && setPendingSwapId(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Swap {exercise?.name ?? "this exercise"}?</AlertDialogTitle>
+              <AlertDialogDescription>The sets you&apos;ve logged for it in this workout will be deleted.</AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Keep it</AlertDialogCancel>
+              <AlertDialogAction
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                onClick={() => {
+                  const next = pendingSwapId;
+                  if (next) void saveOrToast(() => replaceExerciseInWorkout(workoutId, exerciseId, next));
+                }}
+              >
+                Swap
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
         <AlertDialog open={confirmRemove} onOpenChange={setConfirmRemove}>
           <AlertDialogContent
             onCloseAutoFocus={(e) => {
