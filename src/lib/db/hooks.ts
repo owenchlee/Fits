@@ -3,7 +3,7 @@
 import { useLiveQuery } from "dexie-react-hooks";
 import { db } from "@/lib/db/db";
 import { isLoggedSet } from "@/lib/calc/load";
-import type { AppSettings } from "@/lib/db/types";
+import type { AppSettings, Exercise } from "@/lib/db/types";
 
 const FALLBACK_SETTINGS: AppSettings = {
   id: "singleton",
@@ -36,6 +36,29 @@ export function useLoggedExerciseIds() {
       const byId = new Map(exercises.map((e) => [e.id, e]));
       return new Set(sets.filter((s) => isLoggedSet(s, byId.get(s.exerciseId))).map((s) => s.exerciseId));
     }, []) ?? new Set<string>()
+  );
+}
+
+/** Exercises really logged in completed workouts, most recent first. Walks workouts newest-first and stops at `limit`. */
+export function useRecentExercises(limit = 8) {
+  return (
+    useLiveQuery(async () => {
+      const byId = new Map((await db.exercises.toArray()).map((e) => [e.id, e]));
+      const out: Exercise[] = [];
+      const seen = new Set<string>();
+      for (const w of await db.workouts.orderBy("completedAt").reverse().toArray()) {
+        if (!w.completedAt) continue;
+        const sets = (await db.sets.where("workoutId").equals(w.id).toArray()).sort((a, b) => b.completedAt - a.completedAt);
+        for (const s of sets) {
+          const ex = byId.get(s.exerciseId);
+          if (!ex || seen.has(ex.id) || !isLoggedSet(s, ex)) continue;
+          seen.add(ex.id);
+          out.push(ex);
+        }
+        if (out.length >= limit) break;
+      }
+      return out.slice(0, limit);
+    }, []) ?? []
   );
 }
 
