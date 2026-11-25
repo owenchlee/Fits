@@ -19,7 +19,7 @@ import { cn } from "@/lib/utils";
 import { saveOrToast } from "@/lib/save";
 import type { Equipment, Exercise, MuscleGroup } from "@/lib/db/types";
 
-const MUSCLES: MuscleGroup[] = [
+export const MUSCLES: MuscleGroup[] = [
   "chest",
   "back",
   "shoulders",
@@ -35,9 +35,9 @@ const MUSCLES: MuscleGroup[] = [
   "full-body",
 ];
 
-const EQUIPMENT: Equipment[] = ["barbell", "dumbbell", "machine", "cable", "bodyweight", "kettlebell", "bands", "other"];
+export const EQUIPMENT: Equipment[] = ["barbell", "dumbbell", "machine", "cable", "bodyweight", "kettlebell", "bands", "other"];
 
-function ChipPicker<T extends string>({
+export function ChipPicker<T extends string>({
   options,
   value,
   onChange,

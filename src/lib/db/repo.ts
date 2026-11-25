@@ -34,6 +34,35 @@ export async function createExercise(data: {
   return id;
 }
 
+const normName = (s: string) => s.trim().replace(/\s+/g, " ").toLowerCase();
+
+/** Edits a custom exercise. Throws on a blank or duplicate name; built-ins are never editable. */
+export async function updateExercise(
+  id: string,
+  patch: { name: string; primaryMuscle: MuscleGroup; equipment: Equipment },
+) {
+  const current = await db.exercises.get(id);
+  if (!current?.isCustom) throw new Error("Only custom exercises can be edited");
+  const name = patch.name.trim().replace(/\s+/g, " ");
+  if (!name) throw new Error("Name is required");
+  const clash = (await db.exercises.toArray()).some((e) => e.id !== id && normName(e.name) === normName(name));
+  if (clash) throw new Error("An exercise with that name already exists");
+  await db.exercises.update(id, { ...patch, name, updatedAt: Date.now() });
+  await enqueueSync("exercises", "upsert", id);
+}
+
+/** Deletes an unused custom exercise and drops it from custom programs. Throws if it has logged sets. */
+export async function deleteExercise(id: string) {
+  const current = await db.exercises.get(id);
+  if (!current?.isCustom) throw new Error("Only custom exercises can be deleted");
+  if ((await db.sets.where("exerciseId").equals(id).count()) > 0) throw new Error("Exercise has logged sets");
+  for (const p of await db.programs.filter((p) => p.isCustom && p.days.some((d) => d.exercises.some((e) => e.exerciseId === id))).toArray()) {
+    await updateProgram(p.id, { days: p.days.map((d) => ({ ...d, exercises: d.exercises.filter((e) => e.exerciseId !== id) })) });
+  }
+  await db.exercises.delete(id);
+  await enqueueSync("exercises", "delete", id);
+}
+
 // Days are looked up by name, so make names unique (case/space-insensitive): 'Day' -> 'Day (2)'.
 function uniqueDayNames<T extends { name: string }>(days: T[]): T[] {
   const norm = (s: string) => s.trim().replace(/\s+/g, " ").toLowerCase();
