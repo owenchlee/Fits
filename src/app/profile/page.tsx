@@ -18,6 +18,8 @@ import { sanitizeIntegerInput } from "@/lib/format";
 import type { Sex, UnitSystem } from "@/lib/db/types";
 import { PageHeader } from "@/components/shared/page-header";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { getRestSoundEnabled, setRestSoundEnabled } from "@/lib/timer/rest-timer-context";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import {
@@ -133,6 +135,10 @@ export default function ProfilePage() {
   const { theme, setTheme } = useTheme();
   const { user, isGuest, supabase } = useAuth();
   const [resetting, setResetting] = React.useState(false);
+  const [restSound, setRestSound] = React.useState(true);
+  React.useEffect(() => {
+    queueMicrotask(() => setRestSound(getRestSoundEnabled()));
+  }, []);
 
   async function handleExport(run: () => Promise<ExportResult>, label: string) {
     try {
@@ -231,6 +237,18 @@ export default function ProfilePage() {
           seconds={settings.defaultRestSeconds}
           onChange={(seconds) => updateSettings({ defaultRestSeconds: seconds })}
         />
+
+        <div className="mt-3 flex items-center justify-between gap-2">
+          <Label htmlFor="rest-sound" className="text-sm">Rest timer sound</Label>
+          <Switch
+            id="rest-sound"
+            checked={restSound}
+            onCheckedChange={(on) => {
+              setRestSound(on);
+              setRestSoundEnabled(on);
+            }}
+          />
+        </div>
       </SettingsSection>
 
       <SettingsSection title="Appearance">
