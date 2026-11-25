@@ -149,6 +149,8 @@ export function ActiveWorkoutBar() {
             onClick={(e) => {
               e.preventDefault();
               restTimer.stop();
+              // The bar may unmount with this button, so hand focus to the page (WCAG 2.4.3).
+              setTimeout(() => document.querySelector<HTMLElement>("main input, main button, main a")?.focus(), 0);
             }}
             className="flex size-8 items-center justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground"
             aria-label="Dismiss timer"

@@ -94,6 +94,18 @@ export function ExerciseSessionCard({
   }
 
   const hasInitializedRef = React.useRef(false);
+  const cardRef = React.useRef<HTMLDivElement>(null);
+  const removeBtnRef = React.useRef<HTMLButtonElement>(null);
+
+  // The card unmounts on removal, so hand focus to another control on the page first (WCAG 2.4.3).
+  function removeAndKeepFocus() {
+    const others = Array.from(document.querySelectorAll<HTMLElement>("main button")).filter(
+      (b) => !cardRef.current?.contains(b),
+    );
+    const next = others.find((b) => b.dataset.removeExercise !== undefined) ?? others[0];
+    // Focus after the removal lands: an open dialog would otherwise trap focus back inside itself.
+    void saveOrToast(() => removeExerciseFromWorkout(workoutId, exerciseId)).then(() => setTimeout(() => next?.focus(), 0));
+  }
   React.useEffect(() => {
     if (hasInitializedRef.current) return;
     if (sets.length > 0) {
@@ -160,7 +172,7 @@ export function ExerciseSessionCard({
   const weightColumnLabel = exercise?.equipment === "bodyweight" ? "Added" : "Weight";
 
   return (
-    <div className="rounded-2xl border border-border bg-card p-4">
+    <div ref={cardRef} className="rounded-2xl border border-border bg-card p-4">
       <div className="mb-2.5 flex items-start justify-between gap-2">
         <div>
           <Link href={`/exercises/${exerciseId}`} className="font-display text-lg font-bold hover:text-primary">
@@ -181,18 +193,25 @@ export function ExerciseSessionCard({
           </div>
         </div>
         <button
+          ref={removeBtnRef}
+          data-remove-exercise=""
           aria-label={`Remove ${exercise?.name ?? "exercise"} from workout`}
           onClick={() => {
             // One stray tap shouldn't silently throw away logged sets — confirm only when there are some.
             if (sets.some((s) => isSetComplete(s, exercise))) setConfirmRemove(true);
-            else void saveOrToast(() => removeExerciseFromWorkout(workoutId, exerciseId));
+            else removeAndKeepFocus();
           }}
           className="relative flex size-7 shrink-0 items-center justify-center rounded-full text-muted-foreground hit-slop-44 hover:bg-secondary hover:text-destructive"
         >
           <X size={14} />
         </button>
         <AlertDialog open={confirmRemove} onOpenChange={setConfirmRemove}>
-          <AlertDialogContent>
+          <AlertDialogContent
+            onCloseAutoFocus={(e) => {
+              e.preventDefault();
+              removeBtnRef.current?.focus();
+            }}
+          >
             <AlertDialogHeader>
               <AlertDialogTitle>Remove {exercise?.name ?? "this exercise"}?</AlertDialogTitle>
               <AlertDialogDescription>The sets you&apos;ve logged for it in this workout will be deleted.</AlertDialogDescription>
@@ -201,7 +220,7 @@ export function ExerciseSessionCard({
               <AlertDialogCancel>Keep it</AlertDialogCancel>
               <AlertDialogAction
                 className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                onClick={() => void saveOrToast(() => removeExerciseFromWorkout(workoutId, exerciseId))}
+                onClick={removeAndKeepFocus}
               >
                 Remove
               </AlertDialogAction>
@@ -242,13 +261,16 @@ export function ExerciseSessionCard({
                 const wasComplete = isSetComplete(s, exercise);
                 handleSetChange(s.id, patch, willBeComplete && !wasComplete);
               }}
-              onDelete={() => deleteSet(s.id)}
+              onDelete={() => {
+                // The row unmounts, so park focus on this card's Add set button (WCAG 2.4.3).
+                void deleteSet(s.id).then(() => setTimeout(() => cardRef.current?.querySelector<HTMLElement>("[data-add-set]")?.focus(), 0));
+              }}
             />
           );
         })}
       </div>
 
-      <Button variant="ghost" size="sm" className="mt-2 w-full justify-center text-muted-foreground" onClick={handleAddSet}>
+      <Button variant="ghost" size="sm" data-add-set="" className="mt-2 w-full justify-center text-muted-foreground" onClick={handleAddSet}>
         <Plus size={15} /> Add set
       </Button>
     </div>
