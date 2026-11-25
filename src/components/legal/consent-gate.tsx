@@ -4,7 +4,7 @@ import * as React from "react";
 import { Barbell, FirstAidKit, Heartbeat, ShieldCheck, Warning } from "@phosphor-icons/react/dist/ssr";
 import { useAuth } from "@/lib/auth/auth-provider";
 import { hasAcceptedCurrentTerms, legalConsentStore, recordAcceptance } from "@/lib/auth/legal-consent";
-import { ConsentFields, NO_CONSENT, hasFullConsent } from "@/components/legal/consent-fields";
+import { ConsentFields, NO_CONSENT, hasFullConsent, useSessionDraft } from "@/components/legal/consent-fields";
 import { Button } from "@/components/ui/button";
 
 const POINTS = [
@@ -50,12 +50,13 @@ export function useNeedsConsent() {
  */
 export function ConsentGate() {
   const { supabase, user, isGuest, leaveGuestMode, signOut } = useAuth();
-  const [consent, setConsent] = React.useState(NO_CONSENT);
+  const [consent, setConsent, clearDraft] = useSessionDraft("fits-draft-consent", NO_CONSENT);
   const [saving, setSaving] = React.useState(false);
 
   async function handleAgree() {
     setSaving(true);
     await recordAcceptance(supabase, user);
+    clearDraft();
     setSaving(false);
   }
 

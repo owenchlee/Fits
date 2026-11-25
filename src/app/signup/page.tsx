@@ -10,7 +10,7 @@ import { authErrorMessage } from "@/lib/auth/friendly-error";
 import { acceptanceMetadata, markAcceptedLocally } from "@/lib/auth/legal-consent";
 import { hasLocalDataToMigrate, migrateLocalDataToAccount } from "@/lib/sync/migrate-local-data";
 import { AuthCard } from "@/components/auth/auth-card";
-import { ConsentFields, NO_CONSENT, hasFullConsent } from "@/components/legal/consent-fields";
+import { ConsentFields, NO_CONSENT, hasFullConsent, useSessionDraft } from "@/components/legal/consent-fields";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -18,10 +18,12 @@ import { Button } from "@/components/ui/button";
 export default function SignupPage() {
   const { supabase, isGuest } = useAuth();
   const router = useRouter();
-  const [email, setEmail] = React.useState("");
+  const [draft, setDraft, clearDraft] = useSessionDraft("fits-draft-signup", { email: "", consent: NO_CONSENT });
+  const { email, consent } = draft;
+  const setEmail = (email: string) => setDraft((d) => ({ ...d, email }));
+  const setConsent = (consent: typeof NO_CONSENT) => setDraft((d) => ({ ...d, consent }));
   const [password, setPassword] = React.useState("");
   const [confirmPassword, setConfirmPassword] = React.useState("");
-  const [consent, setConsent] = React.useState(NO_CONSENT);
   const [submitting, setSubmitting] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [errorField, setErrorField] = React.useState<"password" | "confirm-password" | null>(null);
@@ -65,6 +67,7 @@ export default function SignupPage() {
         return;
       }
       if (data.user) markAcceptedLocally(data.user.id);
+      clearDraft();
 
       if (!data.session || !data.user) {
         setCheckEmail(true);
