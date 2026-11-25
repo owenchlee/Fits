@@ -106,6 +106,8 @@ export default function WorkoutDetailPage() {
         </AlertDialog>
       </div>
 
+      {workout.notes && <p className="mb-4 whitespace-pre-wrap rounded-lg bg-secondary/50 px-3 py-2 text-sm">{workout.notes}</p>}
+
       <WorkoutExerciseBreakdown exerciseOrder={workout.exerciseOrder} sets={sets} unit={settings.unitSystem} />
     </div>
   );
@@ -203,6 +205,8 @@ function EditableSetRow({ set, index, unit }: { set: SetEntry; index: number; un
         className="h-8 w-12 rounded-lg border border-input bg-secondary px-2 text-center text-sm font-medium tabular-nums focus:border-ring focus:bg-background focus:outline-none"
       />
       {set.rpe && <span className="tabular-nums text-muted-foreground">RPE {set.rpe}</span>}
+      {set.isFailure && <span className="rounded bg-secondary px-1 text-[10px] font-semibold text-muted-foreground">To failure</span>}
+      {set.isDropSet && <span className="rounded bg-secondary px-1 text-[10px] font-semibold text-muted-foreground">Drop set</span>}
     </div>
   );
 }

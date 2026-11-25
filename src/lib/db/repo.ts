@@ -321,6 +321,11 @@ export async function updateSet(id: string, patch: Partial<SetEntry>) {
   if (done) await refreshSnapshotsFrom(done);
 }
 
+export async function updateWorkoutNotes(id: string, notes: string) {
+  await db.workouts.update(id, { notes, updatedAt: Date.now() });
+  await enqueueSync("workouts", "upsert", id);
+}
+
 export async function deleteSet(id: string) {
   await db.sets.delete(id);
   await enqueueSync("sets", "delete", id);

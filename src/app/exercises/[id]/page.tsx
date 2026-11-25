@@ -134,6 +134,8 @@ export default function ExerciseDetailPage() {
                   <tr key={s.id}>
                     <td className="px-3 py-2 text-muted-foreground">
                       {new Date(s.completedAt).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+                      {s.isFailure && <span className="ml-1 text-[10px] font-semibold">To failure</span>}
+                      {s.isDropSet && <span className="ml-1 text-[10px] font-semibold">Drop set</span>}
                     </td>
                     <td className="px-3 py-2 text-right tabular-nums">{unloaded ? (s.weightKg > 0 ? `BW + ${formatWeight(s.weightKg, settings.unitSystem)}` : "BW") : formatWeight(s.weightKg, settings.unitSystem)}</td>
                     <td className="px-3 py-2 text-right tabular-nums">{s.reps}</td>

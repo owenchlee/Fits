@@ -9,7 +9,7 @@ import { ElapsedTimer } from "@/components/train/elapsed-timer";
 import { ExerciseSessionCard } from "@/components/train/exercise-session-card";
 import { ExercisePicker } from "@/components/shared/exercise-picker";
 import { saveOrToast } from "@/lib/save";
-import { addExerciseToWorkout } from "@/lib/db/repo";
+import { addExerciseToWorkout, updateWorkoutNotes } from "@/lib/db/repo";
 import { isSetComplete } from "@/lib/calc/set-status";
 import { FinishWorkoutDialog } from "@/components/train/finish-workout-dialog";
 import { DiscardWorkoutButton } from "@/components/train/discard-workout-button";
@@ -103,6 +103,18 @@ export function WorkoutLogger({ workoutId }: { workoutId: string }) {
         </div>
       </div>
 
+      <input
+        key={workout.id}
+        aria-label="Workout note"
+        placeholder="Workout note"
+        type="text"
+        defaultValue={workout.notes ?? ""}
+        onBlur={(e) => {
+          if (e.target.value !== (workout.notes ?? "")) void saveOrToast(() => updateWorkoutNotes(workout.id, e.target.value));
+        }}
+        className="mb-4 w-full rounded-lg border border-border bg-card px-3 py-2 text-sm"
+      />
+
       {workout.exerciseOrder.length === 0 ? (
         <EmptyState
           icon={Barbell}
@@ -122,6 +134,7 @@ export function WorkoutLogger({ workoutId }: { workoutId: string }) {
                 nextExerciseId={nextUnfinishedExercise(i)}
                 targetSets={target?.targetSets}
                 targetReps={target?.targetReps}
+                targetRpe={target?.targetRpe}
                 restSeconds={target?.restSeconds ?? settings.defaultRestSeconds}
                 unit={settings.unitSystem}
                 sets={sets.filter((s) => s.exerciseId === exerciseId)}
